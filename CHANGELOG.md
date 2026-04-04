@@ -82,13 +82,46 @@ omarsec/
 
 ## Remaining Work
 
-### Phase 3: Content Structure + Docs (next)
-- Convert placeholder `.mdx` files into proper docs sections
-- Each section gets subfolder structure with `_meta.js`
-- Add proper "Getting Started" content for each section
+### Phase 3: Content Structure + Docs (Completed for Git)
+- [x] Convert placeholder `.mdx` files into proper docs sections
+- [x] Each section gets subfolder structure with `_meta.js`
+- [ ] Add proper "Getting Started" content for remaining Linux / Server Setup sections
 
 ### Phase 4: Homepage + Custom Styling (final)
 - Custom homepage with hero, cards, social links (dummy data)
 - Enhanced `globals.css` with teal/cyan accent color
 - Remove "Question? Give us feedback" and "Edit this page" links from homepage
-\n## Fix: Removed Duplicate Route\n- Removed `app/docs/[[...slug]]/page.jsx` as it conflicted with `app/[[...slug]]/page.jsx`. Nextra v4 relies on a single catch-all for resolving MDX files properly.
+## Fix: Removed Duplicate Route
+- Removed `app/docs/[[...slug]]/page.jsx` as it conflicted with `app/[[...slug]]/page.jsx`. Nextra v4 relies on a single catch-all for resolving MDX files properly.
+
+---
+
+## 2026-04-04 — Phase 3 (Git Docs Migration & Styling) Complete
+
+### What was done
+- Migrated 7 raw Markdown files into Nextra MDX and structured them correctly in `docs/git-github/`.
+- Cleansed raw emojis, "Module XX" prefixes, and heavy horizontal lines (`---`) to meet professional minimalist aesthetics.
+- Utilized Nextra components: `<Tabs>`, `<Steps>`, `<FileTree>`, `<Callout>`.
+- Restored `Geist` font for a Vercel/SWR-style premium look and fixed default Nextra H1/H2 sizes in `globals.css` to fit Geist geometry.
+- Shortened long markdown headings to ensure the right-side Table of Contents (TOC) remains single-line and uncluttered.
+- Replaced harsh red `error` Callouts with soft blue `info` Callouts for UX readability.
+- Enabled standard Nextra code copy buttons natively in `.mdx` blocks.
+- Tracked initial codebase in Git version control with `.gitignore`.
+
+---
+
+## 2026-04-04 — Layout Optimization & Custom 404
+
+### What was done
+- **Custom 404 Page:** Implemented a minimalist hacker-themed 404 page using Nextra's native `<NotFoundPage>` component to resolve hydration conflicts.
+- **SWR-style Footer:** Restructured `app/layout.jsx` with a Flexbox layout:
+  - Left: Copyright text (`MIT 2026 © OmarSec.`).
+  - Right: GitHub logo linking to the brand's profile.
+- **Hydration Fix:** Removed inline `onMouseOver/Out` event handlers from Server Components to ensure zero-error rendering in Next.js Turbopack.
+- **Import Cleanup:** Removed unused `ThemeSwitch` and `LocaleSwitch` imports to keep the bundle lean.
+
+### Known issues / notes
+- **Nextra 404 Hydration Bug:** (Remaining) In Next.js development mode, a small hydration warning about a script tag persists due to Nextra's internal dark-mode script. It is harmless in production and documented for future reference.
+
+
+---

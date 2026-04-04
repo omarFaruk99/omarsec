@@ -59,6 +59,12 @@ omarsec.com is a personal cybersecurity brand website built by **Omar (Shuvon)**
 - Giscus comments/reactions
 - Newsletter signup
 
+### Future Nextra Features to Explore
+- **`<Cards>` Component:** Use for the Homepage design or module index pages instead of standard bullet points for a premium UI grid.
+- **`<Bleed>` Component:** Use for full-screen architecture diagrams or large terminal screenshots in Linux/Server modules to break standard text margins.
+- **Math & LaTeX:** Native support available for cryptographic or algorithm-heavy cybersecurity articles.
+- [x] **Custom 404 Page:** Create a branded "hacker/cybersecurity themed" 404 error page.
+
 ## Phase 2 — Consultancy (1 year later)
 
 Same domain, same dark theme. Layout converts to firm website.
@@ -73,6 +79,17 @@ Same domain, same dark theme. Layout converts to firm website.
 ## Key Principle
 
 > Ship fast, improve later. No over-engineering.
+
+## AI Guidelines for Consistency 🤖
+
+Whenever an AI (or human) works on content in `.mdx` files or styles, strictly follow these rules to maintain the site's professional aesthetic:
+1. **Typography & Spacing**: Let Nextra handle margins. Do NOT use horizontal breaks (`---`) inside the body to separate sections. It creates visual clutter.
+2. **Table of Contents (TOC)**: Keep Markdown headings short and punchy (e.g., `## Part 2: Daily Workflow`). Put long explanatory text in a paragraph *below* the heading so the right-side TOC remains single-line.
+3. **Callouts**: Use `<Callout type="info">` (soft blue) for important tips/estimations. Avoid `type="error"` (red) unless explicitly highlighting a destructive or dangerous action.
+4. **Clean URLs**: Do NOT use "module-01" or numeric prefixes in filenames. Use semantic names (e.g., `setup.mdx`). Control their sidebar order strictly via `_meta.js`.
+5. **Theme Colors**: Stick to Nextra's default crisp default white/gray/blue theme. Avoid forcing `#00d4aa` (Teal) globally via CSS variables unless implementing Tailwind config natively.
+6. **Nextra Components**: Always use Nextra's built-in MDX components (`<Callout>`, `<Steps>`, `<Tabs>`, `<FileTree>`) instead of raw Markdown where appropriate to make the documentation interactive and visually engaging.
+7. **Processing User Content (`.md` files)**: If the user provides a raw `.md` file, immediately convert it to `.mdx`. Rename the file to a clean, URL-friendly semantic slug (e.g., `linux-basics.mdx` instead of `module-01-linux.md`). Remove hardcoded emojis or "Module" text, and restructure the content to utilize Nextra components.
 
 ## File Structure Convention
 
