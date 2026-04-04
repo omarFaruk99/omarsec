@@ -10,7 +10,8 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
 <Callout type="info">
 **Essential** | Estimated time: 30–45 minutes
 
-এই module শেষ করলে তোমার machine Git-ready এবং GitHub-connected হয়ে যাবে। একবার করলেই হবে — বারবার করতে হবে না।
+এই সেকশন শেষ করলে তোমার machine Git-ready এবং GitHub-connected হয়ে যাবে। একবার করলেই হবে — বারবার করতে হবে না।
+
 </Callout>
 
 ## What You'll Set Up
@@ -42,28 +43,31 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
   <Tabs.Tab>
     Terminal খুলে run করো:
 
-    ```bash
+    ```bash filename="Terminal"
     xcode-select --install
     ```
 
     অথবা Homebrew থাকলে:
 
-    ```bash
+    ```bash filename="Terminal"
     brew install git
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     Ubuntu বা Debian-এ:
-    ```bash
+    ```bash filename="Terminal"
     sudo apt update
     sudo apt install git
     ```
   </Tabs.Tab>
 </Tabs>
 
-### Verify করো
+### Verify Installation
 
-```bash
+গিট সঠিকভাবে ইনস্টল হয়েছে কিনা যাচাই করে নাও।
+
+
+```bash filename="Terminal"
 git --version
 ```
 
@@ -82,7 +86,7 @@ git version 2.43.0
 Git প্রতিটা commit-এ তোমার নাম আর email যোগ করে।
 এটা **globally** set করতে হবে — মানে তোমার সব project-এ একবারেই কাজ করবে।
 
-```bash
+```bash filename="Terminal"
 git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
 ```
@@ -91,15 +95,21 @@ git config --global user.email "you@example.com"
 **Important:** Email টা সেটাই দাও যেটা দিয়ে GitHub account বানাবে। না হলে তোমার commits GitHub profile-এ link হবে না।
 </Callout>
 
-### Default branch নাম set করো
+### Set Branch Name
 
-```bash
+ডিফল্ট ব্রাঞ্চের নাম 'main' হিসেবে সেট করার নিয়ম।
+
+
+```bash filename="Terminal"
 git config --global init.defaultBranch main
 ```
 
-### Verify করো
+### Verify Config
 
-```bash
+তোমার কনফিগারেশনগুলো সঠিকভাবে সেভ হয়েছে কিনা দেখে নাও।
+
+
+```bash filename="Terminal"
 git config --list
 ```
 
@@ -139,53 +149,65 @@ Free plan select করো
 SSH key হলো তোমার **digital identity card**। এটা দিয়ে GitHub বুঝবে যে তুমিই push করছ — password ছাড়াই।
 
 <Steps>
-### Key Generate করো
+### Generate Key
 
-```bash
+তোমার লোকাল মেশিনের জন্য একটি নতুন SSH কী তৈরি করো।
+
+
+```bash filename="Terminal"
 ssh-keygen -t ed25519 -C "you@example.com"
 ```
 
 Terminal জিজ্ঞেস করবে `Enter file in which to save the key`, শুধু **Enter** চাপো (default location ঠিকঠাক আছে)। এরপর Passphrase দিতে পারো (extra security) অথবা Enter চেপে skip করো।
 
-### SSH Agent-এ Key যোগ করো
+### Add to Agent
+
+তৈরি করা কী-টি তোমার সিস্টেমের SSH এজেন্টে যুক্ত করো।
+
 
 <Tabs items={['macOS / Linux', 'Windows (Git Bash)']}>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519
     ```
   </Tabs.Tab>
 </Tabs>
 
-### Public Key Copy করো
+### Copy Public Key
+
+গিটহাবের সাথে কানেক্ট করার জন্য পাবলিক কী-টি কপি করে নাও।
+
 
 <Tabs items={['macOS', 'Linux', 'Windows']}>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     pbcopy < ~/.ssh/id_ed25519.pub
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     cat ~/.ssh/id_ed25519.pub
     ```
     তারপর manually copy করো।
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     cat ~/.ssh/id_ed25519.pub | clip
     ```
   </Tabs.Tab>
 </Tabs>
 
-### GitHub-এ Key যোগ করো
+### Add to GitHub
+
+কপি করা কী-টি তোমার গিটহাব অ্যাকাউন্টের সেটিংসে যুক্ত করো।
+
 
 1. GitHub-এ যাও → **Settings** → **SSH and GPG keys**
 2. **New SSH key** click করো
@@ -193,9 +215,12 @@ Terminal জিজ্ঞেস করবে `Enter file in which to save the key
 4. Key paste করো
 5. **Add SSH key** click করো
 
-### Connection Test করো
+### Test Connection
 
-```bash
+সবকিছু ঠিকঠাক সেটআপ হয়েছে কিনা পরীক্ষা করে দেখো।
+
+
+```bash filename="Terminal"
 ssh -T git@github.com
 ```
 
@@ -207,7 +232,10 @@ ssh -T git@github.com
 
 VS Code-এ Git already built-in আছে। কিছু extensions install করলে কাজ আরও সহজ হবে।
 
-### Recommended Extensions
+### Extensions
+
+ভিএস কোড-এ কাজের গতি বাড়াতে কিছু দরকারি এক্সটেনশন।
+
 
 | Extension | কাজ |
 |-----------|-----|
@@ -215,26 +243,21 @@ VS Code-এ Git already built-in আছে। কিছু extensions install �
 | **Git Graph** | Visual branch tree দেখা |
 | **GitHub Pull Requests** | VS Code থেকেই PR manage করা |
 
-### Install করার উপায়
+### Install Extensions
+
+এই এক্সটেনশনগুলো ভিএস কোড-এ ইনস্টল করার নিয়ম।
+
 
 VS Code খোলো → `Ctrl+Shift+X` (Extensions panel) → নাম লিখে search করো → Install।
 `` Ctrl+` `` চাপলে integrated terminal খুলবে। এখান থেকেই সব Git commands run করবে।
 
-## Checklist
 
-এই module শেষ হলে নিচের সবগুলো টিক দেওয়া উচিত:
-
-- [ ] `git --version` কাজ করছে
-- [ ] `git config --list`-এ নাম আর email দেখাচ্ছে
-- [ ] GitHub account active এবং email verified
-- [ ] `ssh -T git@github.com` success দেখাচ্ছে
-- [ ] VS Code-এ GitLens install করা আছে
 
 ## Common Problems & Fixes
 
 ### Problem: `ssh -T` কাজ করছে না
 
-```bash
+```bash filename="Terminal"
 # Debug mode-এ try করো
 ssh -vT git@github.com
 ```
@@ -247,7 +270,7 @@ ssh -vT git@github.com
 Config-এর email আর GitHub-এর email match করছে না।
 **Fix:**
 
-```bash
+```bash filename="Terminal"
 git config --global user.email "github-এ-যে-email-দিয়েছ"
 ```
 
@@ -255,7 +278,7 @@ git config --global user.email "github-এ-যে-email-দিয়েছ"
 
 Windows-এ `pbcopy` নেই। `clip` use করো:
 
-```bash
+```bash filename="Terminal"
 cat ~/.ssh/id_ed25519.pub | clip
 ```
 
@@ -268,3 +291,8 @@ Setup শেষ! এখন Git-এর আসল কাজ শুরু হবে
 
 তুমি এখন সেই ৫টা command শিখবে যেগুলো ছাড়া Git-এ এক কদমও এগোনো যায় না।
 </Callout>
+
+
+<span style={{ display: 'none' }}>
+  Search Keywords: install git, github account, generate ssh key, setup ssh, vs code git config
+</span>

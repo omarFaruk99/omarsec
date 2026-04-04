@@ -10,9 +10,12 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
 সব important commands এক জায়গায়। Bookmark করো, print করো, দেওয়ালে লাগাও।
 </Callout>
 
-## Setup (একবার করলেই হয়)
+## Initial Setup
 
-```bash
+গিট ইনস্টল করার পর প্রথমবার যে কনফিগারেশনগুলো করতে হয়।
+
+
+```bash filename="Terminal"
 git --version                              # Git installed কিনা check করো
 git config --global user.name "Your Name"  # তোমার নাম set করো
 git config --global user.email "you@example.com"  # তোমার email set করো
@@ -20,9 +23,12 @@ git config --global init.defaultBranch main        # Default branch নাম
 git config --list                          # সব config দেখো
 ```
 
-## Project শুরু করা
+## Project Start
 
-```bash
+নতুন রিপোজিটরি তৈরি বা গিটহাব থেকে ক্লোন করার কমান্ডসমূহ।
+
+
+```bash filename="Terminal"
 git init                                   # নতুন repo শুরু করো
 git clone git@github.com:user/repo.git     # GitHub থেকে clone করো
 git remote -v                              # Remote connections দেখো
@@ -32,7 +38,10 @@ git remote set-url origin git@github.com:user/repo.git  # Remote URL change ক�
 
 ## Daily Workflow
 
-```bash
+প্রতিদিনের কাজে সবচেয়ে বেশি ব্যবহৃত গিট কমান্ডগুলো।
+
+
+```bash filename="Terminal"
 git status                                 # কী কী changed দেখো
 git add filename.txt                       # Specific file stage করো
 git add .                                  # সব changes stage করো
@@ -46,7 +55,10 @@ git fetch origin                           # Download করো, apply করো
 
 ## Branching
 
-```bash
+নতুন ব্রাঞ্চ তৈরি, ডিলিট এবং সুইচ করার প্রোফেশনাল কমান্ডসমূহ।
+
+
+```bash filename="Terminal"
 git branch                                 # Local branches দেখো
 git branch -a                              # সব branches দেখো (remote সহ)
 git switch branch-name                     # Branch-এ যাও
@@ -59,7 +71,10 @@ git fetch --prune                          # Deleted remote branches clean ক�
 
 ## Merging
 
-```bash
+বিভিন্ন ব্রাঞ্চের কোড এক জায়গায় করার প্রয়োজনীয় কমান্ডগুলো।
+
+
+```bash filename="Terminal"
 git merge branch-name                      # Branch merge করো
 git merge origin/main                      # Remote main merge করো
 git merge --abort                          # Merge cancel করো (conflict-এ)
@@ -67,7 +82,10 @@ git merge --abort                          # Merge cancel করো (conflict-�
 
 ## Stash
 
-```bash
+অর্ধেক করা কাজগুলো সাময়িকভাবে জমা রাখার সহজ কমান্ডসমূহ।
+
+
+```bash filename="Terminal"
 git stash                                  # Current changes সরিয়ে রাখো
 git stash pop                              # Stash ফিরিয়ে আনো
 git stash list                             # সব stash দেখো
@@ -76,9 +94,12 @@ git stash drop                             # Latest stash delete করো
 git stash clear                            # সব stash delete করো
 ```
 
-## History দেখা
+## View History
 
-```bash
+তোমার কাজের পূর্ণাঙ্গ ইতিহাস দেখার বিভিন্ন উপায়।
+
+
+```bash filename="Terminal"
 git log                                    # Full commit history
 git log --oneline                          # Short history
 git log --oneline --graph                  # Branch tree সহ history
@@ -89,24 +110,27 @@ git diff --staged                          # Staged changes দেখো
 git show a1b2c3d                           # Specific commit দেখো
 ```
 
-## Undo করা
+## Undo Actions
+
+ভুলবশত করা কাজগুলো আগের অবস্থায় ফিরিয়ে নেওয়ার নিয়ম।
+
 
 <Tabs items={['Commit করার আগে', 'Commit করার পর (push করোনি)', 'Push করার পর']}>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     git restore filename.txt                   # File-এর changes undo করো
     git restore --staged filename.txt          # Unstage করো
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     git commit --amend -m "New message"        # Last commit message fix করো
     git reset HEAD~1                           # Last commit undo, changes রাখো
     git reset --hard HEAD~1                    # Last commit undo, changes মুছে দাও
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     git revert a1b2c3d                         # Specific commit reverse করো (safe)
     ```
   </Tabs.Tab>
@@ -117,9 +141,12 @@ git show a1b2c3d                           # Specific commit দেখো
 - Push করার পর `reset` করবে না — `revert` ব্যবহার করো।
 </Callout>
 
-## Tags (Version Marking)
+## Tags
 
-```bash
+সফটওয়্যারের নির্দিষ্ট ভার্সন মার্ক করার জন্য ট্যাগ ব্যবহারের নিয়ম।
+
+
+```bash filename="Terminal"
 git tag                                    # সব tags দেখো
 git tag -a v1.0.0 -m "First release"      # Annotated tag বানাও
 git push origin v1.0.0                     # Tag GitHub-এ push করো
@@ -128,7 +155,10 @@ git push origin --tags                     # সব tags push করো
 
 ## Fork Workflow
 
-```bash
+অন্যের প্রোজেক্টে কন্ট্রিবিউট করার জন্য ফর্ক সিঙ্ক করার কমান্ড।
+
+
+```bash filename="Terminal"
 # Fork clone করার পর
 git remote add upstream git@github.com:original/repo.git
 
@@ -139,27 +169,47 @@ git merge upstream/main
 git push origin main
 ```
 
-## Hotfix Workflow (Emergency)
+## Hotfix Workflow
 
-```bash
+লাইভ সাইটের ইমারজেন্সি সমস্যা সমাধানের পূর্ণাঙ্গ গাইড।
+
+
+```bash filename="Terminal"
+# ১. Production ব্রাঞ্চে যাও এবং লেটেস্ট কোড নামাও
 git switch main
 git pull
+
+# ২. ইমারজেন্সি হটফিক্স ব্রাঞ্চ তৈরি করো
 git switch -c hotfix/critical-bug-fix
-# fix করো
+
+# [বাগ ফিক্স করো...]
+
+# ৩. ফিক্স সেভ (commit) করো
 git add .
 git commit -m "Fix critical bug"
+
+# ৪. Main-এ ফিরে ফিক্সটি মার্জ করে লাইভ করো
 git switch main
 git merge hotfix/critical-bug-fix
 git push
+
+# ৫. (Optional) নতুন ভার্সন ট্যাগ করো
 git tag -a v1.0.1 -m "Hotfix: critical bug"
 git push origin v1.0.1
+
+# ৬. Develop ব্রাঞ্চেও ფিক্সটি সিঙ্ক করো (অত্যন্ত জরুরি)
 git switch develop
 git merge hotfix/critical-bug-fix
 git push
+
+# ৭. কাজ শেষে লোকাল ব্রাঞ্চটি ক্লিনআপ করো
 git branch -d hotfix/critical-bug-fix
 ```
 
-## Commit Message Guide
+## Commit Guide
+
+পেশাদার এবং অর্থবহ কমিট মেসেজ লেখার একটি সংক্ষিপ্ত ডিরেক্টরি।
+
 
 ### Types
 | Type | কখন |
@@ -172,14 +222,17 @@ git branch -d hotfix/critical-bug-fix
 | `chore:` | Dependency update, config change |
 
 ### উদাহরণ
-```bash
+```bash filename="Terminal"
 feat: add price filter to product listing
 fix: resolve login redirect on Safari
 docs: update README with installation steps
 chore: update npm dependencies
 ```
 
-## Branch Naming Guide
+## Naming Guide
+
+ব্রাঞ্চের নাম দেওয়ার প্রফেশনাল স্ট্যান্ডার্ডগুলো একনজরে দেখো।
+
 
 ```
 feature/short-description      → নতুন feature
@@ -189,13 +242,16 @@ docs/short-description         → Documentation
 chore/short-description        → Cleanup, update
 ```
 
-## Panic Situations & Fixes
+## Panic Fixes
+
+জরুরি মুহূর্তে ভুল ফিক্স করার জন্য কিছু কমন সলিউশন।
+
 
 <Tabs items={['ভুল branch', '.env push হয়ে গেছে', 'Push rejected', 'Merge conflict', 'আগের commit-এ ফেরা']}>
   <Tabs.Tab>
     "আমি ভুল branch-এ commit করেছি!"
     
-    ```bash
+    ```bash filename="Terminal"
     git reset HEAD~1                           # Commit undo করো
     git switch correct-branch                  # সঠিক branch-এ যাও
     git add .
@@ -205,7 +261,7 @@ chore/short-description        → Cleanup, update
   <Tabs.Tab>
     "আমি `.env` file push করে ফেলেছি!"
     
-    ```bash
+    ```bash filename="Terminal"
     # ১. .env কে .gitignore-এ যোগ করো
     echo ".env" >> .gitignore
 
@@ -220,7 +276,7 @@ chore/short-description        → Cleanup, update
   <Tabs.Tab>
     "Push করতে পারছি না — rejected!"
     
-    ```bash
+    ```bash filename="Terminal"
     git pull                                   # Latest নামাও আগে
     # conflict হলে fix করো
     git push                                   # আবার push করো
@@ -229,7 +285,7 @@ chore/short-description        → Cleanup, update
   <Tabs.Tab>
     "Merge conflict এসেছে!"
     
-    ```bash
+    ```bash filename="Terminal"
     git status                                 # কোন files conflict-এ দেখো
     # Files খুলে <<<<<<< ======= >>>>>>> manually fix করো
     git add .
@@ -239,38 +295,46 @@ chore/short-description        → Cleanup, update
   <Tabs.Tab>
     "পুরো কাজ নষ্ট করে ফেলেছি, আগের commit-এ ফিরতে চাই!"
     
-    ```bash
+    ```bash filename="Terminal"
     git log --oneline                          # কোন commit-এ ফিরবে দেখো
     git revert a1b2c3d                         # সেই commit reverse করো (safe)
     ```
   </Tabs.Tab>
 </Tabs>
 
-## Complete Daily Workflow (মুখস্থ করো)
+## Full Workflow
+
+প্রতিদিনের কাজের একটি আদর্শ ফ্লো যা তোমার মুখস্থ রাখা উচিত।
+
 
 <Steps>
 ### সকালে
-```bash
+```bash filename="Terminal"
 git switch main
 git pull
 git switch -c feature/your-task
 ```
 
 ### কাজের মাঝে (বারবার)
-```bash
+```bash filename="Terminal"
 git add .
 git commit -m "Descriptive message"
 ```
 
 ### দিনের শেষে
-```bash
+```bash filename="Terminal"
 git push -u origin feature/your-task
 ```
 
 ### কাজ শেষে (PR merge হওয়ার পর)
-```bash
+```bash filename="Terminal"
 git switch main
 git pull
 git branch -d feature/your-task
 ```
 </Steps>
+
+
+<span style={{ display: 'none' }}>
+  Search Keywords: git commands, git aliases, undo commit, reset hard, revert commit, git tag, cheat sheet
+</span>

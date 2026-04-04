@@ -74,6 +74,13 @@ Same domain, same dark theme. Layout converts to firm website.
 - Testimonials
 - CTA: "Book a Free Consultation"
 
+## Multi-Language (i18n) Strategy (Future)
+
+- The overall website (Homepage, About, Services, Blog) will strictly remain **English-only** to appeal to a global audience and remote clients.
+- Only the `/docs` section will support bilingual content.
+- **English** will be configured as the default locale (`en`). Existing Bengali content will be transitioned to `.bn.mdx`, while their English translations will use `.en.mdx` and load by default.
+- Until i18n is fully activated, Bengali docs utilize "Hidden English Keywords" to ensure Nextra's FlexSearch correctly surfaces Bengali articles for common English search queries.
+
 ## Key Principle
 
 > Ship fast, improve later. No over-engineering.
@@ -82,12 +89,16 @@ Same domain, same dark theme. Layout converts to firm website.
 
 Whenever an AI (or human) works on content in `.mdx` files or styles, strictly follow these rules to maintain the site's professional aesthetic:
 1. **Typography & Spacing**: Let Nextra handle margins. Do NOT use horizontal breaks (`---`) inside the body to separate sections. It creates visual clutter.
-2. **Table of Contents (TOC)**: Keep Markdown headings short and punchy (e.g., `## Part 2: Daily Workflow`). Put long explanatory text in a paragraph *below* the heading so the right-side TOC remains single-line.
+2. **Table of Contents (TOC)**: Maintain a clean, professional, and **single-line** TOC on the right side.
+   - **Short Headings**: Use only 1-3 words for `##` and `###` headings (e.g., `## Remote Repositories`).
+   - **No Sequential Numbering**: Strictly avoid "Part 1," "Section 2," or "Scenario 3" markers in headings to mirror the semantic style of Next.js and Stripe docs.
+   - **Bilingual Context**: Always place a descriptive sentence in Bengali immediately *below* the heading in the body text to provide full context without cluttering the TOC.
 3. **Callouts**: Use `<Callout type="info">` (soft blue) for important tips/estimations. Avoid `type="error"` (red) unless explicitly highlighting a destructive or dangerous action.
 4. **Clean URLs**: Do NOT use "module-01" or numeric prefixes in filenames. Use semantic names (e.g., `setup.mdx`). Control their sidebar order strictly via `_meta.js`.
 5. **Theme Colors**: Stick to Nextra's default crisp default white/gray/blue theme. Avoid forcing `#00d4aa` (Teal) globally via CSS variables unless implementing Tailwind config natively.
 6. **Nextra Components**: Always use Nextra's built-in MDX components (`<Callout>`, `<Steps>`, `<Tabs>`, `<FileTree>`) instead of raw Markdown where appropriate to make the documentation interactive and visually engaging.
 7. **Processing User Content (`.md` files)**: If the user provides a raw `.md` file, immediately convert it to `.mdx`. Rename the file to a clean, URL-friendly semantic slug (e.g., `linux-basics.mdx` instead of `module-01-linux.md`). Remove hardcoded emojis or "Module" text, and restructure the content to utilize Nextra components.
+8. **Professional Tone & Vocabulary**: Strictly avoid labeling the reader with terms like **"beginner," "newcomer," "newbie,"** or **"amateur."** Instead, use empowering, focus-oriented terms like **"Foundations," "Fundamentals," "Zero to Hero," "Roadmap,"** and **"Professional Workflow."** Always use **"Section"** instead of "Module" or "Lesson" to maintain a standard, high-quality documentation feel similar to Next.js, Stripe, and React Docs.
 
 ## File Structure Convention
 
