@@ -43,9 +43,7 @@ omarsec.com is a personal cybersecurity brand website built by **Omar (Shuvon)**
 - Docs (all .mdx notes)
 
 ### Docs Sections
-- Linux
 - Git & GitHub
-- Server Setup
 
 ### Homepage (dummy data for now)
 - Hero: Name + "Cybersecurity Enthusiast & Pentester in Training"

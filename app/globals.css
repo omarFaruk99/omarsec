@@ -35,3 +35,73 @@ h3 {
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
 }
+
+/* Phase 4: Homepage & Branding Enhancements */
+
+:root {
+  --teal-accent: #00d4aa;
+  --teal-glow: rgba(0, 212, 170, 0.2);
+}
+
+.hero-title {
+  font-size: 3.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  color: #fff !important;
+  margin-bottom: 0.5rem !important;
+  display: block;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem !important;
+  color: #888 !important;
+  max-width: 600px;
+  line-height: 1.5 !important;
+  display: block;
+}
+
+.status-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  margin: 1.5rem 0;
+  transition: all 0.3s ease;
+  font-family: var(--font-geist);
+}
+
+.status-card:hover {
+  border-color: var(--teal-accent);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--teal-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--teal-accent);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 212, 170, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); }
+}
+
+/* Pagefind search results spacing */
+.nextra-search ul {
+  padding-top: 0.5rem !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem !important;
+  }
+}

@@ -5,7 +5,5 @@ export default {
       breadcrumb: false
     }
   },
-  linux: 'Linux',
-  'git-github': 'Git & GitHub',
-  'server-setup': 'Server Setup'
+  'git-github': 'Git & GitHub'
 }
