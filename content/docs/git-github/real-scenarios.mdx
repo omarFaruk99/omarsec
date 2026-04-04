@@ -1,0 +1,394 @@
+---
+title: Real Scenarios
+---
+
+import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+
+# Real Scenarios
+
+<Callout type="error" emoji="⚡">
+**Essential** | Estimated time: 90–120 minutes
+
+এই module-এ কোনো নতুন command নেই। এখানে তুমি দেখবে — এতক্ষণ যা শিখেছ সেটা real life-এ কীভাবে কাজ করে। তিনটা আলাদা situation, তিনটা আলাদা walkthrough।
+</Callout>
+
+## What You'll See
+
+- Scenario 1 — First day at a company (team project)
+- Scenario 2 — Client project with hotfix on live site
+- Scenario 3 — Open source contribution
+
+## Scenario 1 — First Day at a Company
+
+### Background
+
+তুমি একটা software company-তে নতুন join করেছ। তোমার team একটা e-commerce website বানাচ্ছে। Team lead তোমাকে বলল:
+> "আমাদের repo-তে access দিয়েছি। তোমার প্রথম task হলো product listing page-এ একটা filter feature add করা। Issue #23-এ details আছে।"
+
+<Steps>
+### Repo Setup করো
+Team lead তোমাকে repository-র link দিয়েছে।
+
+```bash
+# Repo clone করো
+git clone git@github.com:company/ecommerce-app.git
+cd ecommerce-app
+
+# কোন branches আছে দেখো
+git branch -a
+```
+
+<Callout type="info">
+অনেক company-তে `main` এ directly কাজ হয় না। `develop` branch থাকে যেখানে সব feature merge হয়, তারপর সেটা `main`-এ যায়। Team lead-কে জিজ্ঞেস করো — "কোন branch থেকে আমি কাজ শুরু করব?"
+</Callout>
+
+এই scenario-তে team `develop` branch use করছে।
+
+```bash
+# develop branch-এ switch করো
+git switch develop
+
+# Latest নামাও
+git pull
+```
+
+### Task বুঝো, Branch বানাও
+GitHub-এ Issue #23 দেখলে:
+- Minimum এবং maximum price input দেওয়ার option
+- Filter apply করলে product list update হবে
+- Mobile-এও কাজ করতে হবে
+
+```bash
+# develop থেকে নতুন branch বানাও
+git switch -c feature/23-product-price-filter
+```
+
+### কাজ করো, নিয়মিত Commit করো
+```bash
+# প্রথম দিন — UI বানালে
+git add src/components/PriceFilter.jsx
+git commit -m "Add PriceFilter component with min/max inputs"
+
+# দ্বিতীয় দিন — Logic যোগ করলে
+git add src/components/PriceFilter.jsx src/pages/Products.jsx
+git commit -m "Connect price filter to product listing"
+
+# তৃতীয় দিন — Mobile responsive করলে
+git add src/styles/filter.css
+git commit -m "Make price filter responsive for mobile"
+```
+
+<Callout type="info">
+**প্রতিদিন শেষে push করো।** কারণ:
+- তোমার laptop নষ্ট হলেও কাজ হারাবে না
+- Team lead দেখতে পাবে কাজ এগোচ্ছে
+</Callout>
+
+```bash
+git push -u origin feature/23-product-price-filter
+```
+
+### Main branch এগিয়ে গেলে Sync করো
+তুমি কাজ করছ, এর মধ্যে teammate অন্য feature merge করেছে `develop`-এ। তোমার branch পুরনো হয়ে গেছে। Conflict এড়াতে sync করো:
+
+```bash
+git fetch origin
+git merge origin/develop
+```
+
+Conflict হলে fix করো, তারপর:
+
+```bash
+git add .
+git commit -m "Sync with develop branch"
+git push
+```
+
+### PR বানাও
+কাজ শেষ। GitHub-এ PR বানাও।
+
+```
+Base: develop
+Compare: feature/23-product-price-filter
+
+Title: Add price filter to product listing — closes #23
+
+Description:
+## Summary
+Product listing page-এ price range filter add করা হয়েছে।
+
+## Changes
+- PriceFilter component তৈরি করা হয়েছে
+- Products page-এ filter integrate করা হয়েছে
+- Mobile responsive design add করা হয়েছে
+```
+
+### Review Process
+Team lead review করবে। হয়তো বলবে: "PriceFilter component-এ input validation নেই।"
+
+```bash
+# Fix করো
+git add src/components/PriceFilter.jsx
+git commit -m "Add input validation to prevent negative prices"
+git push
+```
+PR automatically update হয়ে যাবে। Re-request review করো।
+
+### Merge এবং Cleanup
+Approved! Merge হলো।
+
+```bash
+git switch develop
+git pull
+git branch -d feature/23-product-price-filter
+```
+</Steps>
+
+## Scenario 2 — Client Project with Hotfix
+
+### Background
+
+তুমি একটা agency-তে কাজ করো। তোমাদের client-এর e-commerce site live আছে। রাত ১১টায় client call করল: "Payment button কাজ করছে না! Customer order দিতে পারছে না! এখনই fix করো!"
+এটাকে বলে **hotfix** — live site-এ emergency fix।
+
+<FileTree>
+  <FileTree.Folder name="Branches" defaultOpen>
+    <FileTree.File name="main (live site / production)" />
+    <FileTree.File name="staging (client দেখে approve করে)" />
+    <FileTree.File name="develop (developers কাজ করে)" />
+  </FileTree.Folder>
+</FileTree>
+
+<Steps>
+### Panic করো না, Process Follow করো
+```bash
+# main branch-এ যাও (live code এখানে)
+git switch main
+git pull
+
+# hotfix branch বানাও main থেকে
+git switch -c hotfix/payment-button-broken
+```
+
+<Callout type="warning">
+**`develop` থেকে না, `main` থেকে branch বানাও।** কারণ `develop`-এ হয়তো অনেক incomplete কাজ আছে যেটা live-এ যাওয়া উচিত না।
+</Callout>
+
+### Bug খোঁজো এবং Fix করো
+```bash
+# config file update করলে
+git add src/config/payment.js
+git commit -m "Fix expired payment API key configuration"
+```
+
+### Test করো
+Local-এ test করো — payment কাজ করছে কিনা।
+
+### Staging-এ Deploy করো (Client দেখুক)
+```bash
+# staging-এ merge করো
+git switch staging
+git merge hotfix/payment-button-broken
+git push
+```
+
+Client-কে staging link পাঠাও test করতে। Confirm করলে:
+
+### Production (main) এ Deploy করো
+```bash
+# main-এ merge করো
+git switch main
+git merge hotfix/payment-button-broken
+git push
+
+# Version tag করো
+git tag -a v1.2.1 -m "Hotfix: Fix payment button"
+git push origin v1.2.1
+```
+
+### develop-এও Merge করো
+এই fix develop branch-এও থাকা দরকার, নইলে পরে আবার bug আসবে:
+
+```bash
+git switch develop
+git merge hotfix/payment-button-broken
+git push
+```
+
+### Cleanup
+```bash
+git branch -d hotfix/payment-button-broken
+git push origin --delete hotfix/payment-button-broken
+```
+</Steps>
+
+<Callout type="info">
+**Timeline Summary:**
+রাত ১১:০০ — Client call 
+রাত ১১:০৫ — hotfix branch বানানো 
+রাত ১১:২০ — Bug found and fixed 
+রাত ১১:২৫ — Staging-এ deploy 
+রাত ১১:৩০ — Client confirmed 
+রাত ১১:৩৫ — Production-এ deploy 
+রাত ১১:৪০ — Develop-এ merge, cleanup
+</Callout>
+
+## Scenario 3 — Open Source Contribution
+
+### Background
+
+তুমি একটা popular open source documentation tool ব্যবহার করছ। একটা bug পেলে — dark mode-এ code block-এর text দেখা যাচ্ছে না। ঠিক করে contribute করতে চাও।
+
+<Steps>
+### Issue Check করো
+আগে দেখো কেউ already এটা report করেছে কিনা। GitHub-এ repository → **Issues** → Search করো। যদি না থাকে, নতুন issue খোলো। Maintainer reply করল: "Good catch! PR welcome."
+
+### Fork করো
+Repository page-এ → **Fork** → **Create fork**
+
+### Clone এবং Setup করো
+```bash
+# তোমার fork clone করো
+git clone git@github.com:তোমার-username/docs-tool.git
+cd docs-tool
+
+# Original repo upstream হিসেবে add করো
+git remote add upstream git@github.com:original-owner/docs-tool.git
+```
+
+### CONTRIBUTING.md পড়ো
+**এটা skip করো না।** প্রতিটা project-এর নিজস্ব rules আছে।
+
+```bash
+cat CONTRIBUTING.md
+```
+
+### Branch বানাও
+```bash
+# Latest নামাও upstream থেকে
+git fetch upstream
+git switch main
+git merge upstream/main
+
+# Branch বানাও
+git switch -c fix/dark-mode-code-block-text
+```
+
+### Fix করো
+```bash
+git add src/styles/dark-mode.css
+git commit -m "Fix code block text color in dark mode
+
+Code block text was using default color which became invisible
+against dark backgrounds. Changed to use --code-text CSS variable
+that adapts to the current theme.
+
+Fixes #234"
+```
+
+<Callout type="info">
+**Open source commit message একটু বিস্তারিত লেখো।** Maintainer জানতে চাইবে কেন এই change করলে। Subject line + blank line + explanation — এই format follow করো।
+</Callout>
+
+### Push এবং PR পাঠাও
+```bash
+git push origin fix/dark-mode-code-block-text
+```
+GitHub-এ তোমার fork-এ যাও → **Compare & pull request**। এবার base repository হবে **original repo**, তোমার fork না।
+
+### Review Process এবং Patience
+Open source-এ review একটু সময় নেয়। 
+- ধৈর্য ধরো — ১-২ সপ্তাহ reply না আসলে politely comment করো
+- Maintainer যদি বলে "এভাবে করো" — argue না করে follow করো
+- Merge করতে pressure দেবে না
+
+### Fork Updated রাখো
+PR review-এর অপেক্ষায় থাকার সময় original repo এগিয়ে যেতে পারে:
+
+```bash
+git fetch upstream
+git switch main
+git merge upstream/main
+git push origin main
+```
+
+### Merged!
+PR merge হলো। তুমি এখন একজন open source contributor।
+
+```bash
+# Cleanup
+git switch main
+git fetch upstream
+git merge upstream/main
+git push origin main
+git branch -d fix/dark-mode-code-block-text
+git push origin --delete fix/dark-mode-code-block-text
+```
+</Steps>
+
+## তিনটা Scenario-র পার্থক্য একনজরে
+
+| | Team Project | Client Project | Open Source |
+|---|---|---|---|
+| **শুরু** | Clone | Clone | Fork → Clone |
+| **Base branch** | `develop` | `main` বা `develop` | `main` |
+| **Emergency fix** | hotfix branch | hotfix branch from `main` | প্রযোজ্য না |
+| **PR যায়** | নিজের repo-তে | নিজের repo-তে | Original repo-তে |
+| **Review করে** | Teammate | Team lead | Maintainer |
+| **Merge করে** | Team lead বা তুমি | Team lead | Maintainer |
+| **Upstream sync** | `origin/develop` | `origin/main` | `upstream/main` |
+
+## Checklist
+
+- [ ] Team project workflow বুঝেছি — develop branch থেকে feature branch
+- [ ] Hotfix workflow বুঝেছি — main থেকে hotfix, তারপর সব branch-এ merge
+- [ ] Open source workflow বুঝেছি — fork → upstream → PR to original
+- [ ] তিনটা scenario-র পার্থক্য বুঝেছি
+
+## Common Mistakes in Real Projects
+
+<Tabs items={['Push to main', 'Hotfix from develop', 'Force push', 'Giant commits']}>
+  <Tabs.Tab>
+    ```bash
+    # ❌ এটা করো না
+    git switch main
+    git add .
+    git commit -m "quick fix"
+    git push
+    ```
+    Professional project-এ `main` protected থাকে। **সবসময় branch → PR → merge।**
+  </Tabs.Tab>
+  <Tabs.Tab>
+    `develop`-এ হয়তো half-done features আছে। সেগুলো production-এ গেলে বড় সমস্যা। **Hotfix সবসময় `main` থেকে বানাও।**
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # ❌ কখনো করো না shared branch-এ
+    git push --force origin main
+    ```
+    এটা teammates-এর history নষ্ট করে। `--force` শুধু নিজের personal branch-এ।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # ❌ খারাপ
+    git commit -m "did everything"  # 47 files changed
+    ```
+    ছোট commits মানে — bug হলে কোথায় হয়েছে সহজে খুঁজে পাওয়া যায়।
+  </Tabs.Tab>
+</Tabs>
+
+## What's Next?
+
+Minimal track এখানেই শেষ। তুমি এখন জানো: Setup, Core loop, Branching, GitHub essentials, Real Scenarios.
+
+### এরপর কী শিখবে? (Advanced Track)
+
+| Topic | কেন দরকার |
+|-------|-----------|
+| `git rebase -i` | Messy commits clean করতে |
+| `git bisect` | কোন commit-এ bug এসেছে খুঁজে বের করতে |
+| GitHub Actions | Auto test, auto deploy |
+| Branch protection rules | Team-এর code quality enforce করতে |
+| Conventional Commits | Standard commit message format |
+| `git cherry-pick` | অন্য branch থেকে specific commit নিতে |
+| Signed commits (GPG) | Commit authenticity prove করতে |

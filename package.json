@@ -1,0 +1,18 @@
+{
+  "name": "omarsec",
+  "version": "1.0.0",
+  "description": "OmarSec - Cybersecurity Blog & Knowledge Base",
+  "private": true,
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^15.3.0",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

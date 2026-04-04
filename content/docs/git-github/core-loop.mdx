@@ -1,0 +1,401 @@
+---
+title: The Core Loop
+description: The essential Git commands you'll use every day.
+---
+
+import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+
+# The Core Loop
+
+<Callout type="error" emoji="⚡">
+**Essential** | Estimated time: 45–60 minutes
+
+এই module হলো Git-এর **heart**। এখানে যা শিখবে সেটা প্রতিদিন ব্যবহার করবে — চাকরিতে হোক, client project-এ হোক, বা নিজের project-এ।
+</Callout>
+
+## What You'll Learn
+
+- `git init` — নতুন project-এ Git শুরু করা
+- `git clone` — GitHub থেকে project নামানো
+- `git add` — কোন changes save করবে সেটা select করা
+- `git commit` — changes permanently record করা
+- `git push` — GitHub-এ upload করা
+- `git pull` — GitHub থেকে latest changes নামানো
+- `git status` এবং `git log` — কী হচ্ছে সেটা দেখা
+- `.gitignore` — কোন files Git track করবে না সেটা বলা
+
+## The Big Picture
+
+Git কীভাবে কাজ করে এটা বোঝা খুব জরুরি। কাজ শুরু করার আগে একটা mental model বুঝে নাও। Git-এ তোমার code তিনটা জায়গায় থাকে:
+
+```
+┌─────────────────┐     git add      ┌─────────────────┐     git commit     ┌─────────────────┐
+│                 │ ───────────────► │                 │ ─────────────────► │                 │
+│ Working         │                  │ Staging Area    │                    │ Repository      │
+│ Directory       │                  │ (Index)         │                    │ (.git folder)   │
+│                 │ ◄─────────────── │                 │                    │                 │
+│ তুমি এখানে      │   git restore    │ "কী save হবে"   │                    │ History saved   │
+│ কাজ করো        │                  │ সেটা ঠিক করো    │                    │ এখানে           │
+└─────────────────┘                  └─────────────────┘                    └─────────────────┘
+                                                                                      │
+                                                                                      │ git push
+                                                                                      ▼
+                                                                             ┌─────────────────┐
+                                                                             │                 │
+                                                                             │    GitHub       │
+                                                                             │   (Remote)      │
+                                                                             │                 │
+                                                                             └─────────────────┘
+```
+
+সহজ কথায়:
+<Steps>
+### Working Directory
+তুমি file edit করো
+
+### Staging Area
+`git add` করো (save করার list-এ উঠল)
+
+### Repository
+`git commit` করো (permanently recorded)
+
+### GitHub
+`git push` করো (internet-এ গেল)
+</Steps>
+
+## Part 1: Project শুরু করা
+
+<Tabs items={['Option A: নিজে শুরু (git init)', 'Option B: GitHub থেকে (git clone)']}>
+  <Tabs.Tab>
+    তুমি নতুন একটা project বানাচ্ছ, GitHub-এ এখনো কিছু নেই।
+
+    ```bash
+    # প্রথমে একটা folder বানাও
+    mkdir my-first-project
+    cd my-first-project
+
+    # এই folder-এ Git চালু করো
+    git init
+    ```
+
+    Output:
+    ```
+    Initialized empty Git repository in /home/you/my-first-project/.git/
+    ```
+
+    এই মানে `.git` নামে একটা hidden folder তৈরি হয়েছে। এই folder-এই Git তোমার সব history রাখে।
+
+    <Callout type="info">
+    **Pro Tip:** `git init` শুধু একবার করতে হয় — project-এর শুরুতে। বারবার করতে হয় না।
+    </Callout>
+  </Tabs.Tab>
+  <Tabs.Tab>
+    কোনো existing project আছে GitHub-এ, সেটা তোমার machine-এ নামাতে চাও।
+
+    ```bash
+    git clone git@github.com:username/repository-name.git
+    ```
+
+    উদাহরণ:
+    ```bash
+    git clone git@github.com:torvalds/linux.git
+    ```
+
+    এটা করলে:
+    - একটা নতুন folder তৈরি হবে (`linux` নামে)
+    - সব files নেমে আসবে
+    - Git automatically configured থাকবে
+
+    <Callout type="info">
+    **কোথায় পাবে clone URL?**
+    GitHub-এ repository-তে যাও → সবুজ **Code** button → **SSH** tab → URL copy করো।
+    </Callout>
+  </Tabs.Tab>
+</Tabs>
+
+## Part 2: Daily Workflow
+
+এই workflow তুমি প্রতিদিন follow করবে। এটি Git-এর সবচেয়ে গুরুত্বপূর্ণ অংশ।
+
+### Step 1: Status
+
+কাজ শুরু করার আগে দেখো কী অবস্থা:
+
+```bash
+git status
+```
+
+নতুন repo-তে output:
+```
+On branch main
+
+No commits yet
+
+nothing to commit (create/copy files and start working)
+```
+
+একটা file বানানোর পর:
+```bash
+# একটা file বানাও
+echo "# My First Project" > README.md
+
+# আবার status দেখো
+git status
+```
+
+Output:
+```
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        README.md
+
+nothing added to commit but untracked files present
+```
+
+**"Untracked"** মানে Git এই file-এর existence জানে, কিন্তু এখনো track করছে না।
+
+### Step 2: Staging (`git add`)
+
+কোন changes save করতে চাও সেটা Git-কে বলো:
+
+```bash
+# একটা specific file add করো
+git add README.md
+
+# একাধিক file add করো
+git add index.html style.css
+
+# সব changes একসাথে add করো
+git add .
+```
+
+<Callout type="warning">
+**`git add .` সাবধানে ব্যবহার করো।**
+এটা সব changed files একসাথে add করে। কাজের সময় অনেকে accidentally secret files বা বড় files add করে ফেলে। `.gitignore` শেখার পর এটা safer হবে (দেখো Part 4)।
+</Callout>
+
+Add করার পর status দেখো:
+
+```bash
+git status
+```
+
+Output-এ `Changes to be committed:` এর মানে file Staging Area-এ আছে — commit করার জন্য ready।
+
+### Step 3: Commit (`git commit`)
+
+এখন permanently record করো:
+
+```bash
+git commit -m "Initial commit: add README"
+```
+
+Output:
+```
+[main (root-commit) a1b2c3d] Initial commit: add README
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+```
+
+`-m` flag মানে message। Quotation-এর ভেতরে তুমি লিখছ **এই commit-এ কী করলে।**
+
+### Good Commit Message লেখার নিয়ম
+
+Commit message হলো তোমার **কাজের diary**। ৬ মাস পর তুমি বা তোমার teammate যখন history দেখবে, তখন বুঝতে পারবে কে কী করেছিল।
+
+<Tabs items={['❌ Bad Messages', '✅ Good Messages']}>
+  <Tabs.Tab>
+    ```
+    fix
+    update
+    changes
+    asdf
+    done
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    Add user login page
+    Fix broken navigation menu on mobile
+    Remove unused CSS from homepage
+    Update README with installation steps
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+**নিয়ম:**
+- Present tense লেখো ("Add" না "Added")
+- ছোট রাখো — ৫০ character-এর মধ্যে
+- কী করলে সেটা বলো, কেন করলে সেটা না হলেও চলে (ছোট changes-এ)
+
+### Step 4: Push (`git push`)
+
+তোমার local commit গুলো GitHub-এ পাঠাও।
+
+<Steps>
+### Repository তৈরি
+1. GitHub-এ যাও → **New repository**
+2. Repository name দাও 
+3. **Private** বা **Public** select করো
+4. **"Add a README file" tick দিও না**
+5. **Create repository** click করো
+
+### Remote add করো
+Terminal-এ:
+```bash
+git remote add origin git@github.com:username/my-first-project.git
+```
+
+### Push করো
+```bash
+git push -u origin main
+```
+</Steps>
+
+`-u origin main` মানে: "এখন থেকে `git push` করলেই `origin`-এর `main` branch-এ যাবে।" পরের বার থেকে শুধু `git push` লিলেই হবে।
+
+### Step 5: Pull (`git pull`)
+
+Team-এ কাজ করলে বা অন্য machine থেকে কাজ করলে, GitHub-এ নতুন changes থাকতে পারে। সেগুলো নামাও:
+
+```bash
+git pull
+```
+
+<Callout type="info">
+**Good habit:** কাজ শুরু করার আগে সবসময় `git pull` করো। এতে তুমি latest code দিয়ে কাজ শুরু করবে।
+</Callout>
+
+## Part 3: History (`git log`)
+
+তোমার সব commits দেখতে:
+
+```bash
+git log
+```
+
+একটু সংক্ষেপে দেখতে:
+
+```bash
+git log --oneline
+```
+
+Output:
+```
+e4f5g6h Add contact page
+a1b2c3d Initial commit: add README
+```
+
+## Part 4: `.gitignore`
+
+কিছু files আছে যেগুলো Git-এ রাখা উচিত না। এগুলো ignore করতে project root-এ `.gitignore` নামে একটা file বানাও:
+
+<FileTree>
+  <FileTree.Folder name="my-first-project" defaultOpen>
+    <FileTree.Folder name=".git" />
+    <FileTree.Folder name="node_modules" />
+    <FileTree.File name=".env" />
+    <FileTree.File name=".gitignore" />
+    <FileTree.File name="README.md" />
+  </FileTree.Folder>
+</FileTree>
+
+File-এর ভেতরে লেখো:
+
+```
+# Dependencies
+node_modules/
+
+# Environment variables (NEVER commit this!)
+.env
+.env.local
+
+# OS files
+.DS_Store
+```
+
+<Callout type="error">
+**সবচেয়ে বড় ভুল:** `.env` file commit করে GitHub-এ push করা। এতে তোমার API keys, database passwords সব public হয়ে যায়। সবসময় `.env` কে `.gitignore`-এ রাখো।
+</Callout>
+
+## Part 5: Full Workflow
+
+এটাই তুমি প্রতিদিন করবে:
+
+<Steps>
+### Pull Latest
+কাজ শুরুর আগে latest pull করো `git pull`
+
+### Work
+কাজ করো (files edit করো)
+
+### Inspect Status
+কী কী change হয়েছে দেখো `git status`
+
+### Stage Changes
+Changes stage করো `git add .`
+
+### Commit
+Commit করো `git commit -m "Add feature"`
+
+### Push
+GitHub-এ push করো `git push`
+</Steps>
+
+## Checklist
+
+- [ ] `git init` দিয়ে নতুন project তৈরি করেছি
+- [ ] `git clone` দিয়ে GitHub থেকে project নামিয়েছি
+- [ ] `git add` → `git commit` → `git push` করেছি
+- [ ] GitHub-এ গিয়ে আমার commit দেখতে পাচ্ছি
+- [ ] `git log --oneline` দিয়ে history দেখেছি
+- [ ] `.gitignore` file বানিয়েছি
+
+## Common Problems & Fixes
+
+<Tabs items={['Push Error', 'Nothing to commit', 'Wrong Message', 'Wrong File Added']}>
+  <Tabs.Tab>
+    ```
+    error: failed to push some refs...
+    ```
+    **কারণ:** GitHub-এ নতুন changes আছে যেটা তোমার কাছে নেই।
+    **Fix:** `git pull` তারপর `git push`
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    nothing to commit, working tree clean
+    ```
+    **কারণ:** তুমি `git add` করোনি অথবা সত্যিই কোনো change নেই।
+    **Fix:** `git status` দিয়ে দেখো.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Push করার আগে message ভুল হলে:
+    ```bash
+    git commit --amend -m "সঠিক message এখানে"
+    ```
+    <Callout type="warning">Push করার পরে amend করবে না!</Callout>
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Staging থেকে বাদ দাও (file delete হবে না)
+    git restore --staged filename.txt
+
+    # সব unstage করতে
+    git restore --staged .
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## What's Next?
+
+Daily workflow শেখা হয়ে গেছে। এখন শিখবে Git-এর সবচেয়ে powerful feature —
+
+<Callout type="info">
+**→ Branching & Merging**
+
+একই project-এ একাধিক কাজ একসাথে করা, team-এর সাথে conflict ছাড়া কাজ করা — সব এখানে।
+</Callout>

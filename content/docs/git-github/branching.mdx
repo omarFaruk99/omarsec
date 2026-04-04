@@ -1,0 +1,425 @@
+---
+title: Branching & Merging
+---
+
+import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+
+# Branching & Merging
+
+<Callout type="error" emoji="⚡">
+**Essential** | Estimated time: 60–90 minutes
+
+Branch হলো Git-এর সবচেয়ে powerful feature। এটা বোঝার পর তুমি বুঝবে কেন পুরো দুনিয়া Git ব্যবহার করে।
+</Callout>
+
+## What You'll Learn
+
+- Branch কী এবং কেন দরকার
+- Branch বানানো, switch করা, delete করা
+- Branch naming convention (real company style)
+- Merge করা — branch-এর কাজ main-এ আনা
+- Merge conflict — কী হয়, কীভাবে fix করে
+- `git stash` — কাজের মাঝে হঠাৎ switch করতে হলে
+
+## Branch কী? (Mental Model)
+
+কল্পনা করো তুমি একটা বইয়ের writer। বইটা already published — সেটা হলো `main` branch।
+
+এখন তুমি নতুন একটা chapter লিখতে চাও। কিন্তু সরাসরি published বই-এ লিখবে না, তাই না? তুমি একটা **আলাদা draft খাতা** নেবে, সেখানে লিখবে, edit করবে — যখন ready হবে তখন published বই-এ যোগ করবে।
+
+Git-এ সেই **আলাদা draft খাতাটাই হলো branch।**
+
+```
+main branch (published, stable):
+──●──●──●──●──────────────────────►
+  A  B  C  D
+
+তুমি D থেকে নতুন branch বানালে:
+──●──●──●──●──────────────────────►  (main)
+            \
+             ●──●──●                 (feature/new-chapter)
+             E  F  G
+
+কাজ শেষে main-এ merge করলে:
+──●──●──●──●──────────────────────●►  (main)
+            \                    /
+             ●──●──●────────────    (feature/new-chapter, merged)
+             E  F  G
+```
+
+<Callout type="info">
+**Real life-এ কেন দরকার:**
+- তুমি নতুন feature বানাচ্ছ, teammate bug fix করছে — দুইজন আলাদা branch-এ কাজ করবে, একজন আরেকজনের কাজ নষ্ট করবে না
+- কোনো feature half-done থাকলেও `main` branch সবসময় working থাকবে
+- কিছু ভুল হলে branch delete করে দাও — main অক্ষত থাকবে
+</Callout>
+
+## Part 1: Basic Commands
+
+<Tabs items={['নতুন Branch', 'Switch করা', 'বানানো + Switch', 'সব Branch দেখা', 'Delete করা']}>
+  <Tabs.Tab>
+    ```bash
+    git branch feature/login-page
+    ```
+    এটা শুধু branch বানায়, switch করে না।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git switch feature/login-page
+    ```
+    Output: `Switched to branch 'feature/login-page'`
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git switch -c feature/login-page
+    ```
+    `-c` মানে "create"। এটাই সবচেয়ে বেশি ব্যবহার হয়।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Local branch দেখতে
+    git branch
+    
+    # Local + Remote সব branch দেখতে
+    git branch -a
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Local branch delete (merge হয়ে গেলে)
+    git branch -d feature/login-page
+
+    # Force delete (merge না হলেও)
+    git branch -D feature/login-page
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="info">
+**Pro Tip:** Branch delete করলে সেই branch-এর commits হারায় না — যদি merge হয়ে থাকে। Merge হওয়া মানে সেই কাজ main-এ চলে গেছে।
+</Callout>
+
+## Part 2: Naming Convention
+
+Real company-তে branch-এর নাম দেখলেই বোঝা যায় সে কী করছে। এটা একটা standard follow করে:
+
+| Prefix | কখন ব্যবহার | উদাহরণ |
+|--------|------------|---------|
+| `feature/` | নতুন কিছু বানাচ্ছ | `feature/user-login` |
+| `fix/` | Bug fix করছ | `fix/broken-navbar` |
+| `hotfix/` | Live site-এ emergency fix | `hotfix/payment-crash` |
+| `chore/` | Code cleanup, dependency update | `chore/update-packages` |
+| `docs/` | Documentation লিখছ | `docs/api-guide` |
+
+<Tabs items={['❌ খারাপ নাম', '✅ ভালো নাম']}>
+  <Tabs.Tab>
+    ```
+    mybranch
+    test
+    new
+    fix1
+    asdf
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    feature/product-search
+    fix/login-redirect-bug
+    hotfix/checkout-500-error
+    docs/readme-update
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Part 3: Branch Workflow
+
+একটা real scenario দিয়ে দেখি। ধরো তুমি একটা website-এ কাজ করছ এবং নতুন "Contact Us" page বানাতে হবে।
+
+<Steps>
+### Checkout & Pull
+আগে main-এ যাও এবং latest নামাও:
+
+```bash
+git switch main
+git pull
+```
+
+### Create Branch
+নতুন branch বানাও:
+
+```bash
+git switch -c feature/contact-page
+```
+
+### Work and Commit
+কিছু file বানাও এবং commit করো:
+
+```bash
+touch contact.html
+echo "<h1>Contact Us</h1>" > contact.html
+
+git add contact.html
+git commit -m "Add contact page with basic structure"
+```
+
+### Repeat
+আরও কাজ করো, আরও commit করো:
+
+```bash
+echo "<p>Email: hello@example.com</p>" >> contact.html
+git add contact.html
+git commit -m "Add email address to contact page"
+```
+
+### Push
+Branch GitHub-এ push করো:
+
+```bash
+git push -u origin feature/contact-page
+```
+
+এখন তোমার branch GitHub-এও আছে। Teammate দেখতে পাবে।
+</Steps>
+
+## Part 4: Merge
+
+Branch-এর কাজ শেষ। এখন সেটা `main`-এ আনতে হবে।
+
+```bash
+# প্রথমে main-এ যাও
+git switch main
+
+# latest pull করো
+git pull
+
+# feature branch merge করো
+git merge feature/contact-page
+```
+
+Output (smooth merge হলে):
+```
+Updating a1b2c3d..e4f5g6h
+Fast-forward
+ contact.html | 2 ++
+ 1 file changed, 2 insertions(+)
+ create mode 100644 contact.html
+```
+
+<Callout type="info">
+**Clean up:** Merge হয়ে গেলে branch আর দরকার নেই। 
+
+```bash
+# Local branch delete
+git branch -d feature/contact-page
+
+# GitHub থেকেও delete করো
+git push origin --delete feature/contact-page
+```
+</Callout>
+
+## Part 5: Merge Conflict
+
+### Conflict কখন হয়?
+
+তুমি আর তোমার teammate **একই file-এর একই line** দুইজন দুইভাবে edit করলে Git বুঝতে পারে না কোনটা রাখবে। তখন সে তোমাকে জিজ্ঞেস করে — "তুমি ঠিক করো।"
+
+### Conflict দেখতে কেমন?
+
+```bash
+git merge feature/about-page
+```
+
+Output:
+```
+Auto-merging index.html
+CONFLICT (content): Merge conflict in index.html
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+`index.html` file খুললে দেখবে:
+
+```html
+<<<<<<< HEAD
+<title>My Awesome Website</title>
+=======
+<title>My Portfolio Website</title>
+>>>>>>> feature/about-page
+```
+
+### Conflict Fix করো
+
+তোমাকে decide করতে হবে কোনটা রাখবে। তিনটা option:
+
+<Tabs items={['Option A: তোমারটা রাখো', 'Option B: তাদেরটা রাখো', 'Option C: দুইটা মিলিয়ে দাও']}>
+  <Tabs.Tab>
+    ```html
+    <title>My Awesome Website</title>
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```html
+    <title>My Portfolio Website</title>
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```html
+    <title>My Awesome Portfolio</title>
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+Fix করার পর `<<<<<<<`, `=======`, `>>>>>>>` lines গুলো **সব মুছে দাও।**
+
+তারপর:
+
+```bash
+git add index.html
+git commit -m "Merge feature/about-page: resolve title conflict"
+```
+
+<Callout type="info">
+**VS Code Conflict Helper:**
+VS Code conflict দেখলে automatically "Accept Current Change / Accept Incoming Change / Accept Both" বাটন দেখায়। Button click করলেই হয়, manually edit করতে হয় না।
+</Callout>
+
+### Conflict এড়ানোর উপায়
+
+- কাজ শুরুর আগে সবসময় `git pull` করো
+- ছোট ছোট commits করো, বড় না
+- একই file-এ দুইজন কাজ করলে আগে থেকে বলে রাখো
+
+## Part 6: git stash
+
+### কখন লাগে?
+
+তুমি `feature/login` branch-এ কাজ করছ — অর্ধেক হয়েছে, commit করার মতো না। হঠাৎ boss বলল "main branch-এ একটা critical bug fix করো এখনই।"
+
+তুমি কী করবে? Half-done কাজ commit করবে? সব delete করবে?
+
+**না — stash করবে।** Stash হলো একটা **temporary drawer** — কাজ সেখানে রেখে দাও, পরে ফিরে এসে নাও।
+
+<Steps>
+### Stash করো
+
+```bash
+# সব current changes stash করো
+git stash
+```
+
+এখন তোমার working directory clean — যেন কিছু হয়নি।
+
+### অন্য Branch-এ কাজ করো
+
+```bash
+git switch main
+# bug fix করো
+git add .
+git commit -m "Fix critical navigation bug"
+git push
+```
+
+### ফিরে এসে Stash থেকে নাও
+
+```bash
+git switch feature/login
+
+# stash থেকে কাজ ফিরিয়ে আনো
+git stash pop
+```
+
+তোমার আগের সব কাজ ফিরে আসবে — যেন কিছুই হয়নি।
+</Steps>
+
+### Stash Commands
+
+```bash
+git stash list                # একাধিক Stash দেখো
+git stash apply stash@{1}     # Specific Stash Apply করো
+git stash drop                # সবচেয়ে latest stash delete
+git stash clear               # সব stash clear করো
+```
+
+## Part 7: Team Scenario
+
+এখন সব একসাথে দেখি। ধরো তুমি একটা team-এ কাজ করছ।
+
+```bash
+# ১. সকালে কাজ শুরু — latest নামাও
+git switch main
+git pull
+
+# ২. নতুন feature-এর জন্য branch বানাও
+git switch -c feature/search-bar
+
+# ৩. কাজ করো
+git add .
+git commit -m "Add search bar UI to header"
+
+git add .
+git commit -m "Connect search bar to product API"
+
+# ৪. কাজ শেষ — GitHub-এ push করো
+git push -u origin feature/search-bar
+
+# ৫. এখন Pull Request বানাবে GitHub-এ
+# Teammate review করবে, approve করবে
+# তারপর main-এ merge হবে
+
+# ৬. Merge হওয়ার পর local cleanup
+git switch main
+git pull
+git branch -d feature/search-bar
+```
+
+## Checklist
+
+- [ ] নতুন branch বানিয়ে switch করেছি (`git switch -c`)
+- [ ] Branch-এ commit করেছি
+- [ ] main-এ merge করেছি
+- [ ] Merge conflict manually fix করেছি
+- [ ] `git stash` দিয়ে কাজ save করে অন্য branch-এ গেছি
+- [ ] Merge হওয়া branch delete করেছি
+
+## Common Problems & Fixes
+
+<Tabs items={['Already up to date', 'Checkout Error', 'Wrong Branch', 'Deleted Remote Branch']}>
+  <Tabs.Tab>
+    **Problem:** "Already up to date" কিন্তু merge হচ্ছে না।
+    
+    **কারণ:** তোমার feature branch-এ main-এর সব commits আছে। `git log --oneline` দিয়ে দেখো।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Problem:** `Your local changes to the following files would be overwritten by checkout`
+    
+    **Fix:** হয় `git stash` করো, নয় `git add . && git commit` করো — তারপর switch করো।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Problem:** ভুল branch-এ commit করে ফেলেছি
+    
+    **Fix:** 
+    ```bash
+    git reset HEAD~1
+    git switch correct-branch
+    git add .
+    git commit -m "message"
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Problem:** Remote branch delete করার পর local-এ এখনো দেখাচ্ছে
+    
+    **Fix:** 
+    ```bash
+    git fetch --prune
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## What's Next?
+
+Branch এবং merge শেখা হয়ে গেছে। এখন শিখবে GitHub-এর সাথে properly কাজ করা — SSH, remote, Pull Request সব।
+
+<Callout type="info">
+**→ GitHub Essentials**
+
+তোমার local Git এবং GitHub-এর মধ্যে bridge কীভাবে কাজ করে, Pull Request কী এবং কীভাবে করতে হয় — সব এখানে।
+</Callout>

@@ -1,0 +1,276 @@
+---
+title: Cheatsheet
+---
+
+import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+
+# Git & GitHub — Cheatsheet
+
+<Callout type="info" emoji="🔖">
+সব important commands এক জায়গায়। Bookmark করো, print করো, দেওয়ালে লাগাও।
+</Callout>
+
+## Setup (একবার করলেই হয়)
+
+```bash
+git --version                              # Git installed কিনা check করো
+git config --global user.name "Your Name"  # তোমার নাম set করো
+git config --global user.email "you@example.com"  # তোমার email set করো
+git config --global init.defaultBranch main        # Default branch নাম
+git config --list                          # সব config দেখো
+```
+
+## Project শুরু করা
+
+```bash
+git init                                   # নতুন repo শুরু করো
+git clone git@github.com:user/repo.git     # GitHub থেকে clone করো
+git remote -v                              # Remote connections দেখো
+git remote add origin git@github.com:user/repo.git  # Remote add করো
+git remote set-url origin git@github.com:user/repo.git  # Remote URL change করো
+```
+
+## Daily Workflow
+
+```bash
+git status                                 # কী কী changed দেখো
+git add filename.txt                       # Specific file stage করো
+git add .                                  # সব changes stage করো
+git restore --staged filename.txt          # Stage থেকে বাদ দাও
+git commit -m "Your message here"          # Commit করো
+git push                                   # GitHub-এ upload করো
+git push -u origin main                    # প্রথমবার push (branch set করে)
+git pull                                   # GitHub থেকে latest নামাও
+git fetch origin                           # Download করো, apply করো না
+```
+
+## Branching
+
+```bash
+git branch                                 # Local branches দেখো
+git branch -a                              # সব branches দেখো (remote সহ)
+git switch branch-name                     # Branch-এ যাও
+git switch -c feature/new-feature          # নতুন branch বানাও এবং যাও
+git branch -d branch-name                  # Branch delete করো (merged)
+git branch -D branch-name                  # Branch force delete করো
+git push origin --delete branch-name       # Remote branch delete করো
+git fetch --prune                          # Deleted remote branches clean করো
+```
+
+## Merging
+
+```bash
+git merge branch-name                      # Branch merge করো
+git merge origin/main                      # Remote main merge করো
+git merge --abort                          # Merge cancel করো (conflict-এ)
+```
+
+## Stash
+
+```bash
+git stash                                  # Current changes সরিয়ে রাখো
+git stash pop                              # Stash ফিরিয়ে আনো
+git stash list                             # সব stash দেখো
+git stash apply stash@{1}                  # Specific stash apply করো
+git stash drop                             # Latest stash delete করো
+git stash clear                            # সব stash delete করো
+```
+
+## History দেখা
+
+```bash
+git log                                    # Full commit history
+git log --oneline                          # Short history
+git log --oneline --graph                  # Branch tree সহ history
+git log --author="Name"                    # নির্দিষ্ট কারো commits
+git log --since="2 weeks ago"              # নির্দিষ্ট সময়ের commits
+git diff                                   # Unstaged changes দেখো
+git diff --staged                          # Staged changes দেখো
+git show a1b2c3d                           # Specific commit দেখো
+```
+
+## Undo করা
+
+<Tabs items={['Commit করার আগে', 'Commit করার পর (push করোনি)', 'Push করার পর']}>
+  <Tabs.Tab>
+    ```bash
+    git restore filename.txt                   # File-এর changes undo করো
+    git restore --staged filename.txt          # Unstage করো
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git commit --amend -m "New message"        # Last commit message fix করো
+    git reset HEAD~1                           # Last commit undo, changes রাখো
+    git reset --hard HEAD~1                    # Last commit undo, changes মুছে দাও
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git revert a1b2c3d                         # Specific commit reverse করো (safe)
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="warning">
+- `reset --hard` সাবধানে — changes permanently মুছে যায়।
+- Push করার পর `reset` করবে না — `revert` ব্যবহার করো।
+</Callout>
+
+## Tags (Version Marking)
+
+```bash
+git tag                                    # সব tags দেখো
+git tag -a v1.0.0 -m "First release"      # Annotated tag বানাও
+git push origin v1.0.0                     # Tag GitHub-এ push করো
+git push origin --tags                     # সব tags push করো
+```
+
+## Fork Workflow
+
+```bash
+# Fork clone করার পর
+git remote add upstream git@github.com:original/repo.git
+
+# Fork sync করো
+git fetch upstream
+git switch main
+git merge upstream/main
+git push origin main
+```
+
+## Hotfix Workflow (Emergency)
+
+```bash
+git switch main
+git pull
+git switch -c hotfix/critical-bug-fix
+# fix করো
+git add .
+git commit -m "Fix critical bug"
+git switch main
+git merge hotfix/critical-bug-fix
+git push
+git tag -a v1.0.1 -m "Hotfix: critical bug"
+git push origin v1.0.1
+git switch develop
+git merge hotfix/critical-bug-fix
+git push
+git branch -d hotfix/critical-bug-fix
+```
+
+## Commit Message Guide
+
+### Types
+| Type | কখন |
+|------|------|
+| `feat:` | নতুন feature |
+| `fix:` | Bug fix |
+| `docs:` | Documentation |
+| `style:` | Formatting (code logic change না) |
+| `refactor:` | Code restructure |
+| `chore:` | Dependency update, config change |
+
+### উদাহরণ
+```bash
+feat: add price filter to product listing
+fix: resolve login redirect on Safari
+docs: update README with installation steps
+chore: update npm dependencies
+```
+
+## Branch Naming Guide
+
+```
+feature/short-description      → নতুন feature
+fix/short-description          → Bug fix
+hotfix/short-description       → Emergency live fix
+docs/short-description         → Documentation
+chore/short-description        → Cleanup, update
+```
+
+## Panic Situations & Fixes
+
+<Tabs items={['ভুল branch', '.env push হয়ে গেছে', 'Push rejected', 'Merge conflict', 'আগের commit-এ ফেরা']}>
+  <Tabs.Tab>
+    "আমি ভুল branch-এ commit করেছি!"
+    
+    ```bash
+    git reset HEAD~1                           # Commit undo করো
+    git switch correct-branch                  # সঠিক branch-এ যাও
+    git add .
+    git commit -m "Your message"
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    "আমি `.env` file push করে ফেলেছি!"
+    
+    ```bash
+    # ১. .env কে .gitignore-এ যোগ করো
+    echo ".env" >> .gitignore
+
+    # ২. Git tracking থেকে বাদ দাও
+    git rm --cached .env
+    git commit -m "Remove .env from tracking"
+    git push
+
+    # ৩. GitHub-এ গিয়ে secrets immediately rotate করো (API keys, passwords)
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    "Push করতে পারছি না — rejected!"
+    
+    ```bash
+    git pull                                   # Latest নামাও আগে
+    # conflict হলে fix করো
+    git push                                   # আবার push করো
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    "Merge conflict এসেছে!"
+    
+    ```bash
+    git status                                 # কোন files conflict-এ দেখো
+    # Files খুলে <<<<<<< ======= >>>>>>> manually fix করো
+    git add .
+    git commit -m "Resolve merge conflict"
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    "পুরো কাজ নষ্ট করে ফেলেছি, আগের commit-এ ফিরতে চাই!"
+    
+    ```bash
+    git log --oneline                          # কোন commit-এ ফিরবে দেখো
+    git revert a1b2c3d                         # সেই commit reverse করো (safe)
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Complete Daily Workflow (মুখস্থ করো)
+
+<Steps>
+### সকালে
+```bash
+git switch main
+git pull
+git switch -c feature/your-task
+```
+
+### কাজের মাঝে (বারবার)
+```bash
+git add .
+git commit -m "Descriptive message"
+```
+
+### দিনের শেষে
+```bash
+git push -u origin feature/your-task
+```
+
+### কাজ শেষে (PR merge হওয়ার পর)
+```bash
+git switch main
+git pull
+git branch -d feature/your-task
+```
+</Steps>

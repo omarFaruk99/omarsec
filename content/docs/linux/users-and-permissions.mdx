@@ -1,0 +1,68 @@
+---
+title: Users & Permissions
+description: How Linux controls user access through file permissions and ownership.
+---
+
+# Users & Permissions
+
+Linux is a multi-user system. Understanding permissions is essential for security — it's literally how access control works.
+
+## Users and Groups
+
+```bash
+whoami                    # Show current user
+id                        # Show user ID, group ID, groups
+cat /etc/passwd           # List all users
+cat /etc/group            # List all groups
+sudo adduser newuser      # Create new user
+sudo usermod -aG sudo newuser  # Add user to sudo group
+```
+
+## File Permissions Explained
+
+```
+-rwxr-xr-- 1 omar developers 4096 Apr 4 file.txt
+│├──┤├──┤├──┤
+│ │   │   │
+│ │   │   └── Others: read only
+│ │   └────── Group: read + execute
+│ └────────── Owner: read + write + execute
+└──────────── File type (- = file, d = directory)
+```
+
+## Permission Values
+
+| Symbol | Value | Meaning |
+|---|---|---|
+| `r` | 4 | Read |
+| `w` | 2 | Write |
+| `x` | 1 | Execute |
+
+```bash
+chmod 755 script.sh    # rwxr-xr-x (owner: all, others: read+execute)
+chmod 644 file.txt     # rw-r--r-- (owner: read+write, others: read)
+chmod 600 secret.key   # rw------- (owner only)
+chmod +x script.sh     # Add execute permission
+```
+
+## Ownership
+
+```bash
+chown omar file.txt           # Change owner
+chown omar:developers file.txt # Change owner and group
+chown -R omar /var/www/       # Recursive ownership change
+```
+
+## The `sudo` Command
+
+```bash
+sudo command          # Run as root (superuser)
+sudo -i               # Switch to root shell
+sudo su -              # Another way to become root
+```
+
+import { Callout } from 'nextra/components'
+
+<Callout type="error">
+**Security rule:** Never run your daily tasks as root. Use `sudo` only when necessary. Running as root means one mistake can destroy everything.
+</Callout>

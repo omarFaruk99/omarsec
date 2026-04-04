@@ -1,0 +1,271 @@
+---
+title: GitHub Essentials
+---
+
+import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+
+# GitHub Essentials
+
+<Callout type="error" emoji="⚡">
+**Essential** | Estimated time: 60–90 minutes
+
+এতক্ষণ তুমি Git শিখেছ — যেটা তোমার local machine-এ কাজ করে। এখন GitHub শিখবে — যেটা দিয়ে তোমার কাজ দুনিয়ার সাথে share হয় এবং team-এর সাথে collaborate করা যায়।
+</Callout>
+
+## What You'll Learn
+
+- Git আর GitHub-এর পার্থক্য (once and for all)
+- `git remote` — local repo আর GitHub-এর connection
+- `git fetch` vs `git pull` — পার্থক্য বোঝা
+- GitHub UI-এর গুরুত্বপূর্ণ অংশগুলো
+- Pull Request (PR) — বানানো, review করা, merge করা
+- Issues — task এবং bug track করা
+- Fork — অন্যের repo নিয়ে কাজ করা
+
+## Git vs GitHub — পার্থক্য কী?
+
+এটা নিয়ে অনেক নতুনরা confused থাকে। একবারে clear করে নাও:
+
+| | Git | GitHub |
+|---|---|---|
+| **কী** | Software (tool) | Website (platform) |
+| **কোথায় থাকে** | তোমার computer-এ | Internet-এ |
+| **কাজ** | Version history track করে | Code host করে, team collaboration করায় |
+| **Internet লাগে?** | না | হ্যাঁ |
+| **বিকল্প আছে?** | না (Git-ই standard) | হ্যাঁ — GitLab, Bitbucket |
+
+সহজ কথায়: **Git হলো engine, GitHub হলো garage।**
+তোমার গাড়ি (code) Git দিয়ে চলে, GitHub-এ রেখে দাও যাতে সবাই দেখতে পায়।
+
+## Part 1: git remote
+
+### Remote কী?
+
+"Remote" মানে একটা দূরের repository-র address — সাধারণত GitHub-এ।
+তোমার local repo জানে কোথায় push করতে হবে, কোথা থেকে pull করতে হবে — এই information `remote`-এ থাকে।
+
+<Tabs items={['Remote দেখো', 'Remote Add করো', 'URL Change করো', 'Remote Remove']}>
+  <Tabs.Tab>
+    ```bash
+    git remote -v
+    ```
+    Output:
+    ```
+    origin  git@github.com:username/my-project.git (fetch)
+    origin  git@github.com:username/my-project.git (push)
+    ```
+    `origin` হলো remote-এর **নাম** — এটা default নাম।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git remote add origin git@github.com:username/my-project.git
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # HTTPS থেকে SSH-এ switch করতে হলে
+    git remote set-url origin git@github.com:username/my-project.git
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git remote remove origin
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Part 2: fetch vs pull
+
+এই দুইটা নিয়ে অনেকে confused হয়। পার্থক্যটা জানা দরকার।
+
+### `git fetch` — দেখো কিন্তু নামাও না
+
+```bash
+git fetch origin
+```
+
+এটা GitHub থেকে নতুন changes **download করে কিন্তু তোমার files-এ apply করে না।** তুমি আগে দেখতে পারবে কী কী এসেছে, তারপর decide করবে।
+
+### `git pull` — নামাও এবং apply করো
+
+```bash
+git pull
+```
+
+এটা আসলে দুইটা কাজ একসাথে করে:
+1. `git fetch` — changes download করে
+2. `git merge` — তোমার current branch-এ apply করে
+
+### কখন কোনটা?
+
+| Situation | Command |
+|-----------|---------|
+| কাজ শুরুর আগে latest নামাও | `git pull` |
+| দেখতে চাও কী এসেছে, apply করবে কিনা ঠিক করোনি | `git fetch` |
+| Team-এর কাজ দেখতে চাও নিজের কাজ না ভেঙে | `git fetch` |
+
+<Callout type="info">
+**Daily life-এ** বেশিরভাগ সময় `git pull` ই ব্যবহার হয়। `git fetch` advanced situation-এ কাজে আসে।
+</Callout>
+
+## Part 3: Pull Request
+
+### PR কী?
+
+PR মানে "আমার branch-এর কাজ main-এ নিয়ে যাও" — এটা একটা **formal request**। Professional team-এ কেউ directly `main`-এ push করে না। সব কাজ PR-এর মাধ্যমে যায়।
+
+<Steps>
+### Branch push করো
+```bash
+git push -u origin feature/user-profile
+```
+
+### GitHub-এ PR খোলো
+GitHub-এ যাও। Push করার পর **"Compare & pull request"** button click করো।
+
+### PR Form পূরণ করো
+```
+Base: main          ←  কোথায় merge হবে
+Compare: feature/user-profile  ←  কোনটা merge হবে
+
+Title: Add user profile page
+```
+
+### Reviewer Assign করো
+Right sidebar-এ:
+- **Reviewers** → teammate select করো
+- **Assignees** → নিজেকে assign করো
+
+### Create Pull Request
+**"Create pull request"** button click করো।
+</Steps>
+
+### PR Review করা
+
+তোমার teammate তোমাকে review করতে বলেছে। কী করবে?
+
+1. **Code দেখো:** **Files changed** tab-এ যাও।
+2. **Comment করো:** line number-এর পাশে **"+"** click করো।
+3. **Review Submit করো:** "Review changes" button-এ click করো এবং Approve বা Request changes দাও।
+
+### PR Merge করা
+
+Approve হওয়ার পর merge করার ৩টা option:
+
+| Option | কী করে | কখন ব্যবহার |
+|--------|--------|------------|
+| **Merge commit** | সব commits রাখে + একটা merge commit যোগ করে | History detail রাখতে চাইলে |
+| **Squash and merge** | সব commits একটায় মিলিয়ে দেয় | Clean history চাইলে (most popular) |
+| **Rebase and merge** | Commits গুলো main-এর উপর রাখে | Linear history চাইলে |
+
+<Callout type="info">
+**Beginner হিসেবে** "Squash and merge" ব্যবহার করো। History clean থাকে।
+</Callout>
+
+Merge করার পর GitHub বলবে "branch delete করবে?" — **Delete branch** click করো।
+
+## Part 4: Issues
+
+Issue হলো GitHub-এর **task management system**।
+
+### Issue থেকে Branch বানাও (best practice)
+
+Issue page-এ right sidebar-এ **"Create a branch"** option আছে। এটা automatically branch বানায় issue number সহ: `1-login-button-not-working`। এতে branch এবং issue automatically linked থাকে।
+
+### Commit-এ Issue Reference করো
+
+```bash
+git commit -m "Fix login button on Safari — closes #1"
+```
+
+`closes #1` লিখলে PR merge হওয়ার সাথে সাথে Issue automatically close হয়ে যাবে।
+
+## Part 5: Fork
+
+### Fork কী?
+
+Fork মানে অন্যের repository-র একটা **copy তোমার GitHub account-এ নেওয়া।**
+
+<Steps>
+### Fork করো
+GitHub-এ repository-তে যাও → উপরে **Fork** button → **Create fork**
+
+### Fork clone করো
+```bash
+git clone git@github.com:তোমার-username/repository-name.git
+cd repository-name
+```
+
+### Original repo-কে "upstream" হিসেবে add করো
+```bash
+git remote add upstream git@github.com:original-owner/repository-name.git
+```
+
+### কাজ করো, push করো
+```bash
+git switch -c fix/typo-in-readme
+git add .
+git commit -m "Fix typo in README"
+git push origin fix/typo-in-readme
+```
+
+### Original repo-তে PR পাঠাও
+GitHub-এ তোমার fork-এ যাও → **Compare & pull request** → Original repo-তে PR পাঠাও।
+
+### Fork সবসময় updated রাখো
+```bash
+git fetch upstream
+git switch main
+git merge upstream/main
+git push origin main
+```
+</Steps>
+
+## Checklist
+
+- [ ] `git remote -v` দিয়ে remote দেখেছি
+- [ ] `git fetch` এবং `git pull` এর পার্থক্য বুঝেছি
+- [ ] GitHub-এ PR বানিয়েছি
+- [ ] PR review করেছি এবং comment দিয়েছি
+- [ ] Issue বানিয়েছি এবং commit-এ reference করেছি
+- [ ] একটা repo fork করেছি এবং upstream add করেছি
+
+## Common Problems & Fixes
+
+<Tabs items={['Merge conflicts in PR', 'Fork out of sync', 'Wrong Branch Reference']}>
+  <Tabs.Tab>
+    main branch আগে বেড়ে গেছে, তোমার branch পুরনো হয়ে গেছে।
+    
+    ```bash
+    git switch feature/your-branch
+    git fetch origin
+    git merge origin/main
+    # conflict fix করো
+    git add .
+    git commit -m "Resolve merge conflicts with main"
+    git push
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    git fetch upstream
+    git switch main
+    git reset --hard upstream/main
+    git push origin main --force
+    ```
+    <Callout type="warning">`--force` সাবধানে — শুধু তোমার fork-এর main branch-এ করো।</Callout>
+  </Tabs.Tab>
+  <Tabs.Tab>
+    PR-এ ভুল branch থেকে ভুল branch-এ request গেলে, PR close করো → সঠিক base/compare দিয়ে নতুন PR বানাও।
+  </Tabs.Tab>
+</Tabs>
+
+## What's Next?
+
+Git এবং GitHub-এর core সব শেখা হয়ে গেছে। এখন real-world scenarios শিখবে।
+
+<Callout type="info">
+**→ Real Scenarios**
+
+Team project, client project, এবং open source contribution — তিনটা আলাদা real situation-এ কীভাবে Git + GitHub ব্যবহার করতে হয়, সেটা A to Z দেখবে।
+</Callout>

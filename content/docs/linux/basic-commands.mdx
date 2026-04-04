@@ -1,0 +1,64 @@
+---
+title: Basic Commands
+description: Essential Linux terminal commands every beginner must know.
+---
+
+# Basic Commands
+
+The terminal is your main interface in Linux. These are the commands you'll use every single day.
+
+## Navigation
+
+```bash
+pwd           # Print working directory — where am I?
+ls            # List files in current directory
+ls -la        # List ALL files (including hidden) with details
+cd /path      # Change directory
+cd ..         # Go up one level
+cd ~          # Go to home directory
+```
+
+## File Operations
+
+```bash
+touch file.txt       # Create empty file
+mkdir my-folder      # Create directory
+cp file.txt copy.txt # Copy file
+mv old.txt new.txt   # Move or rename file
+rm file.txt          # Delete file (permanent!)
+rm -r folder/        # Delete folder and contents
+```
+
+## Reading Files
+
+```bash
+cat file.txt         # Print entire file
+head -n 5 file.txt   # First 5 lines
+tail -n 5 file.txt   # Last 5 lines
+less file.txt        # Scroll through file (q to quit)
+```
+
+## Searching
+
+```bash
+grep "text" file.txt         # Search for text in file
+grep -r "text" /path/        # Search recursively in directory
+find / -name "file.txt"      # Find file by name
+which python                 # Find where a command lives
+```
+
+## System Info
+
+```bash
+whoami        # Current username
+hostname      # Machine name
+uname -a      # System information
+df -h         # Disk usage
+free -h       # Memory usage
+```
+
+import { Callout } from 'nextra/components'
+
+<Callout type="info">
+**Pro tip:** Use `Tab` for auto-completion and `↑` arrow to cycle through command history. These two habits will 10x your terminal speed.
+</Callout>
