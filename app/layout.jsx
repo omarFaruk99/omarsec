@@ -37,7 +37,7 @@ const navbar = (
         OmarSec
       </span>
     }
-    projectLink="https://github.com/omarsec"
+    projectLink="https://github.com/omarFaruk99/omarsec"
   />
 )
 
@@ -47,7 +47,7 @@ const footer = (
       <span>MIT {new Date().getFullYear()} © OmarSec.</span>
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         <a 
-          href="https://github.com/omarsec" 
+          href="https://github.com/omarFaruk99/omarsec" 
           target="_blank" 
           rel="noreferrer" 
           style={{ display: 'flex', alignItems: 'center' }}
@@ -79,7 +79,7 @@ export default async function RootLayout({ children }) {
         <Layout
           navbar={navbar}
           pageMap={pageMap}
-          docsRepositoryBase="https://github.com/omarsec/omarsec.com/tree/main"
+          docsRepositoryBase="https://github.com/omarFaruk99/omarsec/tree/main"
           footer={footer}
         >
           {children}
