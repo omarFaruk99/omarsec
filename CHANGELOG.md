@@ -125,3 +125,21 @@ omarsec/
 
 
 ---
+
+## 2026-04-04 — MVP Launch & Domain Branding (Complete)
+
+### What was done
+- **Custom Domain Launch:** Successfully connected **omarsec.com** via Namecheap Nameservers to Vercel. Site is now live with automated SSL and GitHub CD.
+- **Content Scope Refinement:** Deleted the `linux` and `server-setup` directories and metadata to focus the initial release on a high-quality Git & GitHub knowledge base.
+- **Homepage Redesign (Phase 4):** 
+  - Implemented a minimalist, vertically centered landing page.
+  - Added a **"Currently cooking brand new labs..."** interactive status card with a pulse animation.
+  - Integrated bento-style navigation cards for **Documentation** and **GitHub**.
+- **Branding Consolidation:** Removed teal/cyan gradients from the homepage to maintain a neutral, documentation-aligned "docs-first" aesthetic as requested.
+- **Build Fix:** Identified and resolved a `SyntaxError` caused by a duplicate `Cards` component import in `index.mdx`.
+- **Search Optimization:** Verified Pagefind search functionality across the unified docs structure.
+
+### Status
+✅ **omarsec.com** is live and stable.  
+✅ All Git/GitHub documentation is accessible and mobile-responsive.  
+✅ "Getting Started" page correctly links to the complete documentation modules.
