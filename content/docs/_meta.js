@@ -5,5 +5,6 @@ export default {
       breadcrumb: false
     }
   },
-  'git-github': 'Git & GitHub'
+  'git-github': 'Git & GitHub',
+  'contributors': 'Contributors'
 }
