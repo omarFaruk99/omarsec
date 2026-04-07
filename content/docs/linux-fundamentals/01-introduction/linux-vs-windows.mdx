@@ -1,0 +1,143 @@
+---
+title: Linux vs Windows
+description: Linux আর Windows-এর মধ্যে আসল পার্থক্য কী — cybersecurity perspective থেকে।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Linux vs Windows
+
+<Callout type="info">
+  তুমি সারাজীবন Windows use করলেও Linux শিখতে problem নেই। কিন্তু দুটোর মধ্যে পার্থক্যটা বোঝাটা জরুরি — না হলে Linux-এ এসে বারবার confused হবে।
+</Callout>
+
+## The Key Difference
+
+Windows-এ তুমি **click করে** কাজ করো। Linux-এ তুমি **type করে** কাজ করো।
+
+Linux-এ **terminal (command line)** হলো তোমার main tool। GUI (graphical interface) আছে, কিন্তু real power আসে terminal থেকে।
+
+```
+Windows Way:
+  Start Menu → Settings → Network → Change adapter settings → ...
+
+Linux Way:
+  ip addr show       (একটা command, এক সেকেন্ড)
+```
+
+---
+
+## Side-by-Side Comparison
+
+| বিষয় | Windows | Linux |
+|-------|---------|-------|
+| **Cost** | Paid (license) | Free ও open-source |
+| **Control** | Microsoft control করে | তুমি control করো |
+| **Security** | বেশি targeted by malware | More secure by design |
+| **Customization** | Limited | সব কিছু change করা যায় |
+| **Software Install** | .exe download করো | `apt install` একটা command |
+| **File Path** | `C:\Users\Omar\Desktop` | `/home/omar/Desktop` |
+| **Admin account** | Administrator | root |
+| **CyberSec Tools** | বেশিরভাগ নেই | Built-in বা এক command-এ |
+| **Server use** | কম | 96% servers Linux |
+| **Learning curve** | Easy at start | Hard at start, but powerful |
+
+---
+
+## File Paths
+
+<Tabs items={['Windows', 'Linux']}>
+  <Tabs.Tab>
+    ```
+    C:\Users\Omar\Documents\notes.txt
+    ```
+    - Drive letter দিয়ে শুরু (`C:`, `D:`)
+    - Backslash `\` দিয়ে folder আলাদা
+    - Case insensitive — `File.txt` আর `file.txt` একই
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    /home/omar/Documents/notes.txt
+    ```
+    - সব শুরু হয় `/` (root) থেকে, কোনো drive letter নেই
+    - Forward slash `/` দিয়ে folder আলাদা
+    - Case sensitive — `File.txt` আর `file.txt` দুটো আলাদা file
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="warning">
+  **Common Mistake:** অনেক beginner Linux-এ এসে `Documents` লিখে, তারপর বলে "folder নেই"। আসলে folder আছে, কিন্তু `documents` (lowercase) নামে। Linux-এ সব case matter করে।
+</Callout>
+
+---
+
+## Permission System
+
+Windows-এ permission system আছে, কিন্তু অনেক সময় উপেক্ষা করা যায়।
+
+Linux-এ permission system **অনেক strict।**
+
+```bash filename="Terminal"
+# এই command দিয়ে একটা file-এর permission দেখা যায়
+ls -l secret.txt
+
+# Output দেখতে পাবে এরকম:
+# -rw-r--r-- 1 omar omar 1234 Apr 7 20:00 secret.txt
+```
+
+এই `-rw-r--r--` মানে কী সেটা পরে [File System & Permissions](/docs/linux-fundamentals/03-file-system) section-এ বিস্তারিত শিখবে।
+
+---
+
+## Terminal vs GUI
+
+Linux-এ দুইভাবে কাজ করা যায়:
+
+**GUI (Graphical)** — Ubuntu Desktop এ click করে করো। Beginner-friendly।
+
+**Terminal (CLI)** — Command type করে করো। Powerful।
+
+```bash filename="Terminal"
+# Folder তৈরি করা
+mkdir my-folder
+
+# File তৈরি করা
+touch notes.txt
+
+# File এর ভেতর লেখা দেখা
+cat notes.txt
+```
+
+<Callout type="info">
+  **কোনটা শিখবো?** দুটোই। কিন্তু terminal শেখাটা priority। কারণ cybersecurity-তে সব কাজ terminal-এ হয়। Server-এ GUI থাকে না।
+</Callout>
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Linux কেন hackers ব্যবহার করে?**
+
+  1. **No license needed** — Kali Linux free
+  2. **Full control** — যা খুশি install, modify করা যায়
+  3. **Built-in tools** — Kali-তে 600+ security tools pre-installed
+  4. **Scripting power** — Bash দিয়ে attacks automate করা যায়
+  5. **Target machines** — যে machines আক্রমণ করবে সেগুলো Linux-এ, তাই জানা দরকার
+
+  Windows-এও pen testing করা যায়, কিন্তু Linux-এ workflow অনেক smooth।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] Linux আর Windows-এর path কীভাবে আলাদা সেটা বলতে পারবে?
+- [ ] Case sensitive মানে কী বুঝলে?
+- [ ] Terminal কেন GUI-এর চেয়ে powerful সেটা বলতে পারবে?
+
+**পরবর্তী →** [Filesystem Structure](/docs/linux-fundamentals/01-introduction/filesystem-structure)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux vs windows differences, linux terminal vs windows, linux file path, linux case sensitive, why hackers use linux
+</span>

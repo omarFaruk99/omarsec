@@ -1,0 +1,244 @@
+---
+title: Navigation
+description: Linux filesystem-এ navigate করো — pwd, ls, cd দিয়ে কোথাও হারাবে না।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Navigation
+
+<Callout type="info">
+  Filesystem-এ navigate করা মানে folder-এ folder-এ যাওয়া। এই তিনটা command জানলে তুমি কখনো হারাবে না: **Where am I? What's here? Go there.**
+</Callout>
+
+## Core Commands
+
+| Command | মানে | কাজ |
+|---------|------|------|
+| `pwd` | Print Working Directory | আমি এখন কোথায়? |
+| `ls` | List | এখানে কী কী আছে? |
+| `cd` | Change Directory | ওখানে যাও |
+
+এই তিনটা দিয়েই শুরু।
+
+---
+
+## `pwd`
+
+Current location দেখাও — তুমি এখন কোথায় আছ।
+
+```bash filename="Terminal"
+pwd
+```
+
+Output:
+```
+/home/omar
+```
+
+Terminal খুললেই সবার আগে `pwd` চালাও — বুঝবে কোথায় আছ।
+
+---
+
+## `ls`
+
+Current folder-এর contents দেখাও।
+
+```bash filename="Terminal"
+# Simple list
+ls
+
+# Detailed list — permissions, size, date সব দেখায়
+ls -l
+
+# Hidden files সহ দেখো (. দিয়ে শুরু files)
+ls -a
+
+# Detailed + hidden — সবচেয়ে বেশি use হয়
+ls -la
+
+# Human-readable file size (KB, MB)
+ls -lh
+
+# Specific folder দেখো
+ls /etc
+```
+
+### Reading `ls -l`
+
+```bash filename="Terminal"
+ls -l
+```
+
+```
+-rw-r--r-- 1 omar omar 1234 Apr 7 20:00 notes.txt
+drwxr-xr-x 2 omar omar 4096 Apr 7 19:00 Documents
+```
+
+| অংশ | মানে |
+|-----|------|
+| `-rw-r--r--` | Permissions (File System section-এ বিস্তারিত) |
+| `1` | Hard link count |
+| `omar omar` | Owner : Group |
+| `1234` | File size (bytes) |
+| `Apr 7 20:00` | Last modified time |
+| `notes.txt` | File name |
+| `d` at start | `d` মানে directory, `-` মানে file |
+
+<Callout type="info">
+  `ls -la` সবচেয়ে বেশি use হয় — এটাই মুখস্থ করো। Hidden files দেখায়, permissions দেখায়, সব দেখায়।
+</Callout>
+
+---
+
+## `cd`
+
+Directory পরিবর্তন করো — ওই folder-এ যাও।
+
+```bash filename="Terminal"
+# নির্দিষ্ট folder-এ যাও
+cd Documents
+
+# Home folder-এ যাও (~  মানে home)
+cd ~
+# অথবা শুধু
+cd
+
+# এক folder উপরে যাও
+cd ..
+
+# দুই folder উপরে যাও
+cd ../..
+
+# Root-এ যাও
+cd /
+
+# Full path দিয়ে যাও
+cd /home/omar/Documents
+
+# আগের folder-এ ফিরে যাও
+cd -
+```
+
+### Absolute vs Relative Path
+
+এই concept না বুঝলে cd-তে বারবার error পাবে।
+
+<Tabs items={['Absolute Path', 'Relative Path']}>
+  <Tabs.Tab>
+    **Absolute path** মানে root `/` থেকে শুরু করে পুরো address।
+
+    ```bash
+    cd /home/omar/Documents
+    ```
+
+    তুমি filesystem-এ যেখানেই থাকো — এটা সবসময় কাজ করবে। মনে করো **full home address** লেখার মতো।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Relative path** মানে তুমি এখন যেখানে আছ সেখান থেকে শুরু।
+
+    ```bash
+    # যদি /home/omar তে থাকো
+    cd Documents
+    # এটা মানে /home/omar/Documents
+    ```
+
+    তুমি যদি অন্য folder-এ থাকো তাহলে এটা error দেবে। মনে করো **"বাসার পাশের দোকান"** — তুমি সেই এলাকায় না থাকলে direction কাজ করবে না।
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="warning">
+  **Common Mistake:** অনেকে `cd /Documents` লেখে — এটা root-এর Documents খুঁজবে, যেখানে নেই। সঠিক হলো `cd ~/Documents` বা `cd /home/omar/Documents`।
+</Callout>
+
+---
+
+## Special Path Symbols
+
+| Symbol | মানে |
+|--------|------|
+| `~` | তোমার home folder `/home/omar` |
+| `.` | Current folder (এখন যেখানে আছ) |
+| `..` | Parent folder (এক উপরে) |
+| `/` | Root — সবার শুরু |
+| `-` | আগের folder (toggle করে) |
+
+---
+
+## Tab Completion
+
+সবচেয়ে important shortcut — যেকোনো command বা path type করার সময় `Tab` চাপো।
+
+```bash filename="Terminal"
+cd Doc[Tab]
+# → cd Documents/   (automatically complete)
+
+ls /et[Tab]
+# → ls /etc/
+```
+
+দুইবার `Tab` চাপলে সব possible options দেখায়:
+
+```bash filename="Terminal"
+cd /home/omar/[Tab][Tab]
+# দেখাবে: Desktop  Documents  Downloads  Pictures  ...
+```
+
+---
+
+## Putting It Together
+
+এখন তিনটা একসাথে practice করো:
+
+```bash filename="Terminal"
+# 1. কোথায় আছি?
+pwd
+
+# 2. এখানে কী আছে?
+ls -la
+
+# 3. Documents এ যাও
+cd Documents
+
+# 4. এখন কোথায়?
+pwd
+
+# 5. Documents এ কী আছে?
+ls
+
+# 6. Home-এ ফিরে যাও
+cd ~
+
+# 7. Confirm করো
+pwd
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Navigation CTF-এ কেন দরকার?**
+
+  - একটা target machine compromise করলে প্রথমে `pwd` আর `ls` চালাও — কোথায় আছ বুঝতে হবে
+  - `/etc`, `/var/log`, `/home` — এসব folder-এ navigate করে sensitive files খোঁজা হয়
+  - `ls -la` দিয়ে hidden files (`.bash_history`, `.ssh`) দেখা যায়
+  - `cd /tmp` → malicious scripts রাখার জায়গা navigate করতে হয়
+
+  Speed important — Ctrl+C দিয়ে cancel, Tab দিয়ে fast type।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `pwd`, `ls`, `cd` — তিনটার কাজ বলতে পারবে?
+- [ ] Absolute আর relative path-এর পার্থক্য বলতে পারবে?
+- [ ] Hidden files কীভাবে দেখবে?
+- [ ] Home folder-এ দ্রুত ফেরার shortcut কী?
+
+**পরবর্তী →** [File Operations](/docs/linux-fundamentals/02-terminal-basics/file-operations)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux navigation, pwd ls cd commands, linux cd command, absolute vs relative path, ls -la hidden files, linux filesystem navigation bangla
+</span>

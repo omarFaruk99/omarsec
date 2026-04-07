@@ -1,0 +1,263 @@
+---
+title: File Operations
+description: Files আর folders তৈরি করো, copy করো, move করো, delete করো।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# File Operations
+
+<Callout type="info">
+  Filesystem-এ navigate করা শিখেছ। এখন শিখবে সেই filesystem-এ **কাজ করতে** — files আর folders তৈরি, সরানো, কপি করা, মুছে দেওয়া।
+</Callout>
+
+## Overview
+
+| Command | কাজ | Example |
+|---------|-----|---------|
+| `touch` | File তৈরি | `touch notes.txt` |
+| `mkdir` | Folder তৈরি | `mkdir projects` |
+| `cp` | Copy | `cp file.txt backup.txt` |
+| `mv` | Move বা rename | `mv old.txt new.txt` |
+| `rm` | Delete file | `rm notes.txt` |
+| `rmdir` | Delete empty folder | `rmdir temp` |
+
+---
+
+## `touch`
+
+Empty file তৈরি করে।
+
+```bash filename="Terminal"
+# নতুন empty file তৈরি
+touch notes.txt
+
+# একসাথে একাধিক file
+touch file1.txt file2.txt file3.txt
+
+# Confirm করো
+ls -l
+```
+
+<Callout type="default">
+  `touch` আসলে file-এর "last modified" timestamp update করার জন্য বানানো। কিন্তু সবাই এটা নতুন file তৈরিতে use করে। File না থাকলে তৈরি করে, থাকলে timestamp update করে।
+</Callout>
+
+---
+
+## `mkdir`
+
+নতুন folder (directory) তৈরি করে।
+
+```bash filename="Terminal"
+# নতুন folder তৈরি
+mkdir projects
+
+# একসাথে একাধিক folder
+mkdir docs images videos
+
+# Nested folders একসাথে তৈরি (-p flag)
+mkdir -p projects/omarsec/notes
+# projects এর ভেতরে omarsec, তার ভেতরে notes
+
+# Confirm করো
+ls -la
+```
+
+<Callout type="info">
+  `-p` flag মানে "parents" — মাঝখানের folders না থাকলে সেগুলোও তৈরি করো। এটা ছাড়া nested folder একসাথে বানানো যায় না।
+</Callout>
+
+---
+
+## `cp`
+
+File বা folder copy করে।
+
+```bash filename="Terminal"
+# File copy করো
+cp notes.txt notes-backup.txt
+
+# অন্য folder-এ copy করো
+cp notes.txt Documents/
+
+# Folder copy করো (-r flag দরকার)
+cp -r projects/ projects-backup/
+
+# Multiple files এক জায়গায় copy করো
+cp file1.txt file2.txt Documents/
+```
+
+<Callout type="warning">
+  **Common Mistake:** Folder copy করতে গেলে `-r` (recursive) flag লাগবেই। ছাড়া error দেবে:
+  `cp: -r not specified; omitting directory 'projects'`
+</Callout>
+
+---
+
+## `mv`
+
+File বা folder **move** করে বা **rename** করে — same command, different use।
+
+<Tabs items={['Move', 'Rename']}>
+  <Tabs.Tab>
+    ```bash
+    # notes.txt কে Documents folder-এ move করো
+    mv notes.txt Documents/
+
+    # Folder-ও move করা যায়
+    mv projects/ /home/omar/work/
+
+    # Confirm করো
+    ls Documents/
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # old.txt কে new.txt নামে rename করো
+    mv old.txt new.txt
+
+    # Folder rename
+    mv old-folder new-folder
+
+    # Confirm করো
+    ls
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## `rm`
+
+File বা folder permanently delete করে — Recycle Bin নেই।
+
+```bash filename="Terminal"
+# File delete করো
+rm notes.txt
+
+# Multiple files delete
+rm file1.txt file2.txt
+
+# Confirmation চাইবে (-i flag)
+rm -i important.txt
+
+# Folder আর তার ভেতরের সব কিছু delete (-r)
+rm -r old-projects/
+
+# Force delete — কোনো confirmation নেই (-f)
+rm -f stubborn-file.txt
+
+# সবচেয়ে dangerous combination
+rm -rf folder-name/
+```
+
+<Callout type="warning">
+  **`rm -rf` সম্পর্কে সতর্কতা:**
+
+  `rm -rf` Linux-এর সবচেয়ে dangerous command। এটা recursively আর forcefully সব কিছু delete করে — **কোনো Recycle Bin নেই, Undo নেই।**
+
+  - `rm -rf /` — পুরো system delete (Ubuntu protect করে, কিন্তু conceptually বুঝে রাখো)
+  - `rm -rf ./` — current folder এর সব কিছু
+  - সবসময় path double-check করো আগে চালানোর
+
+  CTF বা real server-এ একটু ভুলে অনেক কিছু চলে যেতে পারে।
+</Callout>
+
+---
+
+## Wildcards
+
+Pattern দিয়ে একসাথে অনেক files-এ কাজ করো।
+
+| Wildcard | মানে | Example |
+|----------|------|---------|
+| `*` | যেকোনো কিছু (০ বা বেশি character) | `*.txt` = সব .txt files |
+| `?` | যেকোনো একটা character | `file?.txt` = file1.txt, fileA.txt |
+
+```bash filename="Terminal"
+# সব .txt files দেখো
+ls *.txt
+
+# সব .txt files copy করো Documents-এ
+cp *.txt Documents/
+
+# সব .log files delete করো
+rm *.log
+
+# "file" দিয়ে শুরু সব files
+ls file*
+```
+
+---
+
+## Practice Scenario
+
+এটা নিজে করো — step by step:
+
+```bash filename="Terminal"
+# 1. Home-এ যাও
+cd ~
+
+# 2. একটা practice folder তৈরি করো
+mkdir linux-practice
+
+# 3. সেখানে যাও
+cd linux-practice
+
+# 4. কিছু files তৈরি করো
+touch notes.txt commands.txt todo.txt
+
+# 5. দেখো কী তৈরি হলো
+ls -l
+
+# 6. একটা subfolder তৈরি করো
+mkdir backup
+
+# 7. notes.txt কে backup-এ copy করো
+cp notes.txt backup/
+
+# 8. commands.txt rename করো
+mv commands.txt linux-commands.txt
+
+# 9. todo.txt delete করো
+rm todo.txt
+
+# 10. Final state দেখো
+ls -la
+ls backup/
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **File operations CTF-এ:**
+
+  - `cp /etc/shadow /tmp/shadow-copy` — sensitive file copy করে analyze করা
+  - `mv exploit.sh /tmp/` — malicious script move করে execute করা
+  - `rm -f evidence.log` — log file মুছে evidence destroy করা
+  - `touch -t 202001010000 file.txt` — file-এর timestamp fake করা (anti-forensics)
+
+  এই knowledge তোমাকে একজন attacker এর mindset বুঝতে সাহায্য করবে — যেটা defender হিসেবেও দরকার।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] Empty file তৈরি করার command কী?
+- [ ] Nested folders একসাথে তৈরি করতে কোন flag লাগে?
+- [ ] Folder copy করতে কোন flag দরকার?
+- [ ] `mv` দিয়ে rename আর move দুটো করা যায় — পার্থক্য কী?
+- [ ] `*.txt` মানে কী?
+- [ ] `rm -rf` কেন সতর্কতার সাথে ব্যবহার করতে হয়?
+
+এই section শেষ।
+
+**পরবর্তী Section →** [File System & Permissions](/docs/linux-fundamentals/03-file-system)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux file operations, touch mkdir cp mv rm commands, linux delete file, linux copy folder, linux rename file, rm -rf dangerous, linux wildcards
+</span>

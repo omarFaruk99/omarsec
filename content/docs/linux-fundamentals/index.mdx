@@ -1,0 +1,114 @@
+---
+title: Linux Fundamentals
+description: Linux Fundamentals — From Zero to Confident, with a Cybersecurity Focus
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Linux Fundamentals — Zero to Confident
+
+<Callout type="info">
+  এই গাইডটি তাদের জন্য যারা Linux শিখতে চায় — একদম শুরু থেকে। বিশেষ করে যারা **Cybersecurity** ক্যারিয়ার গড়তে চায়, TryHackMe করে, বা Linux দেখলেই ঘাবড়ে যায় — এটা তোমাদের জন্য।
+</Callout>
+
+## Why Linux for Cybersecurity?
+
+যদি জিজ্ঞেস করো — "Cybersecurity শিখতে Linux কেন দরকার?" — উত্তরটা সহজ।
+
+পৃথিবীর বেশিরভাগ **servers, routers, IoT devices, and hacking tools** Linux-এর উপর চলে। Penetration testing, CTF challenges, malware analysis — সব জায়গায় তোমাকে Linux terminal-এ কাজ করতে হবে।
+
+> **সহজ কথায়:** যে cybersecurity expert Linux জানে না, সে হাতিয়ার ছাড়া যোদ্ধা।
+
+Tools যেমন **Nmap, Metasploit, Wireshark, Burp Suite** — সবই Linux-এ সবচেয়ে ভালো কাজ করে। TryHackMe-তে প্রতিটা machine Linux। Kali Linux নিজেই একটি Linux distro।
+
+---
+
+## Who Is This For?
+
+<Callout type="default">
+  এই docs লেখা হয়েছে নির্দিষ্ট মানুষদের কথা মাথায় রেখে।
+</Callout>
+
+- **Absolute Beginner** — Linux কখনো ধরোনি, terminal দেখলে ভয় লাগে
+- **Learner** — TryHackMe শুরু করেছ কিন্তু commands মাথায় ঢুকছে না
+- **Recap করতে চাও** — জানো কিন্তু মনে নেই, দ্রুত refresh দরকার
+- **CyberSec Enthusiast** — Ethical hacking, CTF, penetration testing শিখছ
+
+---
+
+## What You'll Learn
+
+প্রতিটা section শেষে তুমি **practically কাজ করতে পারবে** — শুধু মুখস্থ না।
+
+| Section | কি শিখবে | CyberSec Connection |
+|---------|----------|---------------------|
+| [01 - Linux Introduction](/docs/linux-fundamentals/01-introduction) | Linux কী, Filesystem structure, Distros | Kali, Ubuntu — কোনটা কী |
+| [02 - Terminal Basics](/docs/linux-fundamentals/02-terminal-basics) | Navigate, files তৈরি ও মুছা | TryHackMe terminal tasks |
+| [03 - File System & Permissions](/docs/linux-fundamentals/03-file-system) | chmod, chown, hidden files | Privilege escalation basics |
+| [04 - Text Manipulation](/docs/linux-fundamentals/04-text-manipulation) | grep, find, cat, nano/vim | Log analysis, finding passwords |
+| [05 - Users & Permissions](/docs/linux-fundamentals/05-users-permissions) | sudo, SSH, user management | Lateral movement concepts |
+| [06 - Processes](/docs/linux-fundamentals/06-processes) | ps, kill, background jobs | Malware persistence basics |
+| [07 - Networking](/docs/linux-fundamentals/07-networking) | ip, ping, netstat, curl | Network recon fundamentals |
+| [08 - Package Management](/docs/linux-fundamentals/08-package-management) | apt, installing tools | Installing security tools |
+| [09 - Bash Scripting](/docs/linux-fundamentals/09-scripting) | Variables, loops, simple scripts | Automating tasks |
+| [Cheatsheet](/docs/linux-fundamentals/cheatsheet) | সব commands এক জায়গায় | Quick reference |
+
+---
+
+## How to Use
+
+<Callout type="info">
+  শুধু পড়লে হবে না — প্রতিটা command **নিজে terminal-এ চালাও**। এটাই confidence তৈরির একমাত্র উপায়।
+</Callout>
+
+<Steps>
+
+### একদম নতুন হলে
+শুরু করো **01 - Introduction** থেকে। ধীরে ধীরে এগোও। প্রতিটা command নিজে চালাও।
+
+### Recap করতে চাইলে
+সরাসরি যে section দরকার সেখানে যাও। বা **Cheatsheet** bookmark করো।
+
+### আটকে গেলে
+প্রতিটা section-এ *"Common Mistakes"* এবং *"CyberSec Note"* box আছে — সেটা আগে দেখো।
+
+</Steps>
+
+---
+
+## Setup
+
+এই docs follow করতে তোমার লাগবে:
+
+- **Ubuntu 24.04 LTS** (recommended) — [Download](https://ubuntu.com/download/desktop)
+- অথবা **TryHackMe** এর in-browser machine (install ছাড়াই practice করা যাবে)
+- অথবা **WSL2** (Windows এ Linux চালানো) — [Setup Guide](https://learn.microsoft.com/en-us/windows/wsl/install)
+
+```bash filename="Terminal"
+# Ubuntu version check
+lsb_release -a
+
+# তোমার username কে?
+whoami
+
+# এখন কোথায় আছ?
+pwd
+```
+
+এই ৩টা command চলে গেলে তুমি ready।
+
+---
+
+## A Note Before You Start
+
+<Callout type="warning">
+  এই guide তোমাকে **confident** করতে চায়, confused না। তাই প্রতিটা concept আগে **কেন** জানতে হবে সেটা বলা হবে — তারপর **কীভাবে** করতে হয়।
+</Callout>
+
+শুধু commands মুখস্থ করলে ভুলে যাবে। কিন্তু **কেন** কাজ করে সেটা বুঝলে কখনো ভুলবে না।
+
+শুরু করো — **[Linux Introduction](/docs/linux-fundamentals/01-introduction)**
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux fundamentals, linux for beginners, linux cybersecurity, linux bangla, tryhackme linux, terminal basics, ubuntu tutorial
+</span>

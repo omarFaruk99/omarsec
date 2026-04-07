@@ -6,5 +6,6 @@ export default {
     }
   },
   'git-github': 'Git & GitHub',
+  'linux-fundamentals': 'Linux Fundamentals',
   'contributors': 'Contributors'
 }

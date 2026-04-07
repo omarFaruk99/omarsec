@@ -1,0 +1,171 @@
+---
+title: The Terminal
+description: Terminal কী, Shell কী, Prompt মানে কী — শুরু থেকে বোঝো।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# The Terminal
+
+<Callout type="info">
+  Terminal দেখলে অনেকে ঘাবড়ে যায়। কিন্তু এটা আসলে একটা কথা বলার জায়গা — তুমি type করো, computer জবাব দেয়।
+</Callout>
+
+## Terminal vs Emulator
+
+**Terminal** আসলে পুরনো hardware device ছিল — শুধু keyboard আর screen, graphical কিছু নেই।
+
+আজকে আমরা যেটা use করি সেটা হলো **Terminal Emulator** — software যেটা সেই পুরনো terminal-এর মতো কাজ করে। Ubuntu-তে এটা হলো **GNOME Terminal**।
+
+কিন্তু কথায় কথায় সবাই এটাকেই "terminal" বলে — তাই তুমিও তাই বলো।
+
+---
+
+## Shell
+
+Terminal হলো জানালা। **Shell** হলো সেই জানালার ভেতরে থাকা interpreter — যেটা তোমার command বোঝে এবং execute করে।
+
+```
+তুমি type করো: ls
+    ↓
+Shell (bash) বোঝে
+    ↓
+OS কে বলে folder list করতে
+    ↓
+Result দেখায়
+```
+
+Linux-এ সবচেয়ে common shell হলো **Bash** (Bourne Again Shell)। Ubuntu-তে default এটাই।
+
+<Callout type="default">
+  **অন্যান্য shells:** `zsh` (macOS default), `fish`, `sh` — সব same কাজ করে, শুধু কিছু feature আর syntax আলাদা। এখন Bash জানলেই চলবে।
+</Callout>
+
+---
+
+## The Prompt
+
+Terminal খুললেই একটা line দেখবে — এটাকে বলা হয় **prompt**। Computer তোমার input নেওয়ার জন্য ready।
+
+```bash
+omar@ubuntu:~$
+```
+
+এই প্রতিটা অংশের মানে আলাদা:
+
+| অংশ | মানে |
+|-----|------|
+| `omar` | তোমার username |
+| `@` | "at" — separator |
+| `ubuntu` | computer এর hostname |
+| `:` | separator |
+| `~` | তুমি এখন home folder-এ আছ (`/home/omar`) |
+| `$` | তুমি normal user (root হলে `#` হতো) |
+
+<Callout type="warning">
+  **CyberSec Note:** Prompt-এর শেষে `$` নাকি `#` — এটা দেখে বোঝা যায় তুমি কোন privilege-এ আছ।`$` = normal user, `#` = root (admin)। CTF-এ privilege escalation সফল হলে prompt `$` থেকে `#` হয়ে যায়।
+</Callout>
+
+---
+
+## Root Prompt
+
+তুমি যদি root user হিসেবে login করো বা `sudo su` চালাও:
+
+```bash
+root@ubuntu:~#
+```
+
+`#` মানে তুমি এখন সব কিছুর full control-এ আছ। এই মুহূর্তে যা করবে system তাই করবে — কোনো permission check নেই।
+
+---
+
+## Essential Commands
+
+### `clear`
+
+Screen পরিষ্কার করে। Output বেশি হলে screen messy লাগে — তখন use করো।
+
+```bash filename="Terminal"
+clear
+```
+
+Shortcut: `Ctrl + L` — same কাজ করে।
+
+### `history`
+
+আগে যে commands চালিয়েছ সেগুলো দেখায়।
+
+```bash filename="Terminal"
+history
+
+# শুধু শেষ ১০টা দেখো
+history 10
+
+# কোনো command আবার চালাও — ! দিয়ে
+!45
+# line 45 এর command আবার চালাবে
+```
+
+### `whoami`
+
+তুমি কোন user হিসেবে logged in সেটা দেখায়।
+
+```bash filename="Terminal"
+whoami
+# Output: omar
+```
+
+### `pwd`
+
+তুমি এখন কোন folder-এ আছ সেটা দেখায়। (Print Working Directory)
+
+```bash filename="Terminal"
+pwd
+# Output: /home/omar
+```
+
+### Keyboard Shortcuts
+
+এগুলো মুখস্থ করো — productivity অনেক বাড়বে:
+
+| Shortcut | কাজ |
+|---------|------|
+| `Ctrl + C` | চলমান command বন্ধ করো |
+| `Ctrl + L` | Screen clear করো |
+| `Tab` | Command বা filename auto-complete |
+| `↑ Arrow` | আগের command দেখাও |
+| `Ctrl + A` | Line-এর শুরুতে যাও |
+| `Ctrl + E` | Line-এর শেষে যাও |
+
+<Callout type="info">
+  **Tab completion** সবচেয়ে important shortcut। `ls /ho` লিখে Tab চাপো — automatically `/home/` হয়ে যাবে। এটা শুধু তাড়াতাড়ি না, typo-ও কমায়।
+</Callout>
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **`history` command কেন important?**
+
+  - যখন একটা Linux machine compromise হয়, attacker কী কী করেছে সেটা `history` দেখে বোঝা যায়
+  - Forensics এ `~/.bash_history` file analyze করা হয়
+  - Attackers প্রায়ই `history -c` চালিয়ে সব মুছে দেয় evidence লুকাতে
+  - তুমি যদি কোথাও login করো এবং কী করেছ track করতে না চাও — `export HISTFILE=/dev/null` করতে পারো
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] Terminal আর Shell এর পার্থক্য বলতে পারবে?
+- [ ] Prompt-এ `$` আর `#` মানে কী?
+- [ ] `Tab` completion কীভাবে কাজ করে?
+- [ ] `history` command দিয়ে কী দেখা যায়?
+
+**পরবর্তী →** [Navigation](/docs/linux-fundamentals/02-terminal-basics/navigation)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux terminal কী, bash shell, linux prompt meaning, terminal vs shell, whoami pwd clear history, linux keyboard shortcuts
+</span>

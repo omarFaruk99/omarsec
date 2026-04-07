@@ -1,0 +1,130 @@
+---
+title: What is Linux?
+description: Linux কী, কোথা থেকে এলো, কেন সারা বিশ্বে ব্যবহার হয় — সহজ ভাষায়।
+---
+
+import { Callout } from 'nextra/components'
+
+# What is Linux?
+
+<Callout type="info">
+  Linux শুনলে মনে হয় কঠিন কিছু। আসলে এটা তোমার Windows বা macOS-এর মতোই একটা **Operating System** — শুধু অনেক বেশি powerful এবং free।
+</Callout>
+
+## What is an OS?
+
+আগে বুঝতে হবে Operating System (OS) কী।
+
+তোমার computer-এ hardware আছে — CPU, RAM, Hard drive। আর আছে software — VSCode, Chrome, Game। কিন্তু এই দুটোর মাঝখানে কে কাজ করে? **Operating System।**
+
+```
+তুমি (User)
+    ↓
+Application (Chrome, VSCode)
+    ↓
+Operating System (Linux / Windows / macOS)
+    ↓
+Hardware (CPU, RAM, Disk)
+```
+
+OS হলো **translator** — তোমার software আর hardware-এর মধ্যে কথা বলিয়ে দেয়।
+
+---
+
+## Linux কী?
+
+Linux হলো একটি **open-source operating system kernel।**
+
+একটু ভেঙে বলি:
+
+- **Open-source:** মানে এর source code সবার জন্য free এবং যে কেউ দেখতে, পরিবর্তন করতে পারে।
+- **Kernel:** OS-এর সবচেয়ে core অংশ — hardware আর software-এর মধ্যে bridge।
+
+<Callout type="default">
+  **Analogy:** Linux kernel হলো একটা গাড়ির engine। Ubuntu, Kali Linux, Debian হলো সেই engine দিয়ে তৈরি আলাদা আলাদা গাড়ি (distro)। Engine একটাই, কিন্তু বডি ও features আলাদা।
+</Callout>
+
+---
+
+## Linux কে বানালো?
+
+সালটা **1991**। Finland-এর একজন student — **Linus Torvalds** — নিজের জন্য একটা OS বানাতে বসলেন। তিনি চাইছিলেন Unix-এর মতো একটা OS যেটা free এবং সবাই use করতে পারবে।
+
+তিনি এটা internet-এ share করলেন। Programmers সারা পৃথিবী থেকে contribute করা শুরু করল। আজকে Linux চলছে:
+
+- World-এর **96% web servers**-এ
+- প্রতিটা **Android phone**-এ (Android = Linux kernel + Google stuff)
+- **NASA, SpaceX**-এর systems-এ
+- **Amazon, Google, Microsoft Cloud**-এ
+- প্রায় সব **cybersecurity tools**-এ
+
+---
+
+## Linux Distributions (Distros)
+
+Linux kernel একটাই। কিন্তু এই kernel-এর উপরে অনেক company ও community আলাদা আলাদা OS বানিয়েছে — এগুলোকে বলা হয় **Distribution** বা **Distro**।
+
+| Distro | কাদের জন্য | কেন পরিচিত |
+|--------|-----------|------------|
+| **Ubuntu** | Beginners, Server | সহজ, popular, এই docs এর focus |
+| **Kali Linux** | Hackers, Pen Testers | Pre-installed security tools |
+| **Debian** | Advanced users, Servers | Stable, Ubuntu এর parent |
+| **Parrot OS** | Security + Privacy | Kali-র alternative |
+| **Arch Linux** | Power users | Customizable, কঠিন |
+
+<Callout type="info">
+  **তোমার জন্য:** এখন সবচেয়ে ভালো হলো **Ubuntu 24.04 LTS** শেখা। এটা beginner-friendly, TryHackMe-তেও Ubuntu machine দেয়। Kali পরে শেখা সহজ হবে।
+</Callout>
+
+---
+
+## Core Philosophy
+
+Linux মেনে চলে **Unix Philosophy** — যেটার মূল কথা:
+
+> *"Do one thing, and do it well."*
+
+প্রতিটা tool একটাই কাজ করে, কিন্তু সেটা অনেক ভালোভাবে করে। তারপর এই tools গুলো combine করে বড় কাজ করা হয়।
+
+```bash filename="Terminal"
+# এই line-এ 3টা আলাদা tool একসাথে কাজ করছে
+cat access.log | grep "ERROR" | wc -l
+# cat  → file পড়ে
+# grep → "ERROR" খোঁজে
+# wc -l → কয়টা line সেটা count করে
+```
+
+এটাই Linux-এর শক্তি — ছোট ছোট tools combine করে যেকোনো কাজ করা যায়।
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **কেন Cybersecurity-তে Linux?**
+
+  - বেশিরভাগ hacking tools (Nmap, Metasploit, Hydra, John the Ripper) Linux-এ বানানো
+  - Web servers যেগুলো তুমি attack/defend করবে, সেগুলো Linux-এ চলে
+  - TryHackMe, HackTheBox-এর প্রতিটা target machine Linux
+  - Kali Linux নিজেই Debian-based — Linux না জানলে Kali বুঝবে না
+
+  **Conclusion:** Linux fundamentals = Cybersecurity-র foundation।
+</Callout>
+
+---
+
+## Quick Check
+
+এই page পড়ার পর নিজেকে জিজ্ঞেস করো:
+
+- [ ] Operating System কী কাজ করে বলতে পারবে?
+- [ ] Linux আর Distro-র পার্থক্য বুঝলে?
+- [ ] কেন cybersecurity-তে Linux জানা দরকার সেটা নিজের ভাষায় বলতে পারবে?
+
+যদি তিনটাই পারো — পরের page-এ যাও।
+
+**পরবর্তী →** [Linux vs Windows](/docs/linux-fundamentals/01-introduction/linux-vs-windows)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux কী, what is linux bangla, linux history, linux distro, linux for cybersecurity, kali linux vs ubuntu, open source os
+</span>

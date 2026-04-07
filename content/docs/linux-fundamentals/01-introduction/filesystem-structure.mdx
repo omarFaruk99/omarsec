@@ -1,0 +1,247 @@
+---
+title: Filesystem Structure
+description: Linux-এর folder structure কীভাবে কাজ করে — / থেকে শুরু করে প্রতিটা important directory।
+---
+
+import { Callout, FileTree } from 'nextra/components'
+
+# Linux Filesystem Structure
+
+<Callout type="info">
+  Windows-এ সব শুরু হয় `C:\` থেকে। Linux-এ সব শুরু হয় `/` (root) থেকে। এই একটা concept বুঝলে Linux filesystem আর confusing লাগবে না।
+</Callout>
+
+## The Root
+
+Linux-এ **`/`** হলো সবকিছুর শুরু। এটাকে বলা হয় **root directory।**
+
+ভাবো এটা একটা গাছের মতো। গাছের গোড়া হলো `/`, আর বাকি সব folder হলো সেই গাছের ডালপালা।
+
+```
+/                   — root (সবকিছুর গোড়া)
+├── home/           — তোমার personal files
+├── etc/            — system configuration files
+├── var/            — logs, databases
+├── tmp/            — temporary files
+├── bin/            — basic commands (ls, cp, mv...)
+├── usr/            — installed programs
+├── root/           — root user এর home
+├── dev/            — devices (keyboard, USB...)
+└── proc/           — running processes info
+```
+
+<Callout type="default">
+  **মনে রাখো:** `/root` আর `/` এক না। `/` হলো সব folder-এর গোড়া। `/root` হলো **root user** (admin) এর personal folder।
+</Callout>
+
+---
+
+## Important Directories
+
+### `/home`
+
+তোমার personal home folder। Windows-এ যেটা `C:\Users\Omar` — Linux-এ সেটা `/home/omar`।
+
+```bash filename="Terminal"
+# নিজের home folder-এ যাও
+cd /home/omar
+
+# বা shortcut দিয়ে
+cd ~
+
+# দেখো কোথায় আছ
+pwd
+# Output: /home/omar
+```
+
+তোমার Documents, Downloads, Pictures — সব `/home/omar/` এর ভেতরে থাকে।
+
+---
+
+### `/etc`
+
+Configuration ফাইলের গুদাম — system-এর সব important configuration file এখানে থাকে।
+
+```bash filename="Terminal"
+# Network hostname দেখো
+cat /etc/hostname
+
+# কোন users আছে system-এ
+cat /etc/passwd
+
+# Password hashes (শুধু root দেখতে পারে)
+cat /etc/shadow
+```
+
+<Callout type="warning">
+  **CyberSec Note:** `/etc/passwd` আর `/etc/shadow` — এই দুটো file CTF challenge আর penetration testing-এ খুব common target। `/etc/passwd` সব user দেখতে পারে, কিন্তু `/etc/shadow`-এ actual password hash আছে — সেটা শুধু root read করতে পারে।
+</Callout>
+
+---
+
+### `/var`
+
+এখানে থাকে এমন data যেটা constantly change হয়। সবচেয়ে important হলো **log files।**
+
+```bash filename="Terminal"
+# System log দেখো
+cat /var/log/syslog
+
+# Authentication log — কে login করেছে
+cat /var/log/auth.log
+
+# Apache web server log (installed থাকলে)
+cat /var/log/apache2/access.log
+```
+
+<Callout type="warning">
+  **CyberSec Note:** Log analysis cybersecurity-র একটা core skill। কেউ unauthorized login করলে, কোনো attack হলে — সব evidence থাকে `/var/log/` এ। Forensics, Incident Response সব কাজে logs দেখতে হয়।
+</Callout>
+
+---
+
+### `/tmp`
+
+Temporary files রাখার জায়গা। System restart করলে এই folder empty হয়ে যায়।
+
+```bash filename="Terminal"
+# tmp folder এ যাও
+cd /tmp
+
+# দেখো কী আছে
+ls -la
+```
+
+<Callout type="warning">
+  **CyberSec Note:** Hackers প্রায়ই `/tmp` ব্যবহার করে malicious script রাখতে। কারণ এখানে যেকেউ write করতে পারে এবং সাধারণত monitor করা হয় না। CTF-এ privilege escalation করতে গেলে `/tmp` তে script রাখা common।
+</Callout>
+
+---
+
+### `/bin` and `/usr/bin`
+
+তুমি যে commands use করো (`ls`, `cp`, `mv`, `cat`) — সেগুলোর actual program file এখানে থাকে।
+
+```bash filename="Terminal"
+# ls command কোথায় আছে
+which ls
+# Output: /usr/bin/ls
+
+# cat command কোথায় আছে
+which cat
+# Output: /usr/bin/cat
+```
+
+---
+
+### `/root`
+
+**Root user** (system-এর admin) এর personal folder। সাধারণ user এখানে ঢুকতে পারে না।
+
+```bash filename="Terminal"
+# এই command সাধারণত access denied দেবে
+ls /root
+# Permission denied
+```
+
+---
+
+### `/proc`
+
+একটা virtual filesystem — disk-এ কোনো actual file নেই। System runtime-এ তৈরি করে, running processes-এর information store করে।
+
+```bash filename="Terminal"
+# CPU information
+cat /proc/cpuinfo
+
+# Memory information
+cat /proc/meminfo
+```
+
+---
+
+## Full Filesystem Tree
+
+<FileTree>
+  <FileTree.Folder name="/" defaultOpen>
+    <FileTree.Folder name="home" defaultOpen>
+      <FileTree.Folder name="omar">
+        <FileTree.File name="Documents" />
+        <FileTree.File name="Downloads" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+    <FileTree.Folder name="etc">
+      <FileTree.File name="passwd" />
+      <FileTree.File name="shadow" />
+      <FileTree.File name="hostname" />
+    </FileTree.Folder>
+    <FileTree.Folder name="var">
+      <FileTree.Folder name="log">
+        <FileTree.File name="syslog" />
+        <FileTree.File name="auth.log" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+    <FileTree.Folder name="tmp" />
+    <FileTree.Folder name="bin" />
+    <FileTree.Folder name="usr">
+      <FileTree.Folder name="bin" />
+    </FileTree.Folder>
+    <FileTree.Folder name="root" />
+    <FileTree.Folder name="dev" />
+    <FileTree.Folder name="proc" />
+  </FileTree.Folder>
+</FileTree>
+
+---
+
+## Summary Table
+
+| Directory | কী থাকে | Importance |
+|-----------|---------|------------|
+| `/home` | User-এর personal files | High |
+| `/etc` | System config files | High |
+| `/var/log` | Log files | High (CyberSec) |
+| `/tmp` | Temporary files | Medium (CyberSec) |
+| `/bin`, `/usr/bin` | Commands/Programs | High |
+| `/root` | Root user home | Medium |
+| `/dev` | Device files | Low |
+| `/proc` | Process info | Medium |
+
+---
+
+## Practice
+
+```bash filename="Terminal"
+# 1. Root থেকে সব folder দেখো
+ls /
+
+# 2. তোমার home folder এ যাও
+cd ~
+pwd
+
+# 3. /etc এ কী আছে দেখো
+ls /etc | head -20
+
+# 4. তোমার hostname কী
+cat /etc/hostname
+
+# 5. System-এ কোন users আছে
+cut -d: -f1 /etc/passwd
+```
+
+---
+
+## Quick Check
+
+- [ ] `/` (root) আর `/root` এর পার্থক্য বলতে পারবে?
+- [ ] Config files কোথায় থাকে?
+- [ ] Log files কোথায় দেখবে?
+- [ ] `/tmp` কেন cybersecurity-তে important?
+
+এই section শেষ।
+
+**পরবর্তী Section →** [Terminal Basics](/docs/linux-fundamentals/02-terminal-basics)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux filesystem structure, linux directory structure, /etc /var /home /tmp explained, linux folder structure bangla, linux root directory
+</span>
