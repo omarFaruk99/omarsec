@@ -32,7 +32,7 @@ export const metadata = {
 
 const navbar = (
   <Navbar
-    logo={<span style={{ fontWeight: 800, fontSize: '1.1rem' }}>OmarSec</span>}
+    logo={<span style={{ fontWeight: 800, fontSize: '1.1rem' }}>###</span>}
     projectLink="https://github.com/omarFaruk99/omarsec"
   />
 )
