@@ -1,0 +1,24 @@
+---
+title: Users & Permissions
+description: Linux user management, sudo access, আর SSH connection — সব এক section-এ।
+---
+
+import { Callout } from 'nextra/components'
+
+# Section 05 — Users & Permissions
+
+<Callout type="info">
+  Linux একটা multi-user system। প্রতিটা user-এর আলাদা identity, আলাদা permissions। এই section-এ শিখবে users কীভাবে manage হয়, sudo কীভাবে কাজ করে, আর SSH দিয়ে remote server-এ কীভাবে connect করে।
+</Callout>
+
+এই section শেষ করলে তুমি জানবে:
+
+- Linux-এ users আর groups কীভাবে কাজ করে
+- `sudo` আর `su` দিয়ে elevated access কীভাবে নেওয়া যায়
+- SSH দিয়ে remote server-এ securely connect করতে
+
+## Topics
+
+- [Users & Groups](/docs/linux-fundamentals/05-users-permissions/users-groups) — `useradd`, `passwd`, `groups`, `/etc/passwd`
+- [sudo & root](/docs/linux-fundamentals/05-users-permissions/sudo) — `sudo`, `su`, sudoers file
+- [SSH](/docs/linux-fundamentals/05-users-permissions/ssh) — keys, connecting, `~/.ssh/config`

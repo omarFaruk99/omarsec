@@ -1,0 +1,195 @@
+---
+title: Reading Files
+description: Terminal থেকে files পড়ো — cat, less, head, tail, আর live monitoring।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Reading Files
+
+<Callout type="info">
+  Server-এ কোনো GUI নেই — শুধু terminal। তাই terminal থেকে files পড়তে পারাটা একটা core skill। Log files দেখা, config চেক করা, output analyze করা — সব এখান থেকে।
+</Callout>
+
+## The Tools at a Glance
+
+| Command | কাজ | কখন use করবে |
+|---------|-----|--------------|
+| `cat` | পুরো file একসাথে print করে | ছোট files |
+| `less` | Scroll করে পড়া যায় | বড় files |
+| `head` | File-এর শুরু দেখায় | প্রথম কয়েক লাইন দরকার |
+| `tail` | File-এর শেষ দেখায় | Latest log entries |
+| `tail -f` | Live update দেখায় | Real-time monitoring |
+
+---
+
+## `cat`
+
+পুরো file-এর content একবারে print করে।
+
+```bash filename="Terminal"
+# File পড়ো
+cat notes.txt
+
+# Line numbers সহ
+cat -n notes.txt
+
+# একাধিক files একসাথে দেখো
+cat file1.txt file2.txt
+
+# System files দেখার common use
+cat /etc/hostname
+cat /etc/passwd
+```
+
+<Callout type="default">
+  `cat` ছোট files-এর জন্য perfect। বড় file হলে সব output একসাথে scroll হয়ে চলে যায় — তখন `less` use করো।
+</Callout>
+
+---
+
+## `less`
+
+File navigate করা যায় — উপরে নিচে scroll করো।
+
+```bash filename="Terminal"
+less /var/log/syslog
+```
+
+`less` এর ভেতরে keyboard controls:
+
+| Key | কাজ |
+|-----|-----|
+| `Space` | এক page নিচে |
+| `b` | এক page উপরে |
+| `↓` / `↑` | এক line নিচে / উপরে |
+| `g` | File-এর শুরুতে যাও |
+| `G` | File-এর শেষে যাও |
+| `/pattern` | নিচের দিকে search করো |
+| `?pattern` | উপরের দিকে search করো |
+| `n` | পরের search result |
+| `q` | Exit করো |
+
+<Callout type="info">
+  `less` সবচেয়ে comfortable reading tool। বড় log files দেখার সময় সবসময় `less` use করো — `cat` দিলে terminal flood হয়।
+</Callout>
+
+---
+
+## `head`
+
+File-এর **শুরু** থেকে কয়েকটা line দেখায়। Default: ১০ লাইন।
+
+```bash filename="Terminal"
+# প্রথম ১০ লাইন (default)
+head /etc/passwd
+
+# প্রথম ৫ লাইন
+head -n 5 notes.txt
+
+# প্রথম ২০ লাইন
+head -20 /var/log/syslog
+```
+
+---
+
+## `tail`
+
+File-এর **শেষ** থেকে কয়েকটা line দেখায়। Default: ১০ লাইন।
+
+```bash filename="Terminal"
+# শেষ ১০ লাইন (default)
+tail /var/log/syslog
+
+# শেষ ২০ লাইন
+tail -n 20 /var/log/auth.log
+
+# শেষ ৫০ লাইন
+tail -50 /var/log/apache2/access.log
+```
+
+---
+
+## `tail -f`
+
+File-এ নতুন content আসলে **real-time** দেখায়। Log monitoring-এ irreplaceable।
+
+```bash filename="Terminal"
+# Live log monitor করো
+tail -f /var/log/syslog
+
+# Authentication log live দেখো (login attempts)
+tail -f /var/log/auth.log
+
+# Apache access log live
+tail -f /var/log/apache2/access.log
+```
+
+বন্ধ করতে `Ctrl + C` চাপো।
+
+<Callout type="warning">
+  **CyberSec use:** কেউ server-এ login করার চেষ্টা করছে কিনা real-time দেখতে:
+  ```bash
+  tail -f /var/log/auth.log
+  ```
+  Successful আর failed login দুটোই এখানে আসে।
+</Callout>
+
+---
+
+## Combining Tools
+
+Tools combine করে আরো powerful হয়:
+
+```bash filename="Terminal"
+# Log-এর শেষ ১০০ লাইন less-এ দেখো
+tail -100 /var/log/syslog | less
+
+# File-এ কতটা লাইন আছে
+cat /etc/passwd | wc -l
+
+# প্রথম ৫ লাইন, তারপর শেষ ২ লাইন
+head -5 notes.txt
+tail -2 notes.txt
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Log analysis — the core of incident response:**
+
+  সব attack-এর trace থাকে log-এ। এই commands দিয়ে:
+
+  ```bash
+  # কে কখন login করেছে
+  tail -50 /var/log/auth.log
+
+  # Web server-এ কোন IP বেশি request করছে
+  tail -f /var/log/apache2/access.log
+
+  # System-এ কী হচ্ছে real-time
+  tail -f /var/log/syslog
+
+  # Sudo commands কে চালিয়েছে
+  grep "sudo" /var/log/auth.log | tail -20
+  ```
+
+  CTF-এ প্রায়ই একটা log file দেওয়া হয় এবং সেখান থেকে attacker-এর activity বের করতে হয়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `cat` আর `less` — কখন কোনটা use করবে?
+- [ ] `head -20` মানে কী?
+- [ ] Real-time log monitor করার command কী?
+- [ ] `tail -f` থেকে বের হওয়ার shortcut কী?
+
+**পরবর্তী →** [Searching](/docs/linux-fundamentals/04-text-manipulation/searching)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux cat less head tail, read file terminal, tail -f live log, linux log analysis, reading files linux bangla
+</span>

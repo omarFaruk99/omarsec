@@ -1,0 +1,24 @@
+---
+title: Processes
+description: Linux-এ processes কীভাবে কাজ করে — দেখা, manage করা, আর control করা।
+---
+
+import { Callout } from 'nextra/components'
+
+# Section 06 — Processes
+
+<Callout type="info">
+  তুমি যতটা command বা program চালাও, সেটাই একটা process। Linux-এ সব কিছু process — background services, network listeners, তোমার terminal। এগুলো দেখতে আর control করতে পারাটা সিস্টেম বোঝার জন্য এবং cybersecurity-র জন্য অপরিহার্য।
+</Callout>
+
+এই section শেষ করলে তুমি জানবে:
+
+- System-এ কোন processes চলছে সেটা দেখতে
+- Background-এ jobs চালাতে আর manage করতে
+- Unwanted processes বন্ধ করতে
+
+## Topics
+
+- [Process Basics](/docs/linux-fundamentals/06-processes/process-basics) — PID, `ps`, `top`, `htop`
+- [Background Jobs](/docs/linux-fundamentals/06-processes/background-jobs) — `&`, `bg`, `fg`, `jobs`
+- [Killing Processes](/docs/linux-fundamentals/06-processes/killing-processes) — `kill`, `pkill`, signals

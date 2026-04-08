@@ -1,0 +1,217 @@
+---
+title: Permissions
+description: Linux permission system — কে কী করতে পারবে সেটা কীভাবে control হয়।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Permissions
+
+<Callout type="info">
+  Linux-এ প্রতিটা file আর folder-এর জন্য নির্দিষ্ট করা আছে — কে পড়তে পারবে, কে লিখতে পারবে, কে execute করতে পারবে। এই system না বুঝলে cybersecurity-তে অনেক কিছুই অন্ধকারে থাকবে।
+</Callout>
+
+## Why Permissions Exist
+
+একটা Linux system-এ অনেক user থাকতে পারে। Permissions নিশ্চিত করে:
+
+- তোমার files অন্য কেউ পড়তে বা পরিবর্তন করতে পারবে না
+- System files সাধারণ user delete করতে পারবে না
+- কোন program কে execute করার permission আছে সেটা নিয়ন্ত্রণ করা যায়
+
+---
+
+## Reading Permissions
+
+`ls -l` চালালে এরকম output আসে:
+
+```bash filename="Terminal"
+ls -l
+```
+
+```
+-rwxr-xr-- 1 omar developers 2048 Apr 8 10:00 script.sh
+drwxr-xr-x 2 omar omar       4096 Apr 8 09:00 Documents
+```
+
+Permission string টা ভেঙে দেখি:
+
+```
+- r w x r - x r - -
+│ │─┤ │─┤ └──┘
+│ │ │ │ │   Others (world)
+│ │ │ └─┤   Group
+│ └─┤     Owner (user)
+└──── File type: - = file, d = directory, l = symlink
+```
+
+### Three Categories
+
+| Category | Symbol | মানে |
+|----------|--------|------|
+| **Owner** | প্রথম `rwx` | File-এর মালিক |
+| **Group** | দ্বিতীয় `rwx` | একই group-এর users |
+| **Others** | তৃতীয় `rwx` | বাকি সবাই |
+
+### Three Permission Types
+
+| Letter | Permission | File-এ মানে | Directory-তে মানে |
+|--------|-----------|------------|-------------------|
+| `r` | Read | File পড়তে পারবে | Folder-এর contents দেখতে পারবে |
+| `w` | Write | File edit করতে পারবে | Folder-এ files তৈরি/মুছতে পারবে |
+| `x` | Execute | File চালাতে পারবে (script/program) | Folder-এ `cd` করতে পারবে |
+| `-` | No permission | ওই permission নেই | ওই permission নেই |
+
+---
+
+## Numeric (Octal) Notation
+
+Permissions সংখ্যা দিয়েও লেখা হয়:
+
+| Number | Binary | Permission |
+|--------|--------|-----------|
+| `7` | 111 | `rwx` — সব |
+| `6` | 110 | `rw-` — read + write |
+| `5` | 101 | `r-x` — read + execute |
+| `4` | 100 | `r--` — read only |
+| `0` | 000 | `---` — কিছুই না |
+
+```
+chmod 755 script.sh
+       |||
+       ||└── Others: r-x (5)
+       |└─── Group:  r-x (5)
+       └──── Owner:  rwx (7)
+```
+
+<Callout type="default">
+  **Common Permissions:**
+  - `755` — Owner সব পারে, বাকিরা শুধু read + execute। Scripts আর programs-এ সাধারণ।
+  - `644` — Owner read+write, বাকিরা শুধু read। Regular files-এ সাধারণ।
+  - `600` — শুধু owner পড়তে ও লিখতে পারে। SSH keys-এর জন্য।
+  - `777` — সবাই সব পারে। Security risk — avoid করো।
+</Callout>
+
+---
+
+## `chmod`
+
+File বা folder-এর permission পরিবর্তন করো।
+
+<Tabs items={['Numeric Mode', 'Symbolic Mode']}>
+  <Tabs.Tab>
+    সংখ্যা দিয়ে permission set করো — সরাসরি replace হয়।
+
+    ```bash filename="Terminal"
+    # Script কে executable করো
+    chmod 755 script.sh
+
+    # Private file — শুধু owner পড়তে পারবে
+    chmod 600 private-key.pem
+
+    # সবাই read করতে পারবে
+    chmod 644 notes.txt
+
+    # Folder সহ সব files recursively change করো
+    chmod -R 755 my-folder/
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Letter দিয়ে permission add বা remove করো।
+
+    ```bash filename="Terminal"
+    # Owner-কে execute permission দাও
+    chmod u+x script.sh
+
+    # Others এর write permission সরাও
+    chmod o-w notes.txt
+
+    # Group-কে read permission দাও
+    chmod g+r report.txt
+
+    # সবাই থেকে execute permission সরাও
+    chmod a-x file.sh
+
+    # u = user(owner), g = group, o = others, a = all
+    # + = add, - = remove, = = set exactly
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## `chown`
+
+File বা folder-এর owner এবং group পরিবর্তন করো।
+
+```bash filename="Terminal"
+# Owner পরিবর্তন করো
+chown omar file.txt
+
+# Owner আর group দুটোই পরিবর্তন করো
+chown omar:developers file.txt
+
+# Recursively folder সহ সব change করো
+chown -R omar:omar my-folder/
+
+# Current owner কে দেখো
+ls -l file.txt
+```
+
+<Callout type="warning">
+  `chown` চালাতে সাধারণত `sudo` লাগে — কারণ অন্যের file-এর ownership নেওয়া sensitive operation।
+
+  ```bash
+  sudo chown omar:omar file.txt
+  ```
+</Callout>
+
+---
+
+## Checking Permissions
+
+```bash filename="Terminal"
+# File permissions দেখো
+ls -l script.sh
+
+# Folder permissions দেখো
+ls -ld Documents/
+
+# Specific file-এর detailed info
+stat script.sh
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Permissions CTF-এ আর Pentesting-এ:**
+
+  **Privilege Escalation:**
+  - `find / -perm -4000 2>/dev/null` — SUID bit set আছে এমন files খোঁজো। এগুলো root-এ run হয়, misconfiguration থাকলে root access পাওয়া যায়।
+  - World-writable files (`777`) — attacker content replace করতে পারে
+  - `/etc/passwd` writable হলে — নতুন root user add করা যায়
+
+  **SUID কী:**
+  ```bash
+  -rwsr-xr-x   ← s মানে SUID set
+  ```
+  SUID মানে এই program যে-ই চালাক, file owner-এর permission-এ চলবে।
+  অনেক system binary root-owned আর SUID — misconfiguration হলে exploit করা যায়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `rwxr-xr--` permission string এর তিনটা অংশ কোনটা কার জন্য?
+- [ ] `chmod 644` মানে কী?
+- [ ] `chmod u+x` আর `chmod 755` — পার্থক্য কী?
+- [ ] SUID কী এবং কেন সেটা cybersecurity-তে important?
+
+**পরবর্তী →** [Hidden Files](/docs/linux-fundamentals/03-file-system/hidden-files)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux permissions, chmod chown, rwx explained, linux file permissions bangla, privilege escalation permissions, SUID linux, chmod 755 644
+</span>

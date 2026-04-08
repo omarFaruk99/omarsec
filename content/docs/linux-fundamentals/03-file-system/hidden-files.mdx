@@ -1,0 +1,201 @@
+---
+title: Hidden Files
+description: Linux-এ hidden files কী, কোথায় থাকে, কীভাবে দেখা যায়।
+---
+
+import { Callout, FileTree } from 'nextra/components'
+
+# Hidden Files
+
+<Callout type="info">
+  Linux-এ hidden files আছে কিন্তু `ls` দিয়ে দেখা যায় না। এগুলো configuration, credentials, আর sensitive data রাখে। Cybersecurity-তে এগুলো খুঁজে বের করাটা অনেক গুরুত্বপূর্ণ।
+</Callout>
+
+## What Makes a File Hidden
+
+Linux-এ কোনো file বা folder-এর নাম যদি **dot (`.`)** দিয়ে শুরু হয়, সেটা hidden।
+
+Windows-এর মতো special attribute নেই — শুধু নামের আগে `.` থাকলেই হলো।
+
+```bash filename="Terminal"
+# এটা দেখা যাবে
+notes.txt
+
+# এটা hidden — ls এ দেখা যাবে না
+.notes.txt
+.config
+.ssh
+```
+
+---
+
+## Seeing Hidden Files
+
+```bash filename="Terminal"
+# Normal ls — hidden দেখায় না
+ls
+
+# -a flag দিলে hidden সহ সব দেখায়
+ls -a
+
+# Detailed + hidden — সবচেয়ে useful
+ls -la
+
+# নির্দিষ্ট folder-এর hidden files
+ls -la /home/omar/
+```
+
+`ls -la` output-এ `.` আর `..` দেখবে সবসময়:
+
+```
+.          ← current directory নিজে
+..         ← parent directory
+.bashrc    ← hidden file
+.ssh/      ← hidden folder
+```
+
+---
+
+## Common Hidden Files
+
+তোমার home folder-এ এই hidden files প্রায়ই থাকে:
+
+<FileTree>
+  <FileTree.Folder name="~" defaultOpen>
+    <FileTree.File name=".bashrc" />
+    <FileTree.File name=".bash_history" />
+    <FileTree.File name=".bash_profile" />
+    <FileTree.File name=".profile" />
+    <FileTree.Folder name=".ssh" defaultOpen>
+      <FileTree.File name="id_rsa" />
+      <FileTree.File name="id_rsa.pub" />
+      <FileTree.File name="known_hosts" />
+      <FileTree.File name="authorized_keys" />
+    </FileTree.Folder>
+    <FileTree.Folder name=".config" />
+    <FileTree.File name=".env" />
+  </FileTree.Folder>
+</FileTree>
+
+---
+
+## Important Hidden Files
+
+### `.bashrc`
+
+প্রতিবার terminal খুললে এই file-এর code run হয়। তোমার aliases, custom functions, PATH settings এখানে থাকে।
+
+```bash filename="Terminal"
+# দেখো কী আছে
+cat ~/.bashrc
+
+# Edit করো
+nano ~/.bashrc
+
+# পরিবর্তন apply করো (restart ছাড়াই)
+source ~/.bashrc
+```
+
+### `.bash_history`
+
+তুমি terminal-এ যা commands চালিয়েছ সব এখানে সেভ হয়।
+
+```bash filename="Terminal"
+# দেখো
+cat ~/.bash_history
+
+# বা history command দিয়ে
+history
+```
+
+### `.ssh`
+
+SSH keys এবং configuration এখানে থাকে।
+
+```bash filename="Terminal"
+# Content দেখো
+ls -la ~/.ssh/
+
+# Private key — শুধু তুমি পড়তে পারবে (600 permission)
+cat ~/.ssh/id_rsa
+
+# Public key — share করা যায়
+cat ~/.ssh/id_rsa.pub
+```
+
+<Callout type="warning">
+  `.ssh/id_rsa` (private key) এর permission অবশ্যই `600` হতে হবে। অন্যথায় SSH কাজ করবে না।
+
+  ```bash
+  chmod 600 ~/.ssh/id_rsa
+  ```
+</Callout>
+
+### `.env`
+
+Developer-রা sensitive credentials (API keys, database passwords) এখানে রাখে।
+
+```bash filename="Terminal"
+cat .env
+# দেখতে পাবে:
+# DB_PASSWORD=supersecret123
+# API_KEY=abc123xyz
+```
+
+---
+
+## Creating Hidden Files
+
+```bash filename="Terminal"
+# Hidden file তৈরি করো
+touch .secret-notes
+
+# Hidden folder তৈরি করো
+mkdir .private
+
+# Confirm করো
+ls -la
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Hidden files কেন CTF-এ এত important?**
+
+  **Credential Hunting:**
+  - `.bash_history` — past commands-এ password থাকতে পারে (`mysql -u root -pSECRET`)
+  - `.env` — hardcoded API keys, database passwords
+  - `.ssh/id_rsa` — private key চুরি করলে passwordless SSH access
+
+  **Investigation:**
+  ```bash
+  # target user-এর history দেখো
+  cat /home/victim/.bash_history
+
+  # সব hidden files খোঁজো
+  find /home -name ".*" -type f 2>/dev/null
+
+  # .env files খোঁজো সব জায়গায়
+  find / -name ".env" 2>/dev/null
+  ```
+
+  **Persistence:**
+  Attackers প্রায়ই `.bashrc` তে malicious code add করে — যাতে প্রতিবার user login করলে automatically run হয়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] Linux-এ কোনো file hidden করতে কী করতে হয়?
+- [ ] Hidden files দেখার command কী?
+- [ ] `.bash_history` কেন sensitive?
+- [ ] `.ssh` folder-এ কী থাকে?
+
+**পরবর্তী →** [Symlinks](/docs/linux-fundamentals/03-file-system/symlinks)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux hidden files, dotfiles, ls -la, .bashrc .bash_history .ssh, linux hidden folder, find hidden files, credential hunting linux
+</span>

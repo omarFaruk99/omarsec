@@ -1,0 +1,229 @@
+---
+title: SSH
+description: SSH দিয়ে remote server-এ connect করো — keys, config, আর secure workflow।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# SSH
+
+<Callout type="info">
+  SSH (Secure Shell) হলো remote server-এ securely connect করার প্রোটোকল। Network traffic সব encrypted — কেউ intercept করলেও পড়তে পারবে না। Cybersecurity-তে SSH understanding অনেক গুরুত্বপূর্ণ।
+</Callout>
+
+## How SSH Works
+
+```
+তোমার machine (client)
+        │
+        │  SSH connection (encrypted)
+        │
+Remote server (port 22)
+        │
+        └── তুমি এখন remote terminal-এ কাজ করছ
+```
+
+দুইভাবে authenticate করা যায়:
+
+| Method | কীভাবে | কোনটা ভালো |
+|--------|--------|------------|
+| Password | Username + password দাও | সহজ কিন্তু কম secure |
+| SSH Key | Public/private key pair | Recommended — বেশি secure |
+
+---
+
+## Connecting
+
+```bash filename="Terminal"
+# Basic connection
+ssh username@server-ip
+
+# নির্দিষ্ট port দিয়ে (default 22)
+ssh -p 2222 username@server-ip
+
+# নির্দিষ্ট key দিয়ে
+ssh -i ~/.ssh/id_rsa username@server-ip
+
+# Example
+ssh omar@192.168.1.10
+ssh ubuntu@ec2-54-123-456.compute.amazonaws.com
+```
+
+প্রথমবার connect করলে:
+```
+The authenticity of host '192.168.1.10' can't be established.
+Are you sure you want to continue connecting (yes/no)? yes
+```
+
+`yes` type করলে server-এর fingerprint `~/.ssh/known_hosts`-এ save হয়।
+
+---
+
+## SSH Keys
+
+Password-এর চেয়ে SSH keys অনেক বেশি secure।
+
+### Generating a Key Pair
+
+```bash filename="Terminal"
+# Key pair তৈরি করো
+ssh-keygen -t ed25519 -C "omar@email.com"
+
+# অথবা RSA (পুরনো systems-এর জন্য)
+ssh-keygen -t rsa -b 4096 -C "omar@email.com"
+
+# Keys কোথায় save হবে জিজ্ঞেস করবে
+# Default: ~/.ssh/id_ed25519 আর ~/.ssh/id_ed25519.pub
+```
+
+দুটো file তৈরি হয়:
+
+| File | কী | কাকে দেওয়া যায় |
+|------|-----|----------------|
+| `id_ed25519` | Private key | কাউকে দেবে না — শুধু তোমার কাছে |
+| `id_ed25519.pub` | Public key | Server-এ রাখো |
+
+### Copying Public Key to Server
+
+```bash filename="Terminal"
+# Automatic (সহজ)
+ssh-copy-id -i ~/.ssh/id_ed25519.pub username@server-ip
+
+# Manual — server-এ এই command চালাও
+cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+---
+
+## `~/.ssh/config`
+
+বারবার লম্বা command না লিখে shortcut তৈরি করো।
+
+```bash filename="Terminal"
+nano ~/.ssh/config
+```
+
+```
+Host myserver
+    HostName 192.168.1.10
+    User omar
+    IdentityFile ~/.ssh/id_ed25519
+    Port 22
+
+Host ec2-prod
+    HostName ec2-54-123-456.compute.amazonaws.com
+    User ubuntu
+    IdentityFile ~/.ssh/aws-key.pem
+```
+
+এখন শুধু:
+```bash filename="Terminal"
+ssh myserver
+ssh ec2-prod
+```
+
+---
+
+## Important File Permissions
+
+SSH strict permissions enforce করে — wrong হলে connection fail করবে।
+
+```bash filename="Terminal"
+# Private key — শুধু owner read করতে পারবে
+chmod 600 ~/.ssh/id_ed25519
+
+# Public key
+chmod 644 ~/.ssh/id_ed25519.pub
+
+# authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# .ssh folder
+chmod 700 ~/.ssh/
+```
+
+---
+
+## SCP — File Transfer
+
+SSH দিয়ে files transfer করো।
+
+<Tabs items={['Upload (Local → Remote)', 'Download (Remote → Local)']}>
+  <Tabs.Tab>
+    ```bash
+    # File upload
+    scp localfile.txt omar@server:/home/omar/
+
+    # Folder upload
+    scp -r local-folder/ omar@server:/home/omar/
+
+    # Config এর host name দিয়ে
+    scp file.txt myserver:/tmp/
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # File download
+    scp omar@server:/home/omar/file.txt ./
+
+    # Folder download
+    scp -r omar@server:/home/omar/projects/ ./
+
+    # Config এর host name দিয়ে
+    scp myserver:/var/log/syslog ./
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **SSH CTF-এ আর Pentesting-এ:**
+
+  **Private Key Found:**
+  ```bash
+  # Target-এ private key পেলে
+  chmod 600 id_rsa
+  ssh -i id_rsa user@target-ip
+  ```
+
+  **Brute Force:**
+  ```bash
+  # Hydra দিয়ে SSH brute force
+  hydra -l admin -P /usr/share/wordlists/rockyou.txt ssh://target-ip
+  ```
+
+  **Weak Configuration খোঁজো:**
+  ```bash
+  # SSH server config দেখো
+  cat /etc/ssh/sshd_config
+
+  # Root login allowed?
+  grep "PermitRootLogin" /etc/ssh/sshd_config
+
+  # Password auth allowed?
+  grep "PasswordAuthentication" /etc/ssh/sshd_config
+  ```
+
+  **Pro tip:** যদি `PasswordAuthentication yes` থাকে — brute force possible। যদি `PermitRootLogin yes` থাকে — root directly brute force করা যাবে।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] SSH key pair-এ কোন file server-এ রাখে, কোনটা তোমার কাছে থাকে?
+- [ ] `~/.ssh/config` কী কাজে লাগে?
+- [ ] Private key-এর permission কত হওয়া উচিত?
+- [ ] SCP দিয়ে remote server থেকে file কীভাবে download করবে?
+
+এই section শেষ।
+
+**পরবর্তী Section →** [Processes](/docs/linux-fundamentals/06-processes)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux SSH, ssh-keygen, SSH key pair, scp file transfer, ~/.ssh/config, SSH brute force, PermitRootLogin, SSH cybersecurity
+</span>

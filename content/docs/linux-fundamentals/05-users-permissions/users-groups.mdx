@@ -1,0 +1,199 @@
+---
+title: Users & Groups
+description: Linux-এ users আর groups কীভাবে কাজ করে, কীভাবে manage করা যায়।
+---
+
+import { Callout } from 'nextra/components'
+
+# Users & Groups
+
+<Callout type="info">
+  Linux একটা multi-user OS — একই system-এ অনেক user থাকতে পারে। প্রতিটা user-এর আলাদা identity আছে, আলাদা files আছে, আলাদা permissions আছে। Groups হলো users-দের একসাথে manage করার পদ্ধতি।
+</Callout>
+
+## How It Works
+
+প্রতিটা Linux user-এর থাকে:
+
+- একটা unique **username**
+- একটা numeric **UID** (User ID)
+- একটা **home directory** (`/home/username`)
+- একটা **default shell** (সাধারণত bash)
+- এক বা বেশি **groups**
+
+```bash filename="Terminal"
+# তোমার current user কে
+whoami
+
+# তোমার UID আর groups দেখো
+id
+
+# Output example:
+# uid=1000(omar) gid=1000(omar) groups=1000(omar),4(adm),27(sudo)
+```
+
+---
+
+## `/etc/passwd`
+
+System-এর সব users এখানে stored।
+
+```bash filename="Terminal"
+cat /etc/passwd
+```
+
+প্রতিটা লাইনের format:
+
+```
+omar:x:1000:1000:Omar,,,:/home/omar:/bin/bash
+  │   │  │     │    │        │           └── Default shell
+  │   │  │     │    │        └── Home directory
+  │   │  │     │    └── Comment (full name)
+  │   │  │     └── GID (Primary group ID)
+  │   │  └── UID (User ID)
+  │   └── Password (x মানে /etc/shadow-এ আছে)
+  └── Username
+```
+
+---
+
+## `/etc/shadow`
+
+Password hashes এখানে। শুধু root access করতে পারে।
+
+```bash filename="Terminal"
+sudo cat /etc/shadow
+```
+
+Format:
+```
+omar:$6$salt$hashedpassword:19000:0:99999:7:::
+```
+
+<Callout type="warning">
+  **CyberSec:** `/etc/shadow` পাওয়া মানে password cracking সম্ভব। `john` বা `hashcat` দিয়ে hash crack করা হয়।
+</Callout>
+
+---
+
+## User Management
+
+```bash filename="Terminal"
+# নতুন user তৈরি করো
+sudo useradd -m -s /bin/bash newuser
+# -m = home directory তৈরি করো
+# -s = default shell set করো
+
+# Password set করো
+sudo passwd newuser
+
+# User info দেখো
+id newuser
+grep newuser /etc/passwd
+
+# User delete করো
+sudo userdel newuser
+
+# Home directory সহ delete
+sudo userdel -r newuser
+
+# নিজের password পরিবর্তন
+passwd
+```
+
+---
+
+## Groups
+
+Groups একসাথে অনেক users-কে same permissions দেওয়ার পদ্ধতি।
+
+```bash filename="Terminal"
+# তোমার groups দেখো
+groups
+
+# নির্দিষ্ট user-এর groups
+groups omar
+
+# সব groups দেখো
+cat /etc/group
+
+# নতুন group তৈরি করো
+sudo groupadd developers
+
+# User-কে group-এ add করো
+sudo usermod -aG developers omar
+# -a = append (existing groups রাখো)
+# -G = supplementary group
+
+# Group থেকে remove করো
+sudo gpasswd -d omar developers
+```
+
+<Callout type="default">
+  Group change apply হতে logout করে আবার login করতে হয়। অথবা:
+  ```bash
+  newgrp developers
+  ```
+</Callout>
+
+---
+
+## Important System Users
+
+```bash filename="Terminal"
+# UID 0 — এটাই root
+grep "^root" /etc/passwd
+
+# System users (UID < 1000) দেখো
+awk -F: '$3 < 1000 {print $1, $3}' /etc/passwd
+```
+
+| User | Role |
+|------|------|
+| `root` (UID 0) | Super admin — সব permission |
+| `daemon` | Background services |
+| `www-data` | Web server (Apache/Nginx) |
+| `nobody` | Minimal permission user |
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **User enumeration — প্রথম কাজ target machine-এ:**
+
+  ```bash
+  # কোন users আছে
+  cat /etc/passwd | grep "/bin/bash"
+
+  # কোন users sudo access আছে
+  grep -v "#" /etc/sudoers 2>/dev/null
+  cat /etc/sudoers 2>/dev/null
+
+  # Recently logged-in users
+  last
+  lastlog
+
+  # Currently logged-in
+  who
+  w
+  ```
+
+  **Lateral Movement:**
+  একটা user compromise করার পর অন্য users-এর home folders, files, history দেখা — সেখান থেকে credentials বা privilege escalation এর path পাওয়া যায়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `/etc/passwd` আর `/etc/shadow` এর পার্থক্য কী?
+- [ ] নতুন user তৈরির command কী?
+- [ ] User-কে group-এ add করার command কী?
+- [ ] `id` command কী দেখায়?
+
+**পরবর্তী →** [sudo & root](/docs/linux-fundamentals/05-users-permissions/sudo)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux users groups, useradd passwd, /etc/passwd /etc/shadow, linux user management, user enumeration linux, lateral movement
+</span>

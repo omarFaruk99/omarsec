@@ -1,0 +1,190 @@
+---
+title: Searching
+description: Files-এ text খোঁজো আর filesystem-এ files খোঁজো — grep আর find।
+---
+
+import { Callout } from 'nextra/components'
+
+# Searching
+
+<Callout type="info">
+  Thousands of files-এর মধ্যে একটা specific file খোঁজা, বা একটা file-এ specific text খোঁজা — এই দুটো কাজ terminal থেকে seconds-এ হয়। Cybersecurity-তে এই skills ছাড়া কাজ করা প্রায় impossible।
+</Callout>
+
+## Two Types of Search
+
+| Tool | কী খোঁজে |
+|------|----------|
+| `grep` | File-এর **ভেতরে** text pattern খোঁজে |
+| `find` | Filesystem-এ **files আর folders** খোঁজে |
+
+---
+
+## `grep`
+
+File-এর ভেতরে text pattern খোঁজে এবং matching lines দেখায়।
+
+```bash filename="Terminal"
+# Basic — file-এ "error" word খোঁজো
+grep "error" logfile.txt
+
+# Case-insensitive — Error, ERROR, error সব match করবে
+grep -i "error" logfile.txt
+
+# Line numbers সহ দেখাও
+grep -n "failed" auth.log
+
+# Invert — "error" নেই এমন lines দেখাও
+grep -v "error" logfile.txt
+
+# Recursive — folder-এর সব files-এ খোঁজো
+grep -r "password" /etc/
+
+# শুধু matching filename দেখাও (content না)
+grep -l "root" /etc/*
+
+# Match-এর আগে-পরে context দেখাও
+grep -A 2 "Failed password" auth.log   # পরের ২ লাইন
+grep -B 2 "Failed password" auth.log   # আগের ২ লাইন
+grep -C 2 "Failed password" auth.log   # দুইদিকে ২ লাইন
+```
+
+### Useful Patterns
+
+```bash filename="Terminal"
+# IP address pattern খোঁজো
+grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" access.log
+
+# "password" বা "passwd" যেকোনোটা
+grep -E "password|passwd" config.txt
+
+# Line শুরুতে "root" আছে
+grep "^root" /etc/passwd
+
+# Line শেষে "/bin/bash" আছে
+grep "/bin/bash$" /etc/passwd
+```
+
+---
+
+## `find`
+
+Filesystem-এ files, folders খোঁজে — নাম, type, permission, size, date দিয়ে filter করা যায়।
+
+```bash filename="Terminal"
+# নাম দিয়ে খোঁজো
+find / -name "passwords.txt"
+
+# Case-insensitive নাম
+find / -iname "readme.md"
+
+# Current folder থেকে খোঁজো
+find . -name "*.txt"
+
+# শুধু files খোঁজো (directories না)
+find /home -type f
+
+# শুধু directories খোঁজো
+find /home -type d
+
+# নির্দিষ্ট extension
+find /var/log -name "*.log"
+```
+
+### Finding by Permission
+
+```bash filename="Terminal"
+# SUID bit আছে এমন files
+find / -perm -4000 2>/dev/null
+
+# World-writable files (সবাই write করতে পারে)
+find / -perm -o+w 2>/dev/null
+
+# Specific permission
+find / -perm 777 2>/dev/null
+```
+
+### Finding by Time
+
+```bash filename="Terminal"
+# শেষ ১ দিনে modified
+find /var/log -mtime -1
+
+# ঠিক ৭ দিন আগে modified
+find / -mtime 7
+
+# শেষ ১ ঘণ্টায় modified
+find / -mmin -60
+```
+
+### Finding by Owner
+
+```bash filename="Terminal"
+# root-owned files
+find / -user root -type f 2>/dev/null
+
+# omar-এর files
+find /home -user omar
+```
+
+<Callout type="default">
+  `2>/dev/null` মানে error messages (permission denied etc.) লুকাও। Search করার সময় এটা add করলে output অনেক clean হয়।
+</Callout>
+
+---
+
+## Combining `grep` and `find`
+
+```bash filename="Terminal"
+# খোঁজো log files-এ "FAILED" আছে কিনা
+find /var/log -name "*.log" | xargs grep "FAILED"
+
+# সব config files-এ "password" search করো
+find /etc -type f | xargs grep -l "password" 2>/dev/null
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **এই commands CTF আর pentesting-এ সবচেয়ে বেশি use হয়:**
+
+  ```bash
+  # Juicy files খোঁজো
+  find / -name "*.txt" 2>/dev/null
+  find / -name "flag*" 2>/dev/null
+  find / -name "*.conf" 2>/dev/null
+
+  # Hardcoded passwords খোঁজো
+  grep -r "password" /var/www/ 2>/dev/null
+  grep -r "passwd" /etc/ 2>/dev/null
+  grep -ri "api_key" /home/ 2>/dev/null
+
+  # Privilege escalation — SUID executables
+  find / -perm -4000 -type f 2>/dev/null
+
+  # SSH keys খোঁজো
+  find / -name "id_rsa" 2>/dev/null
+
+  # Writable folders (script drop করা যাবে)
+  find / -writable -type d 2>/dev/null
+  ```
+
+  TryHackMe-এর প্রায় প্রতিটা Linux challenge-এ এই commands লাগে।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `grep -r` আর `grep` এর পার্থক্য কী?
+- [ ] `grep -i` কী করে?
+- [ ] `find / -perm -4000` কী খোঁজে?
+- [ ] `2>/dev/null` কেন use করা হয়?
+
+**পরবর্তী →** [Text Editors](/docs/linux-fundamentals/04-text-manipulation/editing)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux grep find commands, grep pattern search, find files linux, finding SUID files, linux search text, grep -r recursive, find -perm privilege escalation
+</span>

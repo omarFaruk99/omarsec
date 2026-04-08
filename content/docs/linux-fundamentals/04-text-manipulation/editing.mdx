@@ -1,0 +1,216 @@
+---
+title: Text Editors
+description: Terminal থেকে files edit করো — nano আর vim এর basics।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Text Editors
+
+<Callout type="info">
+  Server-এ কাজ করতে গেলে terminal-এ files edit করতে হয় — GUI editor নেই। দুটো tools জানা দরকার: **nano** (সহজ, beginner-friendly) আর **vim** (powerful, কিন্তু আলাদা শেখার দরকার)।
+</Callout>
+
+## nano vs vim
+
+| | nano | vim |
+|-|------|-----|
+| Learning curve | Low — সাথে সাথে শুরু করা যায় | High — mode-based, মুখস্থ করতে হয় |
+| Power | Basic editing | Extremely powerful |
+| Availability | Ubuntu default | প্রায় সব systems-এ আছে |
+| Server use | Quick edits | Professional use |
+
+<Callout type="default">
+  **কোনটা দিয়ে শুরু করবো?** `nano` দিয়ে শুরু করো। কিন্তু `vim` এর basics অবশ্যই শেখো — অনেক server-এ শুধু vim থাকে।
+</Callout>
+
+---
+
+## nano
+
+Beginner-friendly terminal editor। নিচে keyboard shortcuts দেখায়, তাই আলাদা মুখস্থ করতে হয় না।
+
+### Opening a File
+
+```bash filename="Terminal"
+# Existing file open করো
+nano notes.txt
+
+# নতুন file তৈরি করে open করো
+nano newfile.txt
+
+# Root permission দরকার এমন file
+sudo nano /etc/hosts
+```
+
+### Inside nano
+
+Screen-এর নিচে shortcuts দেখবে — `^` মানে `Ctrl`:
+
+| Shortcut | কাজ |
+|---------|------|
+| `Ctrl + O` | Save (Write Out) |
+| `Ctrl + X` | Exit |
+| `Ctrl + W` | Search |
+| `Ctrl + K` | Current line cut করো |
+| `Ctrl + U` | Paste করো |
+| `Ctrl + G` | Help দেখো |
+| `Alt + U` | Undo |
+
+### Workflow
+
+```bash filename="Terminal"
+# 1. File open করো
+nano config.txt
+
+# 2. Edit করো (normal typing)
+
+# 3. Save করো
+# Ctrl + O → Enter চাপো
+
+# 4. Exit করো
+# Ctrl + X
+```
+
+---
+
+## vim
+
+Powerful modal editor। দুই ধরনের mode আছে — **Normal mode** আর **Insert mode**। শুরুতে confusing লাগে কিন্তু বুঝলে অনেক দ্রুত কাজ হয়।
+
+### The Two Modes
+
+<Tabs items={['Normal Mode', 'Insert Mode']}>
+  <Tabs.Tab>
+    **Normal mode** — vim খুললে এখানে থাকো। এখানে typing করলে text লেখা হয় না — commands চলে।
+
+    ```
+    vim খুললেই Normal mode
+    ```
+
+    Normal mode থেকে কী করা যায়:
+    - Navigate করা
+    - Copy, paste, delete
+    - Save, quit
+    - Search
+  </Tabs.Tab>
+  <Tabs.Tab>
+    **Insert mode** — এখানে text লেখা যায়।
+
+    Normal mode থেকে Insert-এ যাও:
+
+    | Key | কাজ |
+    |-----|-----|
+    | `i` | Cursor-এর আগে insert |
+    | `a` | Cursor-এর পরে insert |
+    | `o` | নিচে নতুন line, insert |
+    | `I` | Line-এর শুরুতে insert |
+    | `A` | Line-এর শেষে insert |
+
+    Insert mode থেকে Normal-এ ফিরতে: `Esc`
+  </Tabs.Tab>
+</Tabs>
+
+### Opening and Quitting
+
+```bash filename="Terminal"
+# vim open করো
+vim notes.txt
+
+# Exit করার ways (Normal mode-এ):
+:q          # quit (unsaved changes থাকলে error দেবে)
+:q!         # force quit — সব changes discard
+:w          # save (quit না)
+:wq         # save + quit
+:x          # save + quit (same as :wq)
+ZZ          # save + quit (shortcut)
+```
+
+<Callout type="warning">
+  **vim-এ আটকে গেলে কী করবে?**
+
+  অনেকেই প্রথমবার vim open করে বের হতে পারে না। Solution:
+  1. `Esc` চাপো (Normal mode-এ যাও)
+  2. `:q!` type করো (colon সহ)
+  3. `Enter` চাপো
+
+  এটাই সবচেয়ে common vim meme — এবং real struggle।
+</Callout>
+
+### Basic Navigation
+
+Normal mode-এ:
+
+| Key | কাজ |
+|-----|-----|
+| `h` `j` `k` `l` | Left, Down, Up, Right |
+| `gg` | File-এর শুরু |
+| `G` | File-এর শেষ |
+| `0` | Line-এর শুরু |
+| `$` | Line-এর শেষ |
+| `/pattern` | Search করো |
+| `n` | পরের result |
+
+### Basic Editing
+
+Normal mode-এ:
+
+| Key | কাজ |
+|-----|-----|
+| `dd` | Current line delete |
+| `yy` | Current line copy |
+| `p` | Paste |
+| `u` | Undo |
+| `Ctrl + r` | Redo |
+| `x` | Character delete |
+
+### vim Survival Summary
+
+```
+vim file.txt       → open করো
+i                  → insert mode — লেখা শুরু করো
+Esc                → normal mode-এ ফিরে যাও
+:wq                → save করে বের হও
+:q!                → save ছাড়া বের হও
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Editor knowledge CTF-এ কেন লাগে:**
+
+  - Config files edit করতে হয় — `/etc/hosts`, `/etc/crontab`, scripts
+  - Reverse shell script লিখতে হয়
+  - Log file এ evidence add বা মুছতে হতে পারে (defensive analysis)
+  - `sudoedit` misconfiguration — vim দিয়ে privilege escalation হয়:
+
+  ```bash
+  # যদি sudo দিয়ে vim run করার permission থাকে
+  sudo vim /etc/hosts
+
+  # vim-এর ভেতর থেকে shell পাওয়া যায়
+  :!/bin/bash
+  # এখন root shell!
+  ```
+
+  এটা GTFOBins-এ documented — `vim` দিয়ে privilege escalation।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `nano` তে save করার shortcut কী?
+- [ ] `vim` এ insert mode-এ যাওয়ার key কী?
+- [ ] `vim` থেকে save ছাড়া বের হওয়ার command কী?
+- [ ] `vim` দিয়ে কীভাবে privilege escalation সম্ভব?
+
+এই section শেষ।
+
+**পরবর্তী Section →** [Users & Permissions](/docs/linux-fundamentals/05-users-permissions)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux nano vim, terminal text editor, vim normal insert mode, how to exit vim, nano keyboard shortcuts, vim privilege escalation gtfobins
+</span>

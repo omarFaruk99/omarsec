@@ -1,0 +1,178 @@
+---
+title: Process Basics
+description: Process কী, PID কী, আর system-এ চলমান processes কীভাবে দেখা যায়।
+---
+
+import { Callout } from 'nextra/components'
+
+# Process Basics
+
+<Callout type="info">
+  প্রতিটা running program হলো একটা process। Linux প্রতিটা process-কে একটা unique number দেয় — এটাকে বলা হয় PID (Process ID)। PID দিয়েই process track আর control করা যায়।
+</Callout>
+
+## What is a Process
+
+তুমি যখন `ls` চালাও, একটা process শুরু হয়, কাজ করে, শেষ হয়।
+তুমি যখন browser চালাও, একটা process চলতে থাকে যতক্ষণ বন্ধ না করো।
+
+প্রতিটা process-এর থাকে:
+
+| Property | মানে |
+|----------|------|
+| **PID** | Unique Process ID |
+| **PPID** | Parent Process ID (কে তৈরি করেছে) |
+| **User** | কোন user-এর নামে চলছে |
+| **State** | Running, Sleeping, Zombie, Stopped |
+| **CPU/MEM** | Resource usage |
+
+---
+
+## `ps`
+
+Current terminal session-এর processes বা system-এর সব processes দেখায়।
+
+```bash filename="Terminal"
+# শুধু current shell-এর processes
+ps
+
+# সব users-এর সব processes (সবচেয়ে বেশি use)
+ps aux
+
+# নির্দিষ্ট process খোঁজো
+ps aux | grep nginx
+
+# Tree format — parent-child relationship
+ps auxf
+```
+
+`ps aux` output বোঝো:
+
+```
+USER       PID %CPU %MEM    VSZ   RSS TTY  STAT START   TIME COMMAND
+root         1  0.0  0.1  16952  4096 ?    Ss   09:00   0:01 /sbin/init
+omar      1234  0.5  1.2 123456 50000 pts/0 Sl  09:05   0:30 python3 app.py
+```
+
+| Column | মানে |
+|--------|------|
+| `USER` | Process-এর owner |
+| `PID` | Process ID |
+| `%CPU` | CPU usage percentage |
+| `%MEM` | Memory usage percentage |
+| `STAT` | Process state (S=sleeping, R=running, Z=zombie) |
+| `COMMAND` | Command/program নাম |
+
+---
+
+## `top`
+
+Real-time process monitor — CPU আর memory usage live দেখায়।
+
+```bash filename="Terminal"
+top
+```
+
+`top` এর ভেতরে keyboard controls:
+
+| Key | কাজ |
+|-----|-----|
+| `q` | Quit |
+| `k` | Process kill করো (PID দাও) |
+| `M` | Memory usage দিয়ে sort |
+| `P` | CPU usage দিয়ে sort |
+| `u` | নির্দিষ্ট user-এর processes |
+| `h` | Help |
+
+---
+
+## `htop`
+
+`top`-এর আরও user-friendly version। Color-coded, mouse support আছে।
+
+```bash filename="Terminal"
+# Install (না থাকলে)
+sudo apt install htop
+
+# Run করো
+htop
+```
+
+`htop`-এ function keys দিয়ে কাজ করা যায় — screen-এর নিচে দেখায়।
+
+<Callout type="default">
+  `top` সব systems-এ আছে। `htop` install করতে হয়। TryHackMe বা remote server-এ `top` দিয়ে কাজ চালাও — `htop` না থাকতে পারে।
+</Callout>
+
+---
+
+## Process States
+
+| State | মানে |
+|-------|------|
+| `R` (Running) | এখন CPU use করছে |
+| `S` (Sleeping) | কিছুর জন্য wait করছে |
+| `D` (Uninterruptible Sleep) | I/O wait — disk বা network |
+| `Z` (Zombie) | শেষ হয়েছে কিন্তু parent clean করেনি |
+| `T` (Stopped) | থামানো হয়েছে (Ctrl+Z) |
+
+---
+
+## Finding a Process
+
+```bash filename="Terminal"
+# নাম দিয়ে PID খোঁজো
+pgrep nginx
+pgrep python3
+
+# নাম দিয়ে full info
+pgrep -a python3
+
+# Process-এর family tree
+pstree -p
+
+# নির্দিষ্ট port কোন process use করছে
+ss -tlnp | grep :80
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Process analysis — malware detection-এ:**
+
+  ```bash
+  # Unusual processes খোঁজো
+  ps aux | grep -v "root\|omar\|www-data"
+
+  # Unexpected network connections কোন process করছে
+  ss -tlnp
+
+  # Hidden processes (rootkit detection)
+  ps aux | awk '{print $2}' | sort -n > /tmp/ps_pids
+  ls /proc | grep -E "^[0-9]+$" | sort -n > /tmp/proc_pids
+  diff /tmp/ps_pids /tmp/proc_pids
+  # যদি /proc-এ দেখা যায় কিন্তু ps-এ না — rootkit suspect
+
+  # Recently started processes
+  ps aux --sort=start_time | tail -20
+  ```
+
+  CTF-এ কোনো service কোন port-এ listen করছে সেটা দেখা প্রায়ই flag খোঁজার পথ দেয়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] PID মানে কী?
+- [ ] `ps aux` আর `ps` এর পার্থক্য কী?
+- [ ] `top`-এ CPU দিয়ে sort করার key কী?
+- [ ] Zombie process কী?
+
+**পরবর্তী →** [Background Jobs](/docs/linux-fundamentals/06-processes/background-jobs)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux process, PID, ps aux, top htop, process states, linux process monitor, malware detection process
+</span>

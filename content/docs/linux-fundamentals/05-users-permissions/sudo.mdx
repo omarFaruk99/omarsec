@@ -1,0 +1,179 @@
+---
+title: sudo & root
+description: sudo আর su দিয়ে elevated access — কীভাবে কাজ করে, কীভাবে নিরাপদে ব্যবহার করে।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# sudo & root
+
+<Callout type="info">
+  Linux-এ root হলো সর্বোচ্চ privilege। Root হিসেবে সব কিছু করা যায় — কোনো restriction নেই। `sudo` হলো নির্দিষ্ট commands root হিসেবে চালানোর নিরাপদ পদ্ধতি।
+</Callout>
+
+## root User
+
+Root হলো Linux-এর super admin। UID 0। কোনো permission check হয় না।
+
+```bash filename="Terminal"
+# Root-এর home folder
+ls /root
+
+# Root prompt দেখতে এরকম
+root@ubuntu:~#       ← # মানে root
+omar@ubuntu:~$       ← $ মানে normal user
+```
+
+---
+
+## `sudo`
+
+নির্দিষ্ট command root-এর permission-এ চালাও — পুরোপুরি root না হয়ে।
+
+```bash filename="Terminal"
+# Root permission দরকার এমন command
+sudo apt update
+
+# যেকোনো command root হিসেবে
+sudo command
+
+# Root shell খোলো
+sudo -i
+# অথবা
+sudo su
+
+# অন্য user হিসেবে command চালাও
+sudo -u www-data whoami
+
+# তোমার sudo permissions দেখো
+sudo -l
+```
+
+<Callout type="default">
+  `sudo` চালালে তোমার নিজের password চাইবে (root-এর না)। কিছুক্ষণ cached থাকে — এই সময়ের মধ্যে আবার চালালে password চাইবে না।
+</Callout>
+
+---
+
+## `su`
+
+অন্য user-এ switch করো।
+
+<Tabs items={['su - (recommended)', 'su (basic)']}>
+  <Tabs.Tab>
+    ```bash
+    # Root-এ switch করো (root-এর environment load হয়)
+    su -
+
+    # নির্দিষ্ট user-এ switch
+    su - omar
+    ```
+
+    `-` flag মানে সেই user-এর পুরো environment load করো — home folder, PATH সব।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Root-এ switch করো (environment load হয় না)
+    su
+
+    # নির্দিষ্ট user-এ switch
+    su omar
+    ```
+
+    Environment load হয় না — কিছু commands কাজ নাও করতে পারে।
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## sudoers File
+
+কোন user কোন commands `sudo` দিয়ে চালাতে পারবে সেটা এখানে define করা আছে।
+
+```bash filename="Terminal"
+# sudoers দেখো (direct edit করবে না)
+sudo cat /etc/sudoers
+
+# sudo group-এর সব users sudo access পায়
+# %sudo   ALL=(ALL:ALL) ALL
+```
+
+sudoers syntax:
+
+```
+omar    ALL=(ALL:ALL) ALL
+  │      │    │   │    └── সব commands
+  │      │    │   └── যেকোনো group হিসেবে
+  │      │    └── যেকোনো user হিসেবে
+  │      └── সব hosts-এ
+  └── username
+```
+
+sudoers edit করতে সবসময় `visudo` use করো:
+
+```bash filename="Terminal"
+sudo visudo
+```
+
+`visudo` syntax check করে save-এর আগে — ভুল করলে lock out হওয়ার risk কমায়।
+
+---
+
+## Checking sudo Access
+
+```bash filename="Terminal"
+# তোমার sudo permissions দেখো
+sudo -l
+
+# Output example:
+# User omar may run the following commands on ubuntu:
+#     (ALL : ALL) ALL        ← সব commands চালাতে পারো
+#     (root) NOPASSWD: /usr/bin/apt   ← password ছাড়া apt
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **sudo — privilege escalation-এর সবচেয়ে common path:**
+
+  ```bash
+  # Target-এ প্রথমেই এটা চালাও
+  sudo -l
+  ```
+
+  Common misconfigurations:
+
+  **NOPASSWD:**
+  ```
+  omar ALL=(ALL) NOPASSWD: /usr/bin/vim
+  ```
+  এমন হলে vim দিয়ে root shell পাওয়া যায়:
+  ```bash
+  sudo vim -c '!bash'
+  ```
+
+  **Wildcard abuse:**
+  ```
+  omar ALL=(ALL) /usr/bin/python3 /opt/script.py
+  ```
+  Script writable হলে content replace করে root shell পাওয়া সম্ভব।
+
+  **GTFOBins** (gtfobins.github.io) — sudo দিয়ে কোন binaries exploit করা যায় সেটার complete list।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `sudo` আর `su` এর পার্থক্য কী?
+- [ ] `su -` আর `su` এর মধ্যে পার্থক্য কী?
+- [ ] `sudo -l` কী দেখায়?
+- [ ] sudoers edit করতে কোন command use করতে হয় এবং কেন?
+
+**পরবর্তী →** [SSH](/docs/linux-fundamentals/05-users-permissions/ssh)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux sudo su root, sudoers file, sudo -l privilege escalation, GTFOBins sudo, linux root access, sudo NOPASSWD exploit
+</span>

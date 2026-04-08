@@ -1,0 +1,25 @@
+---
+title: File System & Permissions
+description: Linux-এ permissions কীভাবে কাজ করে — hidden files, symlinks, chmod, chown।
+---
+
+import { Callout } from 'nextra/components'
+
+# Section 03 — File System & Permissions
+
+<Callout type="info">
+  এই section-এ তুমি Linux-এর permission system বুঝবে — যেটা cybersecurity-র অন্যতম core concept। কোনো file কে পড়তে পারবে, কে execute করতে পারবে — সব এই system দিয়ে control হয়।
+</Callout>
+
+এই section শেষ করলে তুমি জানবে:
+
+- `ls -l` output-এ permission string মানে কী
+- `chmod` আর `chown` দিয়ে permissions কীভাবে বদলায়
+- Hidden files কী এবং কোথায় থাকে
+- Symlink কী এবং কেন দরকার
+
+## Topics
+
+- [Permissions](/docs/linux-fundamentals/03-file-system/permissions) — `chmod`, `chown`, `rwx` explained
+- [Hidden Files](/docs/linux-fundamentals/03-file-system/hidden-files) — `.dotfiles`, `ls -la`, `.ssh`, `.bashrc`
+- [Symlinks](/docs/linux-fundamentals/03-file-system/symlinks) — `ln -s`, hard vs soft link
