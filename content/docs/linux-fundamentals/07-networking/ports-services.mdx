@@ -1,0 +1,178 @@
+---
+title: Ports & Services
+description: Open ports দেখা, listening services বোঝা — ss, netstat, lsof।
+---
+
+import { Callout } from 'nextra/components'
+
+# Ports & Services
+
+<Callout type="info">
+  প্রতিটা network service একটা **port**-এ listen করে। Web server port 80 বা 443-এ, SSH port 22-এ। কোন ports open আছে, কী চলছে — এটা দেখতে পারাটা network security-র core skill।
+</Callout>
+
+## Ports কী
+
+Port হলো একটা number (0-65535) যেটা service identify করে।
+
+| Port | Service | Description |
+|------|---------|-------------|
+| 22 | SSH | Secure remote access |
+| 80 | HTTP | Web server |
+| 443 | HTTPS | Secure web server |
+| 21 | FTP | File transfer |
+| 25 | SMTP | Email sending |
+| 53 | DNS | Domain resolution |
+| 3306 | MySQL | Database |
+| 8080 | HTTP Alt | Alternative web server |
+
+<Callout type="default">
+  0-1023 = **Well-known ports** (system services)।
+  1024-49151 = **Registered ports** (applications)।
+  49152-65535 = **Dynamic/Private ports** (temporary connections)।
+</Callout>
+
+---
+
+## `ss`
+
+Modern tool — কোন ports-এ কী listen করছে দেখাও।
+
+```bash filename="Terminal"
+# সব listening TCP ports
+ss -tlnp
+
+# সব listening UDP ports
+ss -ulnp
+
+# সব connections (established সহ)
+ss -tanp
+
+# নির্দিষ্ট port খোঁজো
+ss -tlnp | grep :80
+```
+
+Flags-এর মানে:
+
+| Flag | মানে |
+|------|------|
+| `-t` | TCP connections |
+| `-u` | UDP connections |
+| `-l` | Listening ports only |
+| `-n` | Numeric (name resolve করো না) |
+| `-p` | Process name আর PID দেখাও |
+| `-a` | All connections |
+
+Output example:
+```
+State   Recv-Q  Send-Q  Local Address:Port  Peer Address:Port  Process
+LISTEN  0       128     0.0.0.0:22          0.0.0.0:*          users:(("sshd",pid=1234))
+LISTEN  0       511     0.0.0.0:80          0.0.0.0:*          users:(("nginx",pid=5678))
+```
+
+---
+
+## `netstat`
+
+পুরনো tool কিন্তু CTF-এ এখনও দেখবে।
+
+```bash filename="Terminal"
+# Install (net-tools package)
+sudo apt install net-tools
+
+# Listening ports
+netstat -tlnp
+
+# Active connections
+netstat -tanp
+
+# নির্দিষ্ট port
+netstat -tlnp | grep :443
+```
+
+<Callout type="default">
+  `ss` দ্রুত আর modern। কিন্তু `netstat` জেনে রাখো — CTF machines আর পুরনো servers-এ `ss` না থাকতে পারে।
+</Callout>
+
+---
+
+## `lsof`
+
+কোন process কোন file বা port use করছে দেখো।
+
+```bash filename="Terminal"
+# নির্দিষ্ট port কোন process use করছে
+sudo lsof -i :80
+
+# সব network connections
+sudo lsof -i
+
+# নির্দিষ্ট protocol
+sudo lsof -i TCP
+sudo lsof -i UDP
+
+# নির্দিষ্ট user-এর connections
+sudo lsof -i -u omar
+```
+
+---
+
+## `/etc/services`
+
+Port number আর service name-এর mapping file।
+
+```bash filename="Terminal"
+# সব services দেখো
+cat /etc/services | head -30
+
+# নির্দিষ্ট port খোঁজো
+grep "80/" /etc/services
+grep "ssh" /etc/services
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Port scanning — pentesting-এর দ্বিতীয় phase:**
+
+  Target machine-এ কোন ports open — এটাই attack surface বুঝতে সাহায্য করে।
+
+  ```bash
+  # নিজের machine-এর open ports দেখো (defensive)
+  ss -tlnp
+  sudo lsof -i -P -n | grep LISTEN
+
+  # Unexpected service চলছে কিনা
+  ss -tlnp | grep -v "22\|80\|443"
+
+  # Nmap দিয়ে target machine scan (offensive)
+  nmap -sV target-ip
+  nmap -sC -sV -p- target-ip
+  ```
+
+  **Common CTF workflow:**
+  1. `nmap -sV target-ip` — কোন ports open
+  2. Open port-এর service identify করো
+  3. সেই service-এর known vulnerabilities খোঁজো
+  4. Exploit করো
+
+  **Defender perspective:**
+  অপ্রয়োজনীয় ports open থাকা security risk। production server-এ only needed ports রাখো।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] Well-known ports-এর range কত?
+- [ ] SSH, HTTP, HTTPS কোন ports-এ চলে?
+- [ ] `ss -tlnp` output-এর প্রতিটা flag মানে কী?
+- [ ] `lsof -i :80` কী দেখায়?
+
+**পরবর্তী →** [curl & wget](/docs/linux-fundamentals/07-networking/curl-wget)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux ports services, ss netstat, listening ports, open ports linux, lsof, port scanning nmap, well known ports, network services
+</span>

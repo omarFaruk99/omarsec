@@ -1,0 +1,233 @@
+---
+title: Network Basics
+description: IP address, interfaces, connectivity testing — Linux networking-এর প্রথম ধাপ।
+---
+
+import { Callout } from 'nextra/components'
+
+# Network Basics
+
+<Callout type="info">
+  একটা machine network-এ কীভাবে connected সেটা জানাটা cybersecurity-র শুরু। IP address কী, interface কী, DNS কী — এগুলো না বুঝলে নেটওয়ার্ক scanning, recon — কিছুই বুঝবে না।
+</Callout>
+
+## `ip`
+
+Network interfaces আর IP addresses দেখার modern tool। পুরনো `ifconfig`-এর replacement।
+
+```bash filename="Terminal"
+# সব interfaces আর IPs দেখো
+ip addr show
+# অথবা short form
+ip a
+
+# শুধু specific interface
+ip a show eth0
+
+# Routing table (default gateway)
+ip route
+ip r
+```
+
+`ip a` output বোঝো:
+
+```
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+    inet 192.168.1.100/24 brd 192.168.1.255 scope global eth0
+    inet6 fe80::1/64 scope link
+```
+
+| অংশ | মানে |
+|-----|------|
+| `eth0` | Interface name (Ethernet) |
+| `UP` | Interface active |
+| `inet 192.168.1.100/24` | IPv4 address + subnet |
+| `/24` | Subnet mask (255.255.255.0) |
+| `brd 192.168.1.255` | Broadcast address |
+| `inet6` | IPv6 address |
+
+---
+
+## `ifconfig`
+
+পুরনো tool কিন্তু এখনও অনেক জায়গায় use হয়।
+
+```bash filename="Terminal"
+# Install (না থাকলে)
+sudo apt install net-tools
+
+# সব interfaces দেখো
+ifconfig
+
+# নির্দিষ্ট interface
+ifconfig eth0
+```
+
+<Callout type="default">
+  নতুন systems-এ `ip` use করো। কিন্তু `ifconfig` জেনে রাখো কারণ CTF machines, পুরনো servers, আর TryHackMe-তে এখনও দেখবে।
+</Callout>
+
+---
+
+## `ping`
+
+Target machine-এ network connectivity test করো।
+
+```bash filename="Terminal"
+# Server reachable কিনা check করো
+ping 192.168.1.1
+
+# নির্দিষ্ট সংখ্যক packet পাঠাও
+ping -c 4 google.com
+
+# Timeout set করো (seconds)
+ping -W 2 192.168.1.50
+```
+
+Output:
+```
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.5 ms
+```
+
+| অংশ | মানে |
+|-----|------|
+| `64 bytes` | Reply packet size |
+| `icmp_seq=1` | Packet sequence number |
+| `ttl=64` | Time to live (hops remaining) |
+| `time=0.5 ms` | Round-trip time |
+
+`Ctrl + C` দিয়ে বন্ধ করো (অথবা `-c` দিয়ে limit দাও)।
+
+---
+
+## `traceroute`
+
+তোমার machine থেকে target পর্যন্ত packet কোন কোন routers-এর মধ্য দিয়ে যায় দেখাও।
+
+```bash filename="Terminal"
+# Install (না থাকলে)
+sudo apt install traceroute
+
+# Route দেখো
+traceroute google.com
+
+# TCP mode (ICMP block থাকলে)
+traceroute -T google.com
+```
+
+---
+
+## DNS Lookup
+
+Domain name থেকে IP address বের করো, অথবা উল্টোটা।
+
+```bash filename="Terminal"
+# Domain → IP
+nslookup google.com
+dig google.com
+
+# Short output
+dig +short google.com
+
+# Specific record type
+dig google.com MX        # Mail servers
+dig google.com NS        # Name servers
+dig google.com TXT       # Text records
+
+# Reverse lookup (IP → domain)
+dig -x 8.8.8.8
+
+# DNS server specify করো
+dig @8.8.8.8 example.com
+```
+
+---
+
+## `/etc/hosts`
+
+Local DNS override — নির্দিষ্ট domain-কে specific IP-তে point করো।
+
+```bash filename="Terminal"
+cat /etc/hosts
+
+# Example content:
+# 127.0.0.1       localhost
+# 192.168.1.50    myserver.local
+```
+
+```bash filename="Terminal"
+# Custom entry add করো
+sudo nano /etc/hosts
+
+# Add:
+# 10.10.10.10    target.thm
+```
+
+<Callout type="default">
+  TryHackMe-তে প্রায়ই `/etc/hosts` edit করতে হয় — target machine-এর IP-কে একটা domain name দিতে।
+</Callout>
+
+---
+
+## `hostname`
+
+System-এর নিজের hostname দেখো বা set করো।
+
+```bash filename="Terminal"
+# Current hostname
+hostname
+
+# Full qualified domain name
+hostname -f
+
+# IP address
+hostname -I
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Network recon — pentesting-এর প্রথম phase:**
+
+  ```bash
+  # নিজের IP জানো
+  ip a | grep "inet "
+  hostname -I
+
+  # Target reachable কিনা
+  ping -c 3 target-ip
+
+  # Route to target
+  traceroute target-ip
+
+  # DNS information (subdomain enumeration-এর start)
+  dig target.com ANY
+  dig target.com NS
+  dig target.com MX
+
+  # Reverse DNS — IP থেকে hostname বের করো
+  dig -x target-ip
+
+  # /etc/hosts edit করো TryHackMe-তে
+  echo "10.10.10.10  target.thm" | sudo tee -a /etc/hosts
+  ```
+
+  প্রতিটা CTF box-এ প্রথম কাজ: `ip a` → নিজের IP, `ping` → target alive কিনা।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `ip a` আর `ifconfig` এর পার্থক্য কী?
+- [ ] `ping -c 4` মানে কী?
+- [ ] `dig +short google.com` কী দেখায়?
+- [ ] `/etc/hosts` কেন edit করতে হয়?
+
+**পরবর্তী →** [Ports & Services](/docs/linux-fundamentals/07-networking/ports-services)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux networking, ip addr, ifconfig, ping command, traceroute, dig nslookup DNS, /etc/hosts, network recon linux
+</span>

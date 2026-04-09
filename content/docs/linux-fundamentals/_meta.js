@@ -6,4 +6,5 @@ export default {
   '04-text-manipulation': 'Text Manipulation',
   '05-users-permissions': 'Users & Permissions',
   '06-processes': 'Processes',
+  '07-networking': 'Networking',
 }
