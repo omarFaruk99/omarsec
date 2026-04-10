@@ -1,6 +1,6 @@
 ---
 title: Users & Groups
-description: Linux-এ users আর groups কীভাবে কাজ করে, কীভাবে manage করা যায়।
+description: Linux-এ users আর groups কীভাবে কাজ করে — কেন আছে, কীভাবে manage করবে, আর cybersecurity-তে কেন গুরুত্বপূর্ণ।
 ---
 
 import { Callout } from 'nextra/components'
@@ -8,41 +8,48 @@ import { Callout } from 'nextra/components'
 # Users & Groups
 
 <Callout type="info">
-  Linux একটা multi-user OS — একই system-এ অনেক user থাকতে পারে। প্রতিটা user-এর আলাদা identity আছে, আলাদা files আছে, আলাদা permissions আছে। Groups হলো users-দের একসাথে manage করার পদ্ধতি।
+  Linux-কে একটা অফিস বিল্ডিং মনে করো। প্রতিটি কর্মী হলো একজন **user** — তার নিজের desk (home directory) আছে, নির্দিষ্ট room-এ access আছে। **Groups** হলো দল বা বিভাগ (department) — একই দলের সবাই একই resource access পায়। আর **root** হলো building manager — তার সব কিছুতে access আছে, কোনো restriction নেই।
 </Callout>
 
 ## How It Works
 
-প্রতিটা Linux user-এর থাকে:
+Linux মূলত একটা **multi-user operating system**। একই machine-এ একাধিক user থাকতে পারে — প্রত্যেকের আলাদা files, আলাদা permissions, আলাদা environment।
 
-- একটা unique **username**
-- একটা numeric **UID** (User ID)
-- একটা **home directory** (`/home/username`)
-- একটা **default shell** (সাধারণত bash)
-- এক বা বেশি **groups**
+কিন্তু Linux আসলে "omar" বা "the-king" নাম দিয়ে চেনে না। OS শুধু **number** দিয়ে চেনে — এই number-কে বলে **UID (User ID)**।
+
+| UID Range | কারা |
+|---|---|
+| `0` | সবসময় root — পুরো system-এর মালিক |
+| `1 – 999` | System users — কোনো real মানুষ নয়, services চালাতে OS নিজে তৈরি করে |
+| `1000+` | Real users — তুমি, তোমার teammates |
+
+তোমার নিজের UID দেখতে:
 
 ```bash filename="Terminal"
-# তোমার current user কে
-whoami
-
-# তোমার UID আর groups দেখো
 id
-
-# Output example:
-# uid=1000(omar) gid=1000(omar) groups=1000(omar),4(adm),27(sudo)
+# uid=1000(omar) gid=1000(omar) groups=1000(omar),4(adm),27(sudo),1001(docker)
 ```
 
----
+এই output-এ:
+- **uid** — তোমার user ID
+- **gid** — তোমার primary group ID
+- **groups** — তুমি আর কোন কোন group-এর member
+
+<Callout type="default">
+  তুমি `omar` নামে login করলেও OS কিন্তু তোমাকে UID 1000 হিসেবে চেনে। সব permission check, file ownership — সব কিছু এই number দিয়ে হয়।
+</Callout>
 
 ## `/etc/passwd`
 
-System-এর সব users এখানে stored।
+এই file-টি Linux-এর **user registry** — system-এর প্রতিটি program যখন জানতে চায় "এই UID 1000 কে?", তখন এই file-টি পড়ে।
+
+এটি সব user পড়তে পারে (`-rw-r--r--`), কারণ অনেক program-কে এই information দরকার।
 
 ```bash filename="Terminal"
 cat /etc/passwd
 ```
 
-প্রতিটা লাইনের format:
+প্রতিটি line-এর format:
 
 ```
 omar:x:1000:1000:Omar,,,:/home/omar:/bin/bash
@@ -51,69 +58,143 @@ omar:x:1000:1000:Omar,,,:/home/omar:/bin/bash
   │   │  │     │    └── Comment (full name)
   │   │  │     └── GID (Primary group ID)
   │   │  └── UID (User ID)
-  │   └── Password (x মানে /etc/shadow-এ আছে)
+  │   └── Password field — x মানে password /etc/shadow-এ আছে
   └── Username
 ```
 
----
+**কেন password field-এ `x` আছে?**
+
+আগে (Linux-এর শুরুতে) password এখানেই stored থাকত — কিন্তু এই file সবাই পড়তে পারে। তার মানে যে কেউ password hash দেখতে পারত এবং offline-এ crack করার চেষ্টা করতে পারত। এটা বিশাল security hole ছিল। তাই password আলাদা একটি restricted file-এ সরিয়ে দেওয়া হয়েছে — `/etc/shadow`।
 
 ## `/etc/shadow`
 
-Password hashes এখানে। শুধু root access করতে পারে।
+এই file-টিতে actual password information থাকে। শুধু **root** read করতে পারে — অন্য কেউ না।
 
 ```bash filename="Terminal"
 sudo cat /etc/shadow
 ```
 
+**Password hash কী?**
+
+Hash হলো password-এর একটি mathematical fingerprint। তুমি যখন password দাও, Linux সেটাকে hash করে এবং stored hash-এর সাথে মেলায়। Original password কোথাও store হয় না। কিন্তু যদি কেউ hash পেয়ে যায়, সে offline-এ লক্ষ লক্ষ combination try করে password বের করার চেষ্টা করতে পারে — এটাকে বলে **password cracking**।
+
 Format:
+
 ```
 omar:$6$salt$hashedpassword:19000:0:99999:7:::
+       │                     │     │   │   └── Warning days before expiry
+       │                     │     │   └── Maximum password age (days)
+       │                     │     └── Minimum days between password changes
+       │                     └── Last password change (days since Jan 1, 1970)
+       └── Hash algorithm ($6$ = SHA-512)
 ```
 
 <Callout type="warning">
-  **CyberSec:** `/etc/shadow` পাওয়া মানে password cracking সম্ভব। `john` বা `hashcat` দিয়ে hash crack করা হয়।
+  **CyberSec connection:** `/etc/shadow` access পাওয়া মানে offline password cracking সম্ভব। `john` বা `hashcat` দিয়ে hash crack করা হয়। তাই এই file-এর permission (`640` বা `000`) অত্যন্ত গুরুত্বপূর্ণ।
 </Callout>
 
----
-
 ## User Management
+
+Linux server-এ নতুন developer যোগ দিলে, কাউকে নির্দিষ্ট server access দিতে, বা কেউ চলে গেলে — এই commands কাজে লাগে।
+
+### Creating Users
 
 ```bash filename="Terminal"
 # নতুন user তৈরি করো
 sudo useradd -m -s /bin/bash newuser
-# -m = home directory তৈরি করো
-# -s = default shell set করো
+```
 
+এখানে:
+- **`-m`** — home directory তৈরি করো (`/home/newuser`)। এটা না দিলে user-এর কোনো home folder থাকবে না।
+- **`-s /bin/bash`** — default shell set করো। না দিলে user login করতে পারবে না।
+
+<Callout type="default">
+  **Note:** `useradd -m` শুধুমাত্র একটি বেসিক হোম ডিরেক্টরি তৈরি করে। তুমি যদি ভেতরে `Documents`, `Downloads`, বা `Desktop` ফোল্ডারগুলো না পাও, তবে ঘাবড়ানোর কিছু নেই। যখন তুমি প্রথমবার এই ইউজার দিয়ে গ্রাফিক্যাল ইন্টারফেসে (GUI) লগিন করবে, তখন সিস্টেম এই ফোল্ডারগুলো তৈরি করে দেবে। তবে **সার্ভারের ক্ষেত্রে (CLI)** এগুলো অটোমেটিক তৈরি হয় না; সেখানে তোমাকে `mkdir` দিয়ে ম্যানুয়ালি ফোল্ডার বানিয়ে নিতে হবে।
+</Callout>
+
+```bash filename="Terminal"
 # Password set করো
 sudo passwd newuser
 
-# User info দেখো
+# User-এর info verify করো
 id newuser
 grep newuser /etc/passwd
-
-# User delete করো
-sudo userdel newuser
-
-# Home directory সহ delete
-sudo userdel -r newuser
-
-# নিজের password পরিবর্তন
-passwd
 ```
 
----
+<Callout type="info">
+  **How to Login?**
+
+  - **লগিন স্ক্রিন (GUI):** পুরো কম্পিউটার বা ডেক্সটপ প্রোফাইল পাল্টাতে চাইলে **Log Out** করে নতুন ইউজার দিয়ে লগিন করো।
+  - **টার্মিনাল (CLI):** শুধুমাত্র বর্তমান টার্মিনাল উইন্ডোতে পরিচয় পাল্টাতে `su` (Switch User) ব্যবহার করো:
+
+  ```bash filename="Terminal"
+  su - newuser
+  ```
+  *(মনে রাখবে: `su` শুধুমাত্র ওই নির্দিষ্ট টার্মিনাল সেশনের জন্য কাজ করে, পুরো সিস্টেমের জন্য নয়।)*
+</Callout>
+
+### Modifying Users
+
+```bash filename="Terminal"
+# Username বদলাও
+sudo usermod -l newname oldname
+
+# Home directory বদলাও
+sudo usermod -d /new/home -m username
+
+# Default shell বদলাও
+sudo usermod -s /bin/zsh username
+```
+
+### Deleting Users
+
+<Callout type="warning">
+  `userdel -r` user-এর **home directory এবং সব files সহ** delete করে — এটা irreversible। নিশ্চিত হয়ে নাও যে ওই files-এর backup আছে।
+</Callout>
+
+```bash filename="Terminal"
+# User delete করো (home directory রেখে)
+sudo userdel username
+
+# Home directory সহ delete — সব files চলে যাবে
+sudo userdel -r username
+```
 
 ## Groups
 
-Groups একসাথে অনেক users-কে same permissions দেওয়ার পদ্ধতি।
+**কেন groups দরকার?** ধরো তোমার server-এ ১০ জন developer আছে — এদের সবাইকে `/var/www/` folder-এ write access দিতে হবে। প্রত্যেককে আলাদাভাবে permission দেওয়া অনেক কষ্টের। Group তৈরি করে সবাইকে সেই group-এ রাখলে একবারেই হয়ে যায়।
+
+### Primary vs Secondary Group
+
+প্রতিটি user-এর একটা **primary group** থাকে — নতুন file তৈরি হলে সেই file automatically এই group-এর হয়। এর বাইরে user একাধিক **secondary group**-এরও member হতে পারে — এগুলো অতিরিক্ত access দেওয়ার জন্য।
+
+<Callout type="default">
+  লিনাক্সে যখন একটি নতুন ইউজার তৈরি করা হয়, তখন ঠিক একই নামে একটি গ্রুপও অটোমেটিক তৈরি হয় এবং সেটিই তার প্রাইমারি গ্রুপ হয়ে যায়। এই কারণে `groups` কমান্ড দিলে প্রথম গ্রুপের নামটি সবসময় ইউজারনেমের মতোই থাকে।
+
+  ```bash filename="Terminal"
+  # নতুন ইউজার the-queen — শুধু primary group আছে
+  the-queen@linux:~$ groups
+  the-queen
+
+  # পুরনো admin ইউজার the-king — primary + অনেক secondary group
+  the-king@linux:~$ groups
+  the-king adm sudo docker
+  # └── primary  └── secondary groups
+  ```
+</Callout>
 
 ```bash filename="Terminal"
 # তোমার groups দেখো
 groups
+# omar adm sudo docker
 
 # নির্দিষ্ট user-এর groups
 groups omar
+```
 
+### Group Operations
+
+```bash filename="Terminal"
 # সব groups দেখো
 cat /etc/group
 
@@ -122,78 +203,144 @@ sudo groupadd developers
 
 # User-কে group-এ add করো
 sudo usermod -aG developers omar
-# -a = append (existing groups রাখো)
-# -G = supplementary group
-
-# Group থেকে remove করো
-sudo gpasswd -d omar developers
 ```
 
-<Callout type="default">
-  Group change apply হতে logout করে আবার login করতে হয়। অথবা:
-  ```bash
-  newgrp developers
-  ```
+<Callout type="warning">
+  **সবচেয়ে common ভুল:** `-a` (append) বাদ দিলে user তার **সব existing groups থেকে remove** হয়ে যাবে এবং শুধু নতুন group-এ থাকবে। যেমন `sudo usermod -G developers omar` দিলে omar-এর `sudo` access চলে যাবে। সবসময় `-aG` ব্যবহার করো।
 </Callout>
 
----
+```bash filename="Terminal"
+# Group থেকে remove করো
+sudo gpasswd -d omar developers
 
-## Important System Users
+# Group delete করো
+sudo groupdel developers
+```
+
+Group change apply হতে logout করে আবার login করতে হয়। অথবা:
 
 ```bash filename="Terminal"
-# UID 0 — এটাই root
-grep "^root" /etc/passwd
+newgrp developers
+```
 
-# System users (UID < 1000) দেখো
+<Callout type="info">
+  **Group-কে কোনো ফাইল বা ডিরেক্টরিতে access দেওয়ার উপায়:**
+
+  গ্রুপ তৈরি করার পর তুমি চাইলে সেই গ্রুপকে একটি নির্দিষ্ট ফোল্ডার বা ফাইলের মালিক বানিয়ে দিতে পারো। এরপর সেই গ্রুপের সব মেম্বার সেখানে কাজ করতে পারবে।
+
+  ```bash filename="Terminal"
+  # ফোল্ডারের group মালিক বানাও (: মানে শুধু group পরিবর্তন হবে)
+  sudo chown :developers /var/www/project
+
+  # g = group, r = read, w = write — developers গ্রুপকে read+write দাও
+  sudo chmod g+rw /var/www/project
+
+  # এখন developers গ্রুপের সব member এই ফোল্ডারে file তৈরি ও edit করতে পারবে
+  ```
+
+  File permission system নিয়ে বিস্তারিত জানতে পরবর্তী পেজটি দেখো।
+</Callout>
+
+## System Users
+
+Linux install হওয়ার সময় অনেক user automatically তৈরি হয় — এরা কোনো real মানুষ নয়, বরং specific services চালানোর জন্য OS নিজে তৈরি করে।
+
+**কেন services-এর আলাদা user দরকার?** Security isolation। যদি একটা service hack হয়, attacker সেই service-এর user-এর access পায় — root-এর নয়। এটা **damage limitation** বা **blast radius reduction**।
+
+```bash filename="Terminal"
+# সব system users দেখো (UID < 1000)
 awk -F: '$3 < 1000 {print $1, $3}' /etc/passwd
 ```
 
-| User | Role |
-|------|------|
-| `root` (UID 0) | Super admin — সব permission |
-| `daemon` | Background services |
-| `www-data` | Web server (Apache/Nginx) |
-| `nobody` | Minimal permission user |
-
----
+| User | UID | কাজ |
+|------|-----|-----|
+| `root` | 0 | Super admin — সব permission, কোনো restriction নেই |
+| `daemon` | 1 | Background service processes চালায় |
+| `www-data` | 33 | Nginx/Apache এই user হিসেবে চলে — website hack হলে attacker এই limited user পায়, root নয় |
+| `nobody` | 65534 | Minimal permission — untrusted processes এই user হিসেবে run করে |
+| `systemd-network` | varies | Network management-এর জন্য isolated user |
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **User enumeration — প্রথম কাজ target machine-এ:**
+  **Target machine-এ প্রথমেই যা করবে:**
 
-  ```bash
-  # কোন users আছে
+  ```bash filename="Terminal"
+  # কোন users login করতে পারে (bash shell আছে)
   cat /etc/passwd | grep "/bin/bash"
 
   # কোন users sudo access আছে
-  grep -v "#" /etc/sudoers 2>/dev/null
-  cat /etc/sudoers 2>/dev/null
+  grep -v "^#" /etc/sudoers 2>/dev/null
+  cat /etc/group | grep sudo
 
-  # Recently logged-in users
+  # কোন groups আছে — sudo বা admin group খোঁজো
+  cat /etc/group
+
+  # সম্প্রতি login করেছে কারা
   last
   lastlog
 
-  # Currently logged-in
+  # এই মুহূর্তে কে logged in
   who
   w
   ```
 
   **Lateral Movement:**
-  একটা user compromise করার পর অন্য users-এর home folders, files, history দেখা — সেখান থেকে credentials বা privilege escalation এর path পাওয়া যায়।
+
+  একটা user compromise করার পর অন্য users-এর home folders check করো:
+
+  ```bash filename="Terminal"
+  ls -la /home/
+  cat /home/otheruser/.bash_history
+  find /home -name "*.txt" -o -name "*.conf" 2>/dev/null
+  ```
+
+  **Privilege Escalation Path:**
+
+  User যদি `docker` group-এর member হয়, সে root-level access পেতে পারে:
+
+  ```bash filename="Terminal"
+  # docker group membership check
+  id | grep docker
+
+  # docker দিয়ে root shell
+  docker run -v /:/mnt --rm -it alpine chroot /mnt sh
+  ```
 </Callout>
 
----
+
+## Troubleshooting
+
+ইউজার ম্যানেজমেন্টে কাজ করার সময় প্রায়ই কিছু কমন সমস্যার মুখোমুখি হতে হয়। বিশেষ করে নতুন ইউজার তৈরির পর সেটি লগিন স্ক্রিনে দেখা না গেলে নিচে দেওয়া কারণগুলো চেক করো:
+
+### কেন নতুন ইউজার লগিন স্ক্রিনে দেখা যাচ্ছে না?
+
+এর প্রধান দুটি কারণ থাকতে পারে:
+
+১. **ভুল শেল (Invalid/Missing Shell):** তুমি যদি ইউজারকে এমন একটি শেল দাও যা সিস্টেমে নেই (যেমন: ইন্সটল না থাকা সত্ত্বেও `/bin/zsh` ব্যবহার করা), তবে লিনাক্স ওই ইউজারকে নিরাপদ মনে করে না এবং লগিন স্ক্রিনে দেখায় না। কারণ কাজ করার জন্য ইউজারের একটি সচল এবং কার্যকর শেল থাকা বাধ্যতামূলক।
+
+২. **পাসওয়ার্ড সেট না করা:** শুধু ইউজার তৈরি করলেই হবে না, বরং `sudo passwd username` কমান্ড দিয়ে একটি পাসওয়ার্ড সেট করতে হবে। পাসওয়ার্ড সেট না করা থাকলেও ইউজার অ্যাকাউন্টটি "Locked" অবস্থায় থাকে এবং লগিন স্ক্রিনে আসে না।
+
+**সমাধান:** শেলের সমস্যাটি ঠিক করার জন্য নিচের কমান্ড দিয়ে ইউজারের শেলটি আবার ডিফল্ট `bash`-এ ফিরিয়ে নাও:
+
+```bash filename="Terminal"
+sudo usermod -s /bin/bash username
+```
+
 
 ## Quick Check
 
-- [ ] `/etc/passwd` আর `/etc/shadow` এর পার্থক্য কী?
-- [ ] নতুন user তৈরির command কী?
-- [ ] User-কে group-এ add করার command কী?
-- [ ] `id` command কী দেখায়?
+- [ ] Linux কি "omar" নাম দিয়ে user চেনে, নাকি অন্য কিছু দিয়ে?
+- [ ] UID 0, UID 500, আর UID 1500 — কোনটা কে?
+- [ ] `/etc/passwd` সবাই পড়তে পারে — এটা কি security problem? কেন বা কেন নয়?
+- [ ] `/etc/shadow` কেন আলাদা file-এ রাখা হয়েছে? কে এটা read করতে পারে?
+- [ ] `sudo usermod -G docker omar` আর `sudo usermod -aG docker omar` — পার্থক্য কী এবং কোনটা বিপজ্জনক?
+- [ ] Primary group আর Secondary group-এর পার্থক্য কী?
+- [ ] `www-data` user কেন exist করে? এটা কীভাবে security-তে সাহায্য করে?
+- [ ] নতুন user তৈরিতে `-m` flag না দিলে কী সমস্যা হবে?
 
-**পরবর্তী →** [sudo & root](/docs/linux-fundamentals/05-users-permissions/sudo)
+**পরবর্তী →** [File Permissions](/docs/linux-fundamentals/05-users-permissions/file-permissions)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux users groups, useradd passwd, /etc/passwd /etc/shadow, linux user management, user enumeration linux, lateral movement
+  Search Keywords: linux users groups bangla, useradd passwd Bengali, /etc/passwd /etc/shadow explained, linux user management Bengali, UID GID linux, primary secondary group linux, user enumeration linux cybersecurity, lateral movement linux, www-data user, privilege escalation docker group
 </span>

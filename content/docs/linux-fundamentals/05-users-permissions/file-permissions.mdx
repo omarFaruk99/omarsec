@@ -1,0 +1,258 @@
+---
+title: File Permissions
+description: Linux-এ file permissions কীভাবে কাজ করে — chmod, chown, chgrp, আর group access workflow।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# File Permissions
+
+<Callout type="info">
+  Linux-এ প্রতিটি file এবং directory-র তিনটি স্তরে permission থাকে — Owner (মালিক), Group (দল), এবং Others (বাকি সবাই)। এই permission system-ই নির্ধারণ করে কে কী করতে পারবে। Cybersecurity-তে weak permission মানেই attacker-এর সুযোগ।
+</Callout>
+
+## How Permissions Work
+
+তুমি যখন `ls -la` কমান্ড দাও, প্রতিটি file-এর সামনে এরকম একটি string দেখা যায়:
+
+```
+drwxr-xr-x  2 omar developers 4096 Apr 10 23:00 project/
+-rw-r--r--  1 omar omar        512 Apr 10 22:00 notes.txt
+```
+
+প্রথম ১০টি character-এর breakdown:
+
+```
+d  rwx  r-x  r-x
+│   │    │    └── Others permission (বাকি সবাই)
+│   │    └── Group permission (গ্রুপের সবাই)
+│   └── Owner permission (ফাইলের মালিক)
+└── Type: d=directory, -=file, l=symlink
+```
+
+প্রতিটি permission letter-এর মানে:
+
+| Letter | মানে | কী করতে পারে |
+|--------|------|--------------|
+| `r` | Read | File পড়া, Directory-র list দেখা |
+| `w` | Write | File edit করা, Directory-তে file তৈরি/delete করা |
+| `x` | Execute | File চালানো (script/program), Directory-তে ঢোকা |
+| `-` | None | কোনো permission নেই |
+
+## Numeric Permissions
+
+Permission-কে number দিয়েও প্রকাশ করা যায় — এটি `chmod` কমান্ডে বেশি ব্যবহার হয়।
+
+| Number | Permission | মানে |
+|--------|------------|------|
+| `4` | `r--` | শুধু read |
+| `6` | `rw-` | read + write |
+| `7` | `rwx` | read + write + execute |
+| `5` | `r-x` | read + execute |
+| `0` | `---` | কোনো permission নেই |
+
+তিনটি number মিলিয়ে তৈরি হয় full permission — যেমন `755`:
+
+```
+7   5   5
+│   │   └── Others: r-x (read + execute)
+│   └── Group: r-x (read + execute)
+└── Owner: rwx (সব কিছু)
+```
+
+Common permission patterns:
+
+| Pattern | মানে | কোথায় ব্যবহার হয় |
+|---------|------|-------------------|
+| `755` | Owner সব, বাকিরা read+execute | Folders, executables |
+| `644` | Owner read+write, বাকিরা read | Config files, web files |
+| `600` | শুধু Owner read+write | SSH keys, secrets |
+| `700` | শুধু Owner সব | Private directories |
+| `770` | Owner+Group সব, Others কিছু না | Team shared folders |
+
+## `chmod`
+
+`chmod` দিয়ে permission পরিবর্তন করা হয়।
+
+<Tabs items={['Symbolic', 'Numeric']}>
+  <Tabs.Tab>
+    Symbolic পদ্ধতিতে `u` (user/owner), `g` (group), `o` (others), `a` (all) ব্যবহার করা হয়:
+
+    ```bash filename="Terminal"
+    # Group-কে write permission দাও
+    chmod g+w file.txt
+
+    # Others থেকে read permission সরাও
+    chmod o-r file.txt
+
+    # Owner-কে execute permission দাও
+    chmod u+x script.sh
+
+    # সবাইকে read-only করো
+    chmod a=r file.txt
+
+    # Directory এবং ভেতরের সব কিছুতে একসাথে (recursive)
+    chmod -R 755 /var/www/
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Numeric পদ্ধতিতে সরাসরি তিনটি সংখ্যা দিয়ে permission set করা হয়:
+
+    ```bash filename="Terminal"
+    # Owner: rwx, Group: r-x, Others: r-x
+    chmod 755 script.sh
+
+    # Owner: rw-, Group: r--, Others: r--
+    chmod 644 config.txt
+
+    # Owner: rw-, Others: কিছু না (SSH key)
+    chmod 600 ~/.ssh/id_ed25519
+
+    # Owner+Group: rwx, Others: কিছু না (team folder)
+    chmod 770 /var/www/project/
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## `chown`
+
+`chown` দিয়ে file-এর মালিক (Owner) এবং/অথবা Group পরিবর্তন করা হয়।
+
+```bash filename="Terminal"
+# মালিক পরিবর্তন করো
+sudo chown omar file.txt
+
+# মালিক এবং group একসাথে পরিবর্তন
+sudo chown omar:developers file.txt
+
+# শুধু group পরিবর্তন করো
+sudo chown :developers file.txt
+
+# Recursive — directory এবং ভেতরের সব কিছু
+sudo chown -R omar:developers /var/www/project/
+```
+
+## `chgrp`
+
+`chgrp` শুধুমাত্র file-এর Group পরিবর্তন করে।
+
+```bash filename="Terminal"
+# File-এর group পরিবর্তন
+sudo chgrp developers project/
+
+# Recursive
+sudo chgrp -R developers /var/www/project/
+```
+
+<Callout type="default">
+  `chown :developers file` আর `chgrp developers file` — দুটো একই কাজ করে। তবে `chown` দিয়ে owner আর group একসাথে পরিবর্তন করা যায় বলে এটি বেশি ব্যবহার হয়।
+</Callout>
+
+## Group Permission Workflow
+
+ধরো তোমার server-এ একটি web project আছে এবং তুমি চাও `developers` গ্রুপের সবাই সেখানে কাজ করতে পারুক। পুরো workflow:
+
+```bash filename="Terminal"
+# ১. Group তৈরি করো
+sudo groupadd developers
+
+# ২. Users-কে group-এ add করো
+sudo usermod -aG developers omar
+sudo usermod -aG developers the-queen
+
+# ৩. Project directory তৈরি করো
+sudo mkdir -p /var/www/project
+
+# ৪. Group-কে মালিক বানাও
+sudo chown :developers /var/www/project
+
+# ৫. Group-কে full access দাও (others-কে কিছু না)
+sudo chmod 770 /var/www/project
+```
+
+এখন `ls -la` দিলে দেখবে:
+
+```
+drwxrwx--- 2 root developers 4096 Apr 10 23:00 project/
+```
+
+`developers` গ্রুপের যেকোনো member এই folder-এ file তৈরি, edit, delete করতে পারবে।
+
+## Special Permissions
+
+কিছু বিশেষ permission আছে যেগুলো security-তে অত্যন্ত গুরুত্বপূর্ণ:
+
+### setuid (`s`)
+File-টি যে চালাক না কেন, সেটি file-এর owner-এর permission-এ চলে।
+
+```bash filename="Terminal"
+# setuid দেখার example
+ls -la /usr/bin/passwd
+# -rwsr-xr-x 1 root root ... /usr/bin/passwd
+#    └── s = setuid (root হিসেবে চলে, যাতে /etc/shadow লিখতে পারে)
+
+# setuid set করো
+chmod u+s program
+```
+
+### setgid (`s`)
+Directory-তে setgid থাকলে ভেতরে তৈরি সব file সেই directory-র group পাবে।
+
+```bash filename="Terminal"
+# Team directory-তে setgid — সব নতুন file developers group পাবে
+chmod g+s /var/www/project/
+```
+
+### Sticky Bit (`t`)
+Directory-তে sticky bit থাকলে শুধুমাত্র file-এর owner সেটি delete করতে পারবে — অন্য group member পারবে না।
+
+```bash filename="Terminal"
+# /tmp-এ sticky bit আছে
+ls -la /
+# drwxrwxrwt 1 root root ... tmp/
+#          └── t = sticky bit
+
+# Set করো
+chmod +t /shared/folder/
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Weak Permission — Privilege Escalation-এর সবচেয়ে common path:**
+
+  ```bash filename="Terminal"
+  # World-writable files খোঁজো (সবাই লিখতে পারে — বিপজ্জনক)
+  find / -perm -o+w -type f 2>/dev/null
+
+  # setuid files খোঁজো (root হিসেবে চলে)
+  find / -perm -4000 -type f 2>/dev/null
+
+  # setgid files খোঁজো
+  find / -perm -2000 -type f 2>/dev/null
+
+  # আমার লেখার permission আছে এমন সব কিছু
+  find / -writable -type f 2>/dev/null | grep -v proc
+  ```
+
+  **GTFOBins** — যদি কোনো setuid binary পাও, gtfobins.github.io-তে দেখো সেটা দিয়ে root shell পাওয়া যায় কিনা।
+
+  **Config file overwrite:**
+  যদি কোনো config file world-writable হয় (`-rw-rw-rw-`), সেটা edit করে malicious command inject করা সম্ভব।
+</Callout>
+
+## Quick Check
+
+- [ ] `drwxr-xr-x`-এ group-এর permission কী?
+- [ ] `chmod 644` আর `chmod 600`-এর পার্থক্য কোথায় এবং কোনটা SSH key-এর জন্য ব্যবহার হয়?
+- [ ] `chmod g+w` আর `chmod 664` — দুটো কি একই কাজ করে?
+- [ ] `chown omar:developers file` কমান্ডটি কী করে?
+- [ ] Setuid bit কেন বিপজ্জনক হতে পারে?
+- [ ] Team folder-এ `setgid` কেন ব্যবহার করা হয়?
+- [ ] Sticky bit কোথায় ব্যবহার হয় এবং এটি কী রক্ষা করে?
+
+**পরবর্তী →** [sudo & root](/docs/linux-fundamentals/05-users-permissions/sudo)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux file permissions bangla, chmod chown Bengali, linux permission system, setuid setgid sticky bit, group permissions linux, privilege escalation permissions, world writable files, linux cybersecurity permissions
+</span>
