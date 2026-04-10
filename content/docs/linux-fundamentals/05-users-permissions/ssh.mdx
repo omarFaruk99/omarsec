@@ -370,7 +370,10 @@ chmod 600 ~/.ssh/authorized_keys
 
 ## SCP
 
-SCP (Secure Copy) SSH-এর উপর দিয়ে file transfer করে। এই commands **LOCAL machine-এ** চালাও।
+
+এক কম্পিউটার থেকে অন্য কোনো রিমোট সার্ভার বা কম্পিউটারে ফাইল আদান-প্রদান করার জন্য **SCP (Secure Copy)** ব্যবহার করা হয়। এটি SSH প্রোটোকল ব্যবহার করে অত্যন্ত সুরক্ষিতভাবে ফাইল ট্রান্সফার করে। SCP-এর মূল মন্ত্র হলো: `scp [উৎস] [গন্তব্য]`।
+
+নিচের সব কমান্ড তোমার **LOCAL Machine**-এর টার্মিনালে চালাবে।
 
 <Tabs items={['Upload (LOCAL → SERVER)', 'Download (SERVER → LOCAL)']}>
   <Tabs.Tab>
