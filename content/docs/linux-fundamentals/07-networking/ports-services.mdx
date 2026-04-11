@@ -1,6 +1,6 @@
 ---
 title: Ports & Services
-description: Open ports দেখা, listening services বোঝা — ss, netstat, lsof।
+description: Port কী, কেন দরকার, open ports দেখা — ss, netstat, lsof।
 ---
 
 import { Callout } from 'nextra/components'
@@ -8,38 +8,54 @@ import { Callout } from 'nextra/components'
 # Ports & Services
 
 <Callout type="info">
-  প্রতিটা network service একটা **port**-এ listen করে। Web server port 80 বা 443-এ, SSH port 22-এ। কোন ports open আছে, কী চলছে — এটা দেখতে পারাটা network security-র core skill।
+  একটা machine-এ একটাই IP থাকলেও SSH, web server, database — সব একসাথে চলতে পারে। Port এই সমস্যার সমাধান। কোন port-এ কী চলছে সেটা দেখতে পারা network security-র core skill।
 </Callout>
 
-## Ports কী
+## Port কেন দরকার
 
-Port হলো একটা number (0-65535) যেটা service identify করে।
+**সমস্যাটা বোঝো:**
 
-| Port | Service | Description |
-|------|---------|-------------|
-| 22 | SSH | Secure remote access |
-| 80 | HTTP | Web server |
-| 443 | HTTPS | Secure web server |
+তোমার server-এর IP হলো `192.168.1.100`। এই একটা IP দিয়েই SSH, web server, আর database — তিনটো service চলছে। কেউ যখন এই IP-তে connect করে, Linux কীভাবে বুঝবে সে SSH চায় নাকি web page চায় নাকি database চায়?
+
+**Port এই সমস্যার সমাধান।**
+
+Port হলো IP address-এর পাশে একটা number যেটা বলে দেয় কোন service-এর সাথে কথা বলতে চাইছো:
+
+```
+192.168.1.100:22    → SSH service
+192.168.1.100:80    → Web server
+192.168.1.100:3306  → MySQL database
+```
+
+একই ঠিকানায় (IP) আলাদা দরজা (port) — প্রতিটা দরজায় আলাদা service বসে আছে।
+
+## Common Ports
+
+| Port | Service | কী করে |
+|------|---------|---------|
+| 22 | SSH | নিরাপদ remote terminal access |
+| 80 | HTTP | Web traffic (plain) |
+| 443 | HTTPS | Web traffic (encrypted) |
 | 21 | FTP | File transfer |
-| 25 | SMTP | Email sending |
-| 53 | DNS | Domain resolution |
+| 25 | SMTP | Email পাঠানো |
+| 53 | DNS | Domain name → IP resolution |
 | 3306 | MySQL | Database |
-| 8080 | HTTP Alt | Alternative web server |
+| 5432 | PostgreSQL | Database |
+| 8080 | HTTP Alt | Alternative web port |
 
 <Callout type="default">
-  0-1023 = **Well-known ports** (system services)।
-  1024-49151 = **Registered ports** (applications)।
-  49152-65535 = **Dynamic/Private ports** (temporary connections)।
+  **Port range:**
+  - **0–1023** — Well-known ports। System services। Root ছাড়া bind করা যায় না।
+  - **1024–49151** — Registered ports। Applications ব্যবহার করে।
+  - **49152–65535** — Dynamic ports। Temporary connections-এ ব্যবহার হয়।
 </Callout>
-
----
 
 ## `ss`
 
-Modern tool — কোন ports-এ কী listen করছে দেখাও।
+কোন port-এ কী listen করছে দেখো — modern tool।
 
 ```bash filename="Terminal"
-# সব listening TCP ports
+# সব listening TCP ports দেখো
 ss -tlnp
 
 # সব listening UDP ports
@@ -52,29 +68,46 @@ ss -tanp
 ss -tlnp | grep :80
 ```
 
-Flags-এর মানে:
+**Flags-এর মানে:**
 
 | Flag | মানে |
 |------|------|
 | `-t` | TCP connections |
 | `-u` | UDP connections |
-| `-l` | Listening ports only |
-| `-n` | Numeric (name resolve করো না) |
-| `-p` | Process name আর PID দেখাও |
-| `-a` | All connections |
+| `-l` | শুধু listening ports |
+| `-n` | Number দেখাও (service name না) |
+| `-p` | কোন process সেটা দেখাও |
+| `-a` | সব connections |
 
-Output example:
+**Output বোঝো:**
+
 ```
 State   Recv-Q  Send-Q  Local Address:Port  Peer Address:Port  Process
-LISTEN  0       128     0.0.0.0:22          0.0.0.0:*          users:(("sshd",pid=1234))
-LISTEN  0       511     0.0.0.0:80          0.0.0.0:*          users:(("nginx",pid=5678))
+LISTEN  0       128     0.0.0.0:22          0.0.0.0:*          sshd
+LISTEN  0       511     127.0.0.1:3306      0.0.0.0:*          mysqld
+LISTEN  0       128     0.0.0.0:80          0.0.0.0:*          nginx
 ```
 
----
+**`Local Address`-এর মানে বোঝাটা critical:**
+
+| Address | মানে | Security impact |
+|---------|------|-----------------|
+| `0.0.0.0:22` | সব network interface-এ listen | যেকোনো IP থেকে connect করা যাবে |
+| `127.0.0.1:3306` | শুধু localhost-এ listen | শুধু এই machine থেকে access হবে, বাইরে থেকে না |
+| `192.168.1.100:8080` | নির্দিষ্ট interface-এ | শুধু সেই network থেকে |
+
+```
+0.0.0.0:22     → SSH বাইরে থেকে accessible — নিরাপদ হতে হবে
+127.0.0.1:3306 → Database শুধু local — ভালো security practice
+```
+
+<Callout type="warning">
+  **Database কখনো `0.0.0.0` তে bind করবে না।** যদি MySQL `0.0.0.0:3306`-এ bind হয়, তাহলে ইন্টারনেট থেকে database-এ direct connect করার চেষ্টা করা সম্ভব। সবসময় `127.0.0.1` বা specific internal IP ব্যবহার করো।
+</Callout>
 
 ## `netstat`
 
-পুরনো tool কিন্তু CTF-এ এখনও দেখবে।
+পুরনো tool কিন্তু CTF machines-এ এখনও পাবে।
 
 ```bash filename="Terminal"
 # Install (net-tools package)
@@ -90,89 +123,76 @@ netstat -tanp
 netstat -tlnp | grep :443
 ```
 
-<Callout type="default">
-  `ss` দ্রুত আর modern। কিন্তু `netstat` জেনে রাখো — CTF machines আর পুরনো servers-এ `ss` না থাকতে পারে।
-</Callout>
-
----
-
 ## `lsof`
 
-কোন process কোন file বা port use করছে দেখো।
+কোন **process** কোন port ব্যবহার করছে দেখো।
 
 ```bash filename="Terminal"
-# নির্দিষ্ট port কোন process use করছে
+# Port 80 কোন process ব্যবহার করছে
 sudo lsof -i :80
 
 # সব network connections
 sudo lsof -i
 
-# নির্দিষ্ট protocol
+# শুধু TCP
 sudo lsof -i TCP
-sudo lsof -i UDP
 
 # নির্দিষ্ট user-এর connections
 sudo lsof -i -u omar
 ```
 
----
+**`ss -tlnp` vs `lsof -i` পার্থক্য:**
 
-## `/etc/services`
-
-Port number আর service name-এর mapping file।
-
-```bash filename="Terminal"
-# সব services দেখো
-cat /etc/services | head -30
-
-# নির্দিষ্ট port খোঁজো
-grep "80/" /etc/services
-grep "ssh" /etc/services
-```
-
----
+`ss` দ্রুত এবং port/state দেখায়। `lsof` process-এর বিস্তারিত (কোন user, কোন file) দেখায়। দুটো complement করে।
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **Port scanning — pentesting-এর দ্বিতীয় phase:**
+  **Port analysis — attack surface বোঝা:**
 
-  Target machine-এ কোন ports open — এটাই attack surface বুঝতে সাহায্য করে।
+  **Defensive — নিজের machine চেক করো:**
 
-  ```bash
-  # নিজের machine-এর open ports দেখো (defensive)
+  ```bash filename="Terminal"
+  # কোন ports বাইরে থেকে accessible
   ss -tlnp
+
+  # Unexpected service চলছে কিনা — unusual ports
+  ss -tlnp | grep -v "22\|80\|443\|3306"
+
+  # কোন process unexpected port use করছে
   sudo lsof -i -P -n | grep LISTEN
-
-  # Unexpected service চলছে কিনা
-  ss -tlnp | grep -v "22\|80\|443"
-
-  # Nmap দিয়ে target machine scan (offensive)
-  nmap -sV target-ip
-  nmap -sC -sV -p- target-ip
   ```
 
-  **Common CTF workflow:**
-  1. `nmap -sV target-ip` — কোন ports open
-  2. Open port-এর service identify করো
-  3. সেই service-এর known vulnerabilities খোঁজো
-  4. Exploit করো
+  **Offensive — target machine scan:**
 
-  **Defender perspective:**
-  অপ্রয়োজনীয় ports open থাকা security risk। production server-এ only needed ports রাখো।
+  ```bash filename="Terminal"
+  # Nmap দিয়ে open ports খোঁজো
+  nmap -sV target-ip           # service version সহ
+  nmap -sC -sV -p- target-ip  # সব ports scan (slow but thorough)
+  ```
+
+  **CTF workflow:**
+  ```
+  1. nmap -sV target-ip → কোন ports open
+  2. Open port-এর service চেনো (22=SSH, 80=HTTP...)
+  3. Service-এর version দেখো
+  4. সেই version-এ known vulnerability আছে কিনা খোঁজো
+  5. Exploit করো
+  ```
+
+  **`0.0.0.0` vs `127.0.0.1`** — কোনো service `0.0.0.0`-তে bind থাকলে এটা externally accessible। CTF-এ অনেক সময় locally bind করা service-কে SSH tunneling দিয়ে access করতে হয়।
 </Callout>
-
----
 
 ## Quick Check
 
-- [ ] Well-known ports-এর range কত?
-- [ ] SSH, HTTP, HTTPS কোন ports-এ চলে?
-- [ ] `ss -tlnp` output-এর প্রতিটা flag মানে কী?
-- [ ] `lsof -i :80` কী দেখায়?
+- [ ] Port কেন দরকার — একটা IP থাকলেই তো হতো?
+- [ ] `0.0.0.0:22` আর `127.0.0.1:3306` এর পার্থক্য কী?
+- [ ] `ss -tlnp` এর প্রতিটা flag কী করে?
+- [ ] Database `0.0.0.0`-তে bind হওয়া কেন বিপজ্জনক?
+- [ ] CTF-এ port scan করার পর কী করবে?
 
 **পরবর্তী →** [curl & wget](/docs/linux-fundamentals/07-networking/curl-wget)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux ports services, ss netstat, listening ports, open ports linux, lsof, port scanning nmap, well known ports, network services
+  Search Keywords: linux ports services bangla, ss netstat open ports, 0.0.0.0 127.0.0.1 difference, port scanning nmap, well known ports bengali, lsof network
 </span>

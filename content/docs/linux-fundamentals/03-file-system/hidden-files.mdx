@@ -27,8 +27,6 @@ notes.txt
 .ssh
 ```
 
----
-
 ## Seeing Hidden Files
 
 ```bash filename="Terminal"
@@ -54,8 +52,6 @@ ls -la /home/omar/
 .ssh/      ← hidden folder
 ```
 
----
-
 ## Common Hidden Files
 
 তোমার home folder-এ এই hidden files প্রায়ই থাকে:
@@ -76,8 +72,6 @@ ls -la /home/omar/
     <FileTree.File name=".env" />
   </FileTree.Folder>
 </FileTree>
-
----
 
 ## Important Hidden Files
 
@@ -126,7 +120,7 @@ cat ~/.ssh/id_rsa.pub
 <Callout type="warning">
   `.ssh/id_rsa` (private key) এর permission অবশ্যই `600` হতে হবে। অন্যথায় SSH কাজ করবে না।
 
-  ```bash
+  ```bash filename="Terminal"
   chmod 600 ~/.ssh/id_rsa
   ```
 </Callout>
@@ -142,8 +136,6 @@ cat .env
 # API_KEY=abc123xyz
 ```
 
----
-
 ## Creating Hidden Files
 
 ```bash filename="Terminal"
@@ -157,8 +149,6 @@ mkdir .private
 ls -la
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -170,7 +160,7 @@ ls -la
   - `.ssh/id_rsa` — private key চুরি করলে passwordless SSH access
 
   **Investigation:**
-  ```bash
+  ```bash filename="Terminal"
   # target user-এর history দেখো
   cat /home/victim/.bash_history
 
@@ -184,8 +174,6 @@ ls -la
   **Persistence:**
   Attackers প্রায়ই `.bashrc` তে malicious code add করে — যাতে প্রতিবার user login করলে automatically run হয়।
 </Callout>
-
----
 
 ## Quick Check
 

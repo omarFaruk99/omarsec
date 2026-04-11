@@ -8,12 +8,41 @@ import { Callout } from 'nextra/components'
 # Network Basics
 
 <Callout type="info">
-  একটা machine network-এ কীভাবে connected সেটা জানাটা cybersecurity-র শুরু। IP address কী, interface কী, DNS কী — এগুলো না বুঝলে নেটওয়ার্ক scanning, recon — কিছুই বুঝবে না।
+  একটা machine network-এ কীভাবে connected সেটা জানাটা cybersecurity-র শুরু। IP address, interface, DNS — এগুলো না বুঝলে scanning, recon, exploitation কিছুই বোধগম্য হবে না।
 </Callout>
 
-## `ip`
+## IP Address কী
 
-Network interfaces আর IP addresses দেখার modern tool। পুরনো `ifconfig`-এর replacement।
+**IP address হলো network-এ তোমার ঠিকানা।**
+
+চিঠি পাঠাতে যেমন বাড়ির ঠিকানা লাগে, network-এ data পাঠাতে IP address লাগে। কোনো machine-এর IP না জানলে তুমি তার সাথে communicate করতে পারবে না।
+
+```
+192.168.1.100
+│   │   │ │
+│   │   │ └── Host part — এই network-এর কোন machine (100)
+│   │   └── Network part — কোন network (192.168.1)
+└───────── এই format হলো IPv4 — চারটো number, প্রতিটো 0-255
+```
+
+**`/24` মানে কী:**
+
+IP address-এর পাশে `/24` দেখবে — এটা হলো subnet mask। এটা বলে দেয় network part কতটুকু।
+
+```
+192.168.1.100/24
+             ^^^
+             /24 মানে প্রথম 24 bit = network part
+             বাকি 8 bit = host part
+             তাই এই network-এ 192.168.1.0 থেকে 192.168.1.255 পর্যন্ত থাকতে পারে
+             মানে ২৫৬টা device একই network-এ
+```
+
+এই বিষয়গুলো Networking section-এ বিস্তারিত শিখবে। এখন শুধু জানো — `/24` মানে class C network, ২৫৬টা address।
+
+## `ip` Command
+
+Network interfaces আর IP addresses দেখার modern tool।
 
 ```bash filename="Terminal"
 # সব interfaces আর IPs দেখো
@@ -24,12 +53,12 @@ ip a
 # শুধু specific interface
 ip a show eth0
 
-# Routing table (default gateway)
+# Routing table দেখো — default gateway কোনটা
 ip route
 ip r
 ```
 
-`ip a` output বোঝো:
+**`ip a` output বোঝো:**
 
 ```
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
@@ -39,18 +68,29 @@ ip r
 
 | অংশ | মানে |
 |-----|------|
-| `eth0` | Interface name (Ethernet) |
-| `UP` | Interface active |
-| `inet 192.168.1.100/24` | IPv4 address + subnet |
-| `/24` | Subnet mask (255.255.255.0) |
-| `brd 192.168.1.255` | Broadcast address |
+| `eth0` | Interface-এর নাম — এটা Ethernet adapter |
+| `UP` | Interface চালু আছে |
+| `inet 192.168.1.100/24` | IPv4 address এবং subnet |
+| `brd 192.168.1.255` | Broadcast address — এই address-এ পাঠালে network-এর সবাই পাবে |
 | `inet6` | IPv6 address |
+| `lo` | Loopback — `127.0.0.1`, নিজের machine নিজেই |
 
----
+**Common interfaces:**
+
+| নাম | মানে |
+|-----|------|
+| `eth0`, `ens33` | Ethernet (wired) |
+| `wlan0`, `wlp2s0` | WiFi (wireless) |
+| `lo` | Loopback — `127.0.0.1` |
+| `tun0` | VPN tunnel (TryHackMe-তে এটা দেখবে) |
+
+<Callout type="default">
+  **TryHackMe-তে:** VPN connect করার পর `ip a` দিলে `tun0` interface দেখবে। এই interface-এর IP-টাই তোমার TryHackMe IP — এটা দিয়ে target machine-এ পৌঁছাবে।
+</Callout>
 
 ## `ifconfig`
 
-পুরনো tool কিন্তু এখনও অনেক জায়গায় use হয়।
+পুরনো tool — কিন্তু CTF machines আর পুরনো servers-এ এখনও দেখা যায়।
 
 ```bash filename="Terminal"
 # Install (না থাকলে)
@@ -63,46 +103,53 @@ ifconfig
 ifconfig eth0
 ```
 
-<Callout type="default">
-  নতুন systems-এ `ip` use করো। কিন্তু `ifconfig` জেনে রাখো কারণ CTF machines, পুরনো servers, আর TryHackMe-তে এখনও দেখবে।
-</Callout>
-
----
-
 ## `ping`
 
-Target machine-এ network connectivity test করো।
+Target machine alive কিনা এবং network reachable কিনা test করো।
+
+**ping কীভাবে কাজ করে:** তুমি target-এ একটা ICMP Echo Request পাঠাও। Target alive থাকলে Echo Reply পাঠায়। এই আসা-যাওয়ার সময়টাই milliseconds-এ দেখা যায়।
 
 ```bash filename="Terminal"
-# Server reachable কিনা check করো
+# Server reachable কিনা দেখো
 ping 192.168.1.1
 
-# নির্দিষ্ট সংখ্যক packet পাঠাও
+# নির্দিষ্ট সংখ্যক packet পাঠাও (না দিলে চলতেই থাকে)
 ping -c 4 google.com
 
-# Timeout set করো (seconds)
+# Timeout set করো — ২ সেকেন্ডে reply না এলে skip
 ping -W 2 192.168.1.50
 ```
 
-Output:
+**Output বোঝো:**
+
 ```
 64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.5 ms
 ```
 
 | অংশ | মানে |
 |-----|------|
-| `64 bytes` | Reply packet size |
-| `icmp_seq=1` | Packet sequence number |
-| `ttl=64` | Time to live (hops remaining) |
-| `time=0.5 ms` | Round-trip time |
+| `64 bytes` | Reply packet-এর size |
+| `icmp_seq=1` | কততম packet |
+| `ttl=64` | Time to Live — packet আর কয়টা router পার হতে পারবে |
+| `time=0.5 ms` | Request পাঠানো থেকে reply আসা পর্যন্ত সময় |
 
-`Ctrl + C` দিয়ে বন্ধ করো (অথবা `-c` দিয়ে limit দাও)।
+**TTL কী এবং কেন গুরুত্বপূর্ণ:**
 
----
+প্রতিটি packet-এ TTL নামে একটি counter থাকে। প্রতিটি router পার হলে এই counter ১ কমে। ০ হলে packet মুছে যায় — এটা infinite loop থেকে বাঁচায়।
+
+```
+ttl=64  → সম্ভবত Linux machine
+ttl=128 → সম্ভবত Windows machine
+ttl=255 → সম্ভবত Cisco/Network device
+```
+
+Cybersecurity-তে TTL দেখে **OS fingerprinting** করা যায় — শুধু ping করেই target কোন OS চালাচ্ছে সেটার ধারণা পাওয়া যায়।
 
 ## `traceroute`
 
-তোমার machine থেকে target পর্যন্ত packet কোন কোন routers-এর মধ্য দিয়ে যায় দেখাও।
+তোমার machine থেকে target পর্যন্ত packet কোন কোন router দিয়ে যায় দেখাও।
+
+**কীভাবে কাজ করে:** TTL=1 দিয়ে packet পাঠায় → প্রথম router-এ TTL ০ হয়, router error পাঠায় → তার IP জানা গেল। তারপর TTL=2 দিয়ে পাঠায় → দ্বিতীয় router জানা যায়। এভাবে পুরো path বের হয়।
 
 ```bash filename="Terminal"
 # Install (না থাকলে)
@@ -111,123 +158,117 @@ sudo apt install traceroute
 # Route দেখো
 traceroute google.com
 
-# TCP mode (ICMP block থাকলে)
+# TCP mode — ICMP block থাকলে এটা কাজ করে
 traceroute -T google.com
 ```
 
----
-
 ## DNS Lookup
 
-Domain name থেকে IP address বের করো, অথবা উল্টোটা।
+**DNS কী:**
+
+তুমি `google.com` মনে রাখতে পারো কিন্তু `142.250.185.46` মনে রাখা কঠিন। DNS (Domain Name System) হলো সেই system যেটা `google.com` নামটাকে IP address-এ convert করে।
+
+```
+তুমি browser-এ লেখো: google.com
+                          |
+                    DNS server জিজ্ঞেস করো: google.com এর IP কত?
+                          |
+                    উত্তর: 142.250.185.46
+                          |
+                    এই IP-তে connect হও
+```
 
 ```bash filename="Terminal"
 # Domain → IP
 nslookup google.com
 dig google.com
 
-# Short output
+# শুধু IP দেখাও
 dig +short google.com
 
-# Specific record type
-dig google.com MX        # Mail servers
-dig google.com NS        # Name servers
-dig google.com TXT       # Text records
+# বিভিন্ন record type
+dig google.com MX    # Mail server (email কোথায় যাবে)
+dig google.com NS    # Name server (DNS কে manage করে)
+dig google.com TXT   # Text records (SPF, DKIM, verification)
 
-# Reverse lookup (IP → domain)
+# Reverse lookup — IP থেকে domain
 dig -x 8.8.8.8
 
-# DNS server specify করো
+# নির্দিষ্ট DNS server ব্যবহার করো
 dig @8.8.8.8 example.com
 ```
 
----
-
 ## `/etc/hosts`
 
-Local DNS override — নির্দিষ্ট domain-কে specific IP-তে point করো।
+**Local DNS override।** এই file-টি DNS-এর আগে check হয়।
+
+তুমি যখন কোনো domain visit করো, Linux আগে `/etc/hosts` দেখে — এখানে match পেলে DNS server-এ যায়ই না, সরাসরি এখানকার IP ব্যবহার করে।
 
 ```bash filename="Terminal"
 cat /etc/hosts
 
-# Example content:
-# 127.0.0.1       localhost
-# 192.168.1.50    myserver.local
+# Default content:
+# 127.0.0.1    localhost
+# 127.0.1.1    my-computer
 ```
 
 ```bash filename="Terminal"
-# Custom entry add করো
+# নতুন entry যোগ করো
 sudo nano /etc/hosts
 
-# Add:
+# এই line যোগ করো:
 # 10.10.10.10    target.thm
 ```
 
+এখন `target.thm` লিখলে automatically `10.10.10.10`-তে যাবে।
+
 <Callout type="default">
-  TryHackMe-তে প্রায়ই `/etc/hosts` edit করতে হয় — target machine-এর IP-কে একটা domain name দিতে।
+  **TryHackMe-তে প্রায়ই `/etc/hosts` edit করতে হয়।** Target machine-এর IP-কে একটা domain দিতে হয় — কারণ কিছু web application শুধু নির্দিষ্ট domain name দিয়ে request করলে কাজ করে, IP দিয়ে নয়।
+
+  ```bash filename="Terminal"
+  # Quick way — nano না খুলে সরাসরি add করো
+  echo "10.10.10.10  target.thm" | sudo tee -a /etc/hosts
+  ```
 </Callout>
-
----
-
-## `hostname`
-
-System-এর নিজের hostname দেখো বা set করো।
-
-```bash filename="Terminal"
-# Current hostname
-hostname
-
-# Full qualified domain name
-hostname -f
-
-# IP address
-hostname -I
-```
-
----
 
 ## CyberSec Note
 
 <Callout type="warning">
   **Network recon — pentesting-এর প্রথম phase:**
 
-  ```bash
-  # নিজের IP জানো
+  ```bash filename="Terminal"
+  # নিজের IP জানো (tun0 = VPN IP TryHackMe-তে)
   ip a | grep "inet "
-  hostname -I
 
-  # Target reachable কিনা
+  # Target alive কিনা + OS fingerprinting (TTL দেখো)
   ping -c 3 target-ip
+  # ttl=64 → Linux, ttl=128 → Windows
 
-  # Route to target
+  # Target-এ পৌঁছানোর route
   traceroute target-ip
 
-  # DNS information (subdomain enumeration-এর start)
+  # DNS records — subdomain খোঁজার শুরু
   dig target.com ANY
   dig target.com NS
   dig target.com MX
 
-  # Reverse DNS — IP থেকে hostname বের করো
+  # Reverse DNS — IP-এর আড়ালে কোন domain আছে
   dig -x target-ip
-
-  # /etc/hosts edit করো TryHackMe-তে
-  echo "10.10.10.10  target.thm" | sudo tee -a /etc/hosts
   ```
 
-  প্রতিটা CTF box-এ প্রথম কাজ: `ip a` → নিজের IP, `ping` → target alive কিনা।
+  প্রতিটা CTF box-এ প্রথম কাজ: `ip a` করো নিজের IP জানো → `ping` করো target alive কিনা → তারপর port scan।
 </Callout>
-
----
 
 ## Quick Check
 
-- [ ] `ip a` আর `ifconfig` এর পার্থক্য কী?
-- [ ] `ping -c 4` মানে কী?
-- [ ] `dig +short google.com` কী দেখায়?
-- [ ] `/etc/hosts` কেন edit করতে হয়?
+- [ ] `/24` subnet মানে কত IP address?
+- [ ] `tun0` interface কোথায় দেখা যায় এবং এটা কী?
+- [ ] `ttl=64` আর `ttl=128` দেখে কী বোঝা যায়?
+- [ ] DNS কেন দরকার — IP address থাকলেও?
+- [ ] `/etc/hosts` কীভাবে DNS-কে bypass করে?
 
 **পরবর্তী →** [Ports & Services](/docs/linux-fundamentals/07-networking/ports-services)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux networking, ip addr, ifconfig, ping command, traceroute, dig nslookup DNS, /etc/hosts, network recon linux
+  Search Keywords: linux networking bangla, ip address subnet, ping TTL fingerprinting, DNS lookup dig, /etc/hosts override, network basics Bengali, traceroute
 </span>

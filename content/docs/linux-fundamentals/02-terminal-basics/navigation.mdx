@@ -21,8 +21,6 @@ import { Callout, Tabs } from 'nextra/components'
 
 এই তিনটা দিয়েই শুরু।
 
----
-
 ## `pwd`
 
 Current location দেখাও — তুমি এখন কোথায় আছ।
@@ -37,8 +35,6 @@ Output:
 ```
 
 Terminal খুললেই সবার আগে `pwd` চালাও — বুঝবে কোথায় আছ।
-
----
 
 ## `ls`
 
@@ -89,8 +85,6 @@ drwxr-xr-x 2 omar omar 4096 Apr 7 19:00 Documents
   `ls -la` সবচেয়ে বেশি use হয় — এটাই মুখস্থ করো। Hidden files দেখায়, permissions দেখায়, সব দেখায়।
 </Callout>
 
----
-
 ## `cd`
 
 Directory পরিবর্তন করো — ওই folder-এ যাও।
@@ -128,7 +122,7 @@ cd -
   <Tabs.Tab>
     **Absolute path** মানে root `/` থেকে শুরু করে পুরো address।
 
-    ```bash
+    ```bash filename="Terminal"
     cd /home/omar/Documents
     ```
 
@@ -137,7 +131,7 @@ cd -
   <Tabs.Tab>
     **Relative path** মানে তুমি এখন যেখানে আছ সেখান থেকে শুরু।
 
-    ```bash
+    ```bash filename="Terminal"
     # যদি /home/omar তে থাকো
     cd Documents
     # এটা মানে /home/omar/Documents
@@ -151,8 +145,6 @@ cd -
   **Common Mistake:** অনেকে `cd /Documents` লেখে — এটা root-এর Documents খুঁজবে, যেখানে নেই। সঠিক হলো `cd ~/Documents` বা `cd /home/omar/Documents`।
 </Callout>
 
----
-
 ## Special Path Symbols
 
 | Symbol | মানে |
@@ -162,8 +154,6 @@ cd -
 | `..` | Parent folder (এক উপরে) |
 | `/` | Root — সবার শুরু |
 | `-` | আগের folder (toggle করে) |
-
----
 
 ## Tab Completion
 
@@ -183,8 +173,6 @@ ls /et[Tab]
 cd /home/omar/[Tab][Tab]
 # দেখাবে: Desktop  Documents  Downloads  Pictures  ...
 ```
-
----
 
 ## Putting It Together
 
@@ -213,8 +201,6 @@ cd ~
 pwd
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -227,8 +213,6 @@ pwd
 
   Speed important — Ctrl+C দিয়ে cancel, Tab দিয়ে fast type।
 </Callout>
-
----
 
 ## Quick Check
 

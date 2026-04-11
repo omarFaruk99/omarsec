@@ -19,8 +19,6 @@ import { Callout, Tabs } from 'nextra/components'
 - System files সাধারণ user delete করতে পারবে না
 - কোন program কে execute করার permission আছে সেটা নিয়ন্ত্রণ করা যায়
 
----
-
 ## Reading Permissions
 
 `ls -l` চালালে এরকম output আসে:
@@ -62,8 +60,6 @@ Permission string টা ভেঙে দেখি:
 | `x` | Execute | File চালাতে পারবে (script/program) | Folder-এ `cd` করতে পারবে |
 | `-` | No permission | ওই permission নেই | ওই permission নেই |
 
----
-
 ## Numeric (Octal) Notation
 
 Permissions সংখ্যা দিয়েও লেখা হয়:
@@ -91,8 +87,6 @@ chmod 755 script.sh
   - `600` — শুধু owner পড়তে ও লিখতে পারে। SSH keys-এর জন্য।
   - `777` — সবাই সব পারে। Security risk — avoid করো।
 </Callout>
-
----
 
 ## `chmod`
 
@@ -138,8 +132,6 @@ File বা folder-এর permission পরিবর্তন করো।
   </Tabs.Tab>
 </Tabs>
 
----
-
 ## `chown`
 
 File বা folder-এর owner এবং group পরিবর্তন করো।
@@ -161,12 +153,10 @@ ls -l file.txt
 <Callout type="warning">
   `chown` চালাতে সাধারণত `sudo` লাগে — কারণ অন্যের file-এর ownership নেওয়া sensitive operation।
 
-  ```bash
+  ```bash filename="Terminal"
   sudo chown omar:omar file.txt
   ```
 </Callout>
-
----
 
 ## Checking Permissions
 
@@ -181,8 +171,6 @@ ls -ld Documents/
 stat script.sh
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -194,14 +182,12 @@ stat script.sh
   - `/etc/passwd` writable হলে — নতুন root user add করা যায়
 
   **SUID কী:**
-  ```bash
+  ```bash filename="Terminal"
   -rwsr-xr-x   ← s মানে SUID set
   ```
   SUID মানে এই program যে-ই চালাক, file owner-এর permission-এ চলবে।
   অনেক system binary root-owned আর SUID — misconfiguration হলে exploit করা যায়।
 </Callout>
-
----
 
 ## Quick Check
 

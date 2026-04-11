@@ -1,0 +1,218 @@
+---
+title: apt
+description: Ubuntu/Debian-এ software install, update, remove করার প্রধান tool — apt।
+---
+
+import { Callout } from 'nextra/components'
+
+# apt
+
+<Callout type="info">
+  `apt` (Advanced Package Tool) হলো Ubuntu/Debian-এর official package manager। এটা দিয়ে software install, update, remove সব হয়। Linux-এ প্রতিদিনের কাজের অন্যতম গুরুত্বপূর্ণ command।
+</Callout>
+
+## Package Manager কী
+
+**Linux-এ software install করা Windows-এর মতো নয়।**
+
+Windows-এ কোনো software লাগলে: ওয়েবসাইট → installer download → next-next-finish।
+
+Linux-এ: `sudo apt install software-name` — শেষ।
+
+**কেন এটা ভালো:**
+
+`apt` software-টা কোথা থেকে download করবে সেটা আগে থেকে জানে — এটাকে বলে **repository** (repo)। Canonical (Ubuntu-র company) এই repo maintain করে। তাই:
+
+- Verified source থেকে আসে
+- Dependency automatically handle হয় (software চালাতে যা যা লাগে, সব আপনা আপনি install হয়)
+- একটা command-এই সব software update হয়
+
+## `apt update`
+
+**Software install করার আগে এটা চালাও।**
+
+`apt update` নতুন কিছু install করে না। এটা শুধু repository থেকে latest package list download করে — "এখন কোন software-এর কোন version আছে" সেটা জানে।
+
+```bash filename="Terminal"
+sudo apt update
+```
+
+```
+# Output example:
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Fetched 126 kB in 1s
+Reading package lists... Done
+```
+
+**apt update ছাড়া install করলে কী হয়:**
+
+পুরনো package list থেকে install করবে — নতুন version miss হতে পারে। এমনকি "Package not found" error আসতে পারে নতুন software-এর ক্ষেত্রে।
+
+## `apt upgrade`
+
+**Installed software-গুলো latest version-এ update করো।**
+
+```bash filename="Terminal"
+sudo apt upgrade
+```
+
+<Callout type="default">
+  **`apt update` vs `apt upgrade` — সবচেয়ে common confusion:**
+
+  | Command | কাজ | কিছু install/update হয়? |
+  |---------|-----|--------------------------|
+  | `apt update` | Package list refresh করো | না — শুধু list |
+  | `apt upgrade` | Installed packages update করো | হ্যাঁ — existing packages |
+
+  সঠিক workflow সবসময়:
+  ```bash filename="Terminal"
+  sudo apt update && sudo apt upgrade
+  ```
+  আগে list update করো, তারপর upgrade করো।
+</Callout>
+
+## `apt install`
+
+Software install করো।
+
+```bash filename="Terminal"
+# Single package install
+sudo apt install nmap
+
+# একসাথে একাধিক
+sudo apt install nmap curl wget
+
+# Prompt ছাড়া install (script-এ ব্যবহার করতে)
+sudo apt install -y nmap
+```
+
+**Install-এর সময় কী হয়:**
+
+```
+# যা দেখবে:
+Reading package lists... Done
+Building dependency tree... Done
+The following NEW packages will be installed:
+  nmap
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 5,641 kB of archives.
+After this operation, 25.3 MB of additional disk space will be used.
+Do you want to continue? [Y/n]
+```
+
+"Dependency" মানে nmap চালাতে যে অন্য software লাগে, সেগুলো apt নিজে থেকেই install করে নেয়।
+
+## `apt remove` এবং `apt purge`
+
+Software remove করো।
+
+```bash filename="Terminal"
+# Software remove করো (config file রেখে দেয়)
+sudo apt remove nmap
+
+# সব কিছু মুছে দাও (config file সহ)
+sudo apt purge nmap
+
+# Remove করার পর অপ্রয়োজনীয় dependency মুছে দাও
+sudo apt autoremove
+```
+
+**`remove` vs `purge` পার্থক্য:**
+
+| Command | Software | Config files |
+|---------|----------|--------------|
+| `apt remove` | মুছে যায় | থাকে |
+| `apt purge` | মুছে যায় | মুছে যায় |
+
+নতুন করে install করলে আবার কাজ করবে। `purge` দিলে fresh start।
+
+## Package খোঁজা
+
+```bash filename="Terminal"
+# Package-এর নাম জানো না? খোঁজো
+apt search network scanner
+apt search "python3"
+
+# Package-এর বিস্তারিত দেখো
+apt show nmap
+
+# Installed packages-এর list
+apt list --installed
+
+# Upgradeable packages দেখো
+apt list --upgradeable
+```
+
+## Common Tools যা CTF-এ Install করতে হয়
+
+```bash filename="Terminal"
+# সব একসাথে update এবং কিছু essential tools install
+sudo apt update
+
+# Network tools
+sudo apt install -y nmap netcat-openbsd curl wget
+
+# Text processing
+sudo apt install -y jq         # JSON processing
+
+# Password cracking
+sudo apt install -y john hydra
+
+# Web tools
+sudo apt install -y gobuster dirb
+
+# Python
+sudo apt install -y python3 python3-pip
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Package management — security perspective:**
+
+  **Outdated packages = vulnerability:**
+
+  ```bash filename="Terminal"
+  # System-এ upgrade দরকার কিনা দেখো
+  apt list --upgradeable 2>/dev/null
+
+  # Security updates শুধু install করো (full upgrade না করে)
+  sudo apt install -y unattended-upgrades
+  ```
+
+  **Malicious package source:**
+
+  Third-party PPA (Personal Package Archive) যোগ করার সময় সাবধান। অবিশ্বস্ত source থেকে package install করলে malware আসতে পারে।
+
+  ```bash filename="Terminal"
+  # কোন repositories আছে দেখো
+  cat /etc/apt/sources.list
+  ls /etc/apt/sources.list.d/
+  ```
+
+  **CTF-এ target machine-এ:** কোনো software installed কিনা এবং কোন version — এটা দেখে vulnerability খোঁজা হয়:
+
+  ```bash filename="Terminal"
+  # Installed packages এবং version দেখো
+  dpkg -l | grep -i "apache\|nginx\|mysql\|php"
+
+  # নির্দিষ্ট package-এর version
+  dpkg -l nmap
+  apt show nmap
+  ```
+</Callout>
+
+## Quick Check
+
+- [ ] `apt update` চালালে নতুন software install হয়? কারণসহ বলো।
+- [ ] `apt remove` আর `apt purge` এর পার্থক্য কী?
+- [ ] Software install করার আগে কেন `apt update` দরকার?
+- [ ] `apt install -y` এ `-y` কী করে?
+- [ ] `apt autoremove` কখন ব্যবহার করবে?
+
+**পরবর্তী →** [dpkg](/docs/linux-fundamentals/08-package-management/dpkg)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux apt bangla, apt install update upgrade Bengali, package manager linux, apt remove purge, software install linux bengali, apt search
+</span>

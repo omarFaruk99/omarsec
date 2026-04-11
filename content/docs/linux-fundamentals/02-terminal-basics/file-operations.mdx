@@ -22,8 +22,6 @@ import { Callout, Tabs } from 'nextra/components'
 | `rm` | Delete file | `rm notes.txt` |
 | `rmdir` | Delete empty folder | `rmdir temp` |
 
----
-
 ## `touch`
 
 Empty file তৈরি করে।
@@ -42,8 +40,6 @@ ls -l
 <Callout type="default">
   `touch` আসলে file-এর "last modified" timestamp update করার জন্য বানানো। কিন্তু সবাই এটা নতুন file তৈরিতে use করে। File না থাকলে তৈরি করে, থাকলে timestamp update করে।
 </Callout>
-
----
 
 ## `mkdir`
 
@@ -68,8 +64,6 @@ ls -la
   `-p` flag মানে "parents" — মাঝখানের folders না থাকলে সেগুলোও তৈরি করো। এটা ছাড়া nested folder একসাথে বানানো যায় না।
 </Callout>
 
----
-
 ## `cp`
 
 File বা folder copy করে।
@@ -93,15 +87,13 @@ cp file1.txt file2.txt Documents/
   `cp: -r not specified; omitting directory 'projects'`
 </Callout>
 
----
-
 ## `mv`
 
 File বা folder **move** করে বা **rename** করে — same command, different use।
 
 <Tabs items={['Move', 'Rename']}>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     # notes.txt কে Documents folder-এ move করো
     mv notes.txt Documents/
 
@@ -113,7 +105,7 @@ File বা folder **move** করে বা **rename** করে — same comma
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash filename="Terminal"
     # old.txt কে new.txt নামে rename করো
     mv old.txt new.txt
 
@@ -125,8 +117,6 @@ File বা folder **move** করে বা **rename** করে — same comma
     ```
   </Tabs.Tab>
 </Tabs>
-
----
 
 ## `rm`
 
@@ -164,8 +154,6 @@ rm -rf folder-name/
   CTF বা real server-এ একটু ভুলে অনেক কিছু চলে যেতে পারে।
 </Callout>
 
----
-
 ## Wildcards
 
 Pattern দিয়ে একসাথে অনেক files-এ কাজ করো।
@@ -188,8 +176,6 @@ rm *.log
 # "file" দিয়ে শুরু সব files
 ls file*
 ```
-
----
 
 ## Practice Scenario
 
@@ -228,8 +214,6 @@ ls -la
 ls backup/
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -243,8 +227,6 @@ ls backup/
   এই knowledge তোমাকে একজন attacker এর mindset বুঝতে সাহায্য করবে — যেটা defender হিসেবেও দরকার।
 </Callout>
 
----
-
 ## Quick Check
 
 - [ ] Empty file তৈরি করার command কী?
@@ -253,8 +235,6 @@ ls backup/
 - [ ] `mv` দিয়ে rename আর move দুটো করা যায় — পার্থক্য কী?
 - [ ] `*.txt` মানে কী?
 - [ ] `rm -rf` কেন সতর্কতার সাথে ব্যবহার করতে হয়?
-
-এই section শেষ।
 
 **পরবর্তী Section →** [File System & Permissions](/docs/linux-fundamentals/03-file-system)
 

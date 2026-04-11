@@ -21,8 +21,6 @@ import { Callout } from 'nextra/components'
 | `tail` | File-এর শেষ দেখায় | Latest log entries |
 | `tail -f` | Live update দেখায় | Real-time monitoring |
 
----
-
 ## `cat`
 
 পুরো file-এর content একবারে print করে।
@@ -45,8 +43,6 @@ cat /etc/passwd
 <Callout type="default">
   `cat` ছোট files-এর জন্য perfect। বড় file হলে সব output একসাথে scroll হয়ে চলে যায় — তখন `less` use করো।
 </Callout>
-
----
 
 ## `less`
 
@@ -74,8 +70,6 @@ less /var/log/syslog
   `less` সবচেয়ে comfortable reading tool। বড় log files দেখার সময় সবসময় `less` use করো — `cat` দিলে terminal flood হয়।
 </Callout>
 
----
-
 ## `head`
 
 File-এর **শুরু** থেকে কয়েকটা line দেখায়। Default: ১০ লাইন।
@@ -91,8 +85,6 @@ head -n 5 notes.txt
 head -20 /var/log/syslog
 ```
 
----
-
 ## `tail`
 
 File-এর **শেষ** থেকে কয়েকটা line দেখায়। Default: ১০ লাইন।
@@ -107,8 +99,6 @@ tail -n 20 /var/log/auth.log
 # শেষ ৫০ লাইন
 tail -50 /var/log/apache2/access.log
 ```
-
----
 
 ## `tail -f`
 
@@ -129,13 +119,11 @@ tail -f /var/log/apache2/access.log
 
 <Callout type="warning">
   **CyberSec use:** কেউ server-এ login করার চেষ্টা করছে কিনা real-time দেখতে:
-  ```bash
+  ```bash filename="Terminal"
   tail -f /var/log/auth.log
   ```
   Successful আর failed login দুটোই এখানে আসে।
 </Callout>
-
----
 
 ## Combining Tools
 
@@ -153,8 +141,6 @@ head -5 notes.txt
 tail -2 notes.txt
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -162,7 +148,7 @@ tail -2 notes.txt
 
   সব attack-এর trace থাকে log-এ। এই commands দিয়ে:
 
-  ```bash
+  ```bash filename="Terminal"
   # কে কখন login করেছে
   tail -50 /var/log/auth.log
 
@@ -178,8 +164,6 @@ tail -2 notes.txt
 
   CTF-এ প্রায়ই একটা log file দেওয়া হয় এবং সেখান থেকে attacker-এর activity বের করতে হয়।
 </Callout>
-
----
 
 ## Quick Check
 

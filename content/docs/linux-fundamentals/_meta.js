@@ -7,4 +7,7 @@ export default {
   '05-users-permissions': 'Users & Permissions',
   '06-processes': 'Processes',
   '07-networking': 'Networking',
+  '08-package-management': 'Package Management',
+  '09-scripting-intro': 'Scripting Intro',
+  'cheatsheet': 'Cheatsheet',
 }

@@ -1,6 +1,6 @@
 ---
 title: Networking
-description: Linux-এ networking tools — IP দেখা, connectivity test, ports scan, HTTP requests।
+description: Linux-এ networking tools — IP দেখা, connectivity test, ports scan, HTTP requests, netcat।
 ---
 
 import { Callout } from 'nextra/components'
@@ -8,17 +8,19 @@ import { Callout } from 'nextra/components'
 # Section 07 — Networking
 
 <Callout type="info">
-  Cybersecurity-র বেশিরভাগ কাজ network নিয়ে। Target machine-এর IP বের করা, কোন ports open আছে, কোন services চলছে — সব Linux terminal থেকে হয়। এই section-এ সেই tools শিখবে।
+  Cybersecurity-র বেশিরভাগ কাজ network নিয়ে। Target machine-এর IP বের করা, কোন ports open আছে, কোন services চলছে, shell কীভাবে পাবে — সব Linux terminal থেকে হয়। এই section-এ সেই tools শিখবে।
 </Callout>
 
 এই section শেষ করলে তুমি জানবে:
 
-- Machine-এর IP address, interfaces, আর connectivity check করতে
+- Machine-এর IP address, interfaces, connectivity check করতে
 - Open ports আর running services দেখতে
 - Terminal থেকে HTTP requests পাঠাতে
+- Netcat দিয়ে port check, file transfer, এবং reverse shell নিতে
 
 ## Topics
 
-- [Network Basics](/docs/linux-fundamentals/07-networking/network-basics) — `ip`, `ping`, `ifconfig`, DNS
-- [Ports & Services](/docs/linux-fundamentals/07-networking/ports-services) — `ss`, `netstat`, open ports
-- [curl & wget](/docs/linux-fundamentals/07-networking/curl-wget) — HTTP requests, file download
+- [Network Basics](/docs/linux-fundamentals/07-networking/network-basics) — `ip`, `ping`, `ifconfig`, DNS, `/etc/hosts`
+- [Ports & Services](/docs/linux-fundamentals/07-networking/ports-services) — `ss`, `netstat`, `lsof`, open ports
+- [curl & wget](/docs/linux-fundamentals/07-networking/curl-wget) — HTTP requests, API, file download
+- [Netcat](/docs/linux-fundamentals/07-networking/netcat) — port check, banner grab, file transfer, reverse shell

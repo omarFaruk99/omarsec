@@ -18,8 +18,6 @@ import { Callout } from 'nextra/components'
 | `grep` | File-এর **ভেতরে** text pattern খোঁজে |
 | `find` | Filesystem-এ **files আর folders** খোঁজে |
 
----
-
 ## `grep`
 
 File-এর ভেতরে text pattern খোঁজে এবং matching lines দেখায়।
@@ -64,8 +62,6 @@ grep "^root" /etc/passwd
 # Line শেষে "/bin/bash" আছে
 grep "/bin/bash$" /etc/passwd
 ```
-
----
 
 ## `find`
 
@@ -131,8 +127,6 @@ find /home -user omar
   `2>/dev/null` মানে error messages (permission denied etc.) লুকাও। Search করার সময় এটা add করলে output অনেক clean হয়।
 </Callout>
 
----
-
 ## Combining `grep` and `find`
 
 ```bash filename="Terminal"
@@ -143,14 +137,12 @@ find /var/log -name "*.log" | xargs grep "FAILED"
 find /etc -type f | xargs grep -l "password" 2>/dev/null
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
   **এই commands CTF আর pentesting-এ সবচেয়ে বেশি use হয়:**
 
-  ```bash
+  ```bash filename="Terminal"
   # Juicy files খোঁজো
   find / -name "*.txt" 2>/dev/null
   find / -name "flag*" 2>/dev/null
@@ -173,8 +165,6 @@ find /etc -type f | xargs grep -l "password" 2>/dev/null
 
   TryHackMe-এর প্রায় প্রতিটা Linux challenge-এ এই commands লাগে।
 </Callout>
-
----
 
 ## Quick Check
 

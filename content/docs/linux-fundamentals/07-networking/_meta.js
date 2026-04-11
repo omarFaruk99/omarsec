@@ -3,4 +3,5 @@ export default {
   'network-basics': 'Network Basics',
   'ports-services': 'Ports & Services',
   'curl-wget': 'curl & wget',
+  'netcat': 'Netcat',
 }

@@ -23,15 +23,13 @@ my-notes → notes.txt   ← symlink (pointer মাত্র)
 
 `my-notes` access করলে automatically `notes.txt` এর content দেখবে। কিন্তু actual data `notes.txt`-এ।
 
----
-
 ## Hard Link vs Soft Link
 
 <Tabs items={['Soft Link (Symlink)', 'Hard Link']}>
   <Tabs.Tab>
     **Soft link** (symbolic link) হলো path-এর একটা pointer।
 
-    ```bash
+    ```bash filename="Terminal"
     ln -s /path/to/original /path/to/link
     ```
 
@@ -43,7 +41,7 @@ my-notes → notes.txt   ← symlink (pointer মাত্র)
   <Tabs.Tab>
     **Hard link** একই data-কে দুটো নামে access করতে দেয়।
 
-    ```bash
+    ```bash filename="Terminal"
     ln /path/to/original /path/to/hardlink
     ```
 
@@ -58,8 +56,6 @@ my-notes → notes.txt   ← symlink (pointer মাত্র)
   **সহজ কথায়:** Soft link হলো shortcut। Hard link হলো same file-এর দুটো নাম।
   ৯৯% ক্ষেত্রে soft link use করো।
 </Callout>
-
----
 
 ## Creating Symlinks
 
@@ -78,8 +74,6 @@ ls -la
 # দেখবে: nginx.conf -> /etc/nginx/nginx.conf
 ```
 
----
-
 ## Reading Symlinks
 
 `ls -l` output-এ symlink এভাবে দেখায়:
@@ -95,8 +89,6 @@ lrwxrwxrwx 1 omar omar 20 Apr 8 10:00 nginx.conf -> /etc/nginx/nginx.conf
 | `->` | Points to |
 | `/etc/nginx/nginx.conf` | Actual file location |
 
----
-
 ## Removing Symlinks
 
 ```bash filename="Terminal"
@@ -111,8 +103,6 @@ unlink my-link
   `rm -rf link/` — trailing slash দিলে link-এর target directory-র contents delete হয়।
   সবসময় trailing slash ছাড়া delete করো।
 </Callout>
-
----
 
 ## Common Use Cases
 
@@ -131,8 +121,6 @@ ls -la /lib
 # lib -> usr/lib
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -141,7 +129,7 @@ ls -la /lib
   **Path Traversal with Symlinks:**
   কিছু vulnerable application symlink follow করে restricted area-র বাইরে যায়।
 
-  ```bash
+  ```bash filename="Terminal"
   # /tmp তে একটা symlink বানাও যেটা /etc/passwd point করে
   ln -s /etc/passwd /tmp/uploaded-file
 
@@ -152,7 +140,7 @@ ls -la /lib
   যদি root-এর script তোমার control-এ থাকা path থেকে file read করে, সেখানে symlink রেখে sensitive file read করানো যায়।
 
   **Detection:**
-  ```bash
+  ```bash filename="Terminal"
   # Suspicious symlinks খোঁজো
   find / -type l 2>/dev/null
 
@@ -161,16 +149,12 @@ ls -la /lib
   ```
 </Callout>
 
----
-
 ## Quick Check
 
 - [ ] Symlink আর actual file-এর মধ্যে পার্থক্য কী?
 - [ ] Soft link আর hard link-এর মূল পার্থক্য বলতে পারবে?
 - [ ] Symlink তৈরির command কী?
 - [ ] `ls -l` এ symlink কীভাবে চিনবে?
-
-এই section শেষ।
 
 **পরবর্তী Section →** [Text Manipulation](/docs/linux-fundamentals/04-text-manipulation)
 

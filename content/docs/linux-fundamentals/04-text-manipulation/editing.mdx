@@ -24,8 +24,6 @@ import { Callout, Tabs } from 'nextra/components'
   **কোনটা দিয়ে শুরু করবো?** `nano` দিয়ে শুরু করো। কিন্তু `vim` এর basics অবশ্যই শেখো — অনেক server-এ শুধু vim থাকে।
 </Callout>
 
----
-
 ## nano
 
 Beginner-friendly terminal editor। নিচে keyboard shortcuts দেখায়, তাই আলাদা মুখস্থ করতে হয় না।
@@ -71,8 +69,6 @@ nano config.txt
 # 4. Exit করো
 # Ctrl + X
 ```
-
----
 
 ## vim
 
@@ -174,8 +170,6 @@ Esc                → normal mode-এ ফিরে যাও
 :q!                → save ছাড়া বের হও
 ```
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -186,7 +180,7 @@ Esc                → normal mode-এ ফিরে যাও
   - Log file এ evidence add বা মুছতে হতে পারে (defensive analysis)
   - `sudoedit` misconfiguration — vim দিয়ে privilege escalation হয়:
 
-  ```bash
+  ```bash filename="Terminal"
   # যদি sudo দিয়ে vim run করার permission থাকে
   sudo vim /etc/hosts
 
@@ -198,16 +192,12 @@ Esc                → normal mode-এ ফিরে যাও
   এটা GTFOBins-এ documented — `vim` দিয়ে privilege escalation।
 </Callout>
 
----
-
 ## Quick Check
 
 - [ ] `nano` তে save করার shortcut কী?
 - [ ] `vim` এ insert mode-এ যাওয়ার key কী?
 - [ ] `vim` থেকে save ছাড়া বের হওয়ার command কী?
 - [ ] `vim` দিয়ে কীভাবে privilege escalation সম্ভব?
-
-এই section শেষ।
 
 **পরবর্তী Section →** [Users & Permissions](/docs/linux-fundamentals/05-users-permissions)
 

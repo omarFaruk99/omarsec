@@ -19,8 +19,6 @@ import { Callout } from 'nextra/components'
 
 কিন্তু কথায় কথায় সবাই এটাকেই "terminal" বলে — তাই তুমিও তাই বলো।
 
----
-
 ## Shell
 
 Terminal হলো জানালা। **Shell** হলো সেই জানালার ভেতরে থাকা interpreter — যেটা তোমার command বোঝে এবং execute করে।
@@ -41,13 +39,11 @@ Linux-এ সবচেয়ে common shell হলো **Bash** (Bourne Again Sh
   **অন্যান্য shells:** `zsh` (macOS default), `fish`, `sh` — সব same কাজ করে, শুধু কিছু feature আর syntax আলাদা। এখন Bash জানলেই চলবে।
 </Callout>
 
----
-
 ## The Prompt
 
 Terminal খুললেই একটা line দেখবে — এটাকে বলা হয় **prompt**। Computer তোমার input নেওয়ার জন্য ready।
 
-```bash
+```bash filename="Terminal"
 omar@ubuntu:~$
 ```
 
@@ -66,19 +62,15 @@ omar@ubuntu:~$
   **CyberSec Note:** Prompt-এর শেষে `$` নাকি `#` — এটা দেখে বোঝা যায় তুমি কোন privilege-এ আছ।`$` = normal user, `#` = root (admin)। CTF-এ privilege escalation সফল হলে prompt `$` থেকে `#` হয়ে যায়।
 </Callout>
 
----
-
 ## Root Prompt
 
 তুমি যদি root user হিসেবে login করো বা `sudo su` চালাও:
 
-```bash
+```bash filename="Terminal"
 root@ubuntu:~#
 ```
 
 `#` মানে তুমি এখন সব কিছুর full control-এ আছ। এই মুহূর্তে যা করবে system তাই করবে — কোনো permission check নেই।
-
----
 
 ## Essential Commands
 
@@ -142,8 +134,6 @@ pwd
   **Tab completion** সবচেয়ে important shortcut। `ls /ho` লিখে Tab চাপো — automatically `/home/` হয়ে যাবে। এটা শুধু তাড়াতাড়ি না, typo-ও কমায়।
 </Callout>
 
----
-
 ## CyberSec Note
 
 <Callout type="warning">
@@ -154,8 +144,6 @@ pwd
   - Attackers প্রায়ই `history -c` চালিয়ে সব মুছে দেয় evidence লুকাতে
   - তুমি যদি কোথাও login করো এবং কী করেছ track করতে না চাও — `export HISTFILE=/dev/null` করতে পারো
 </Callout>
-
----
 
 ## Quick Check
 
