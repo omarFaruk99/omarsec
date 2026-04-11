@@ -20,7 +20,21 @@ drwxr-xr-x  2 omar developers 4096 Apr 10 23:00 project/
 -rw-r--r--  1 omar omar        512 Apr 10 22:00 notes.txt
 ```
 
-প্রথম ১০টি character-এর breakdown:
+পুরো লাইনের breakdown:
+
+```bash filename="Terminal"
+drwxr-xr-x  2 omar developers 4096 Apr 10 23:00 project/
+┬─────────  ┬ ──┬─ ────┬───── ──┬─ ──────┬───── ───┬────
+│           │   │      │        │        │         └── File Name
+│           │   │      │        │        └── Last Modified (কখন শেষ পরিবর্তন করা হয়েছে)
+│           │   │      │        └── Size (ফাইলের সাইজ bytes-এ)
+│           │   │      └── Group (কোন গ্রুপের অধীনে)
+│           │   └── Owner (ফাইলের মালিক কে)
+│           └── Links/Children (কয়টি লিঙ্ক বা সাব-ডিরেক্টরি আছে)
+└── Permissions String (প্রথম ১০টি character)
+```
+
+প্রথম ১০টি character-এর আরও বিস্তারিত breakdown:
 
 ```
 d  rwx  r-x  r-x
@@ -39,26 +53,31 @@ d  rwx  r-x  r-x
 | `x` | Execute | File চালানো (script/program), Directory-তে ঢোকা |
 | `-` | None | কোনো permission নেই |
 
+<Callout type="default">
+  **একটু practice করো।** এই line টা decode করো:
+
+  ```
+  -rwxr-x---  1 sara developers 1024 Apr 10 10:00 deploy.sh
+  ```
+
+  - প্রথম character `-` → এটা একটা regular file (directory নয়)।
+  - `rwx` → Owner (`sara`) read, write, execute সব পারবে।
+  - `r-x` → `developers` group-এর সবাই read এবং execute পারবে, কিন্তু write করতে পারবে না।
+  - `---` → Others মানে বাকি সবাই কিছুই করতে পারবে না।
+</Callout>
+
 ## Numeric Permissions
 
-Permission-কে number দিয়েও প্রকাশ করা যায় — এটি `chmod` কমান্ডে বেশি ব্যবহার হয়।
+Permission-কে number দিয়েও প্রকাশ করা যায় — এটি `chmod` কমান্ডে বেশি ব্যবহার হয়। প্রতিটি permission-এর একটি নির্দিষ্ট numeric মান আছে:
 
-| Number | Permission | মানে |
-|--------|------------|------|
-| `4` | `r--` | শুধু read |
-| `6` | `rw-` | read + write |
-| `7` | `rwx` | read + write + execute |
-| `5` | `r-x` | read + execute |
-| `0` | `---` | কোনো permission নেই |
+| Letter | Value | কেন? |
+|--------|-------|------|
+| `r` | `4` | Binary `100` |
+| `w` | `2` | Binary `010` |
+| `x` | `1` | Binary `001` |
+| `-` | `0` | কোনো permission নেই |
 
-তিনটি number মিলিয়ে তৈরি হয় full permission — যেমন `755`:
-
-```
-7   5   5
-│   │   └── Others: r-x (read + execute)
-│   └── Group: r-x (read + execute)
-└── Owner: rwx (সব কিছু)
-```
+এই তিনটি মান যোগ করে আমরা একটি স্তরের (Owner/Group/Others) full permission পাই। যেমন: `rwx` = 4+2+1 = `7`।
 
 Common permission patterns:
 
@@ -70,14 +89,28 @@ Common permission patterns:
 | `700` | শুধু Owner সব | Private directories |
 | `770` | Owner+Group সব, Others কিছু না | Team shared folders |
 
+<Callout type="info">
+  **Worked Example:** যদি একটি ফাইলের পারমিশন `754` হয়:
+  - Owner (7): 4+2+1 = rwx
+  - Group (5): 4+0+1 = r-x
+  - Others (4): 4+0+0 = r--
+  অর্থাৎ, মালিক সব করতে পারবে, গ্রুপ মেম্বাররা পড়তে ও চালাতে পারবে, আর বাকিরা শুধু পড়তে পারবে।
+</Callout>
+
 ## `chmod`
 
-`chmod` দিয়ে permission পরিবর্তন করা হয়।
+`chmod` (Change Mode) দিয়ে permission পরিবর্তন করা হয়। এটি দুভাবে করা যায় — symbolic (letter দিয়ে) এবং numeric (সংখ্যা দিয়ে)।
+
+Symbolic পদ্ধতিতে `u` (user/owner), `g` (group), `o` (others), `a` (all) এবং নিচের operator-গুলো ব্যবহার হয়:
+
+| Operator | মানে | কাজ |
+|----------|------|-----|
+| `+` | Add | Permission যোগ করা |
+| `-` | Remove | Permission কেড়ে নেওয়া |
+| `=` | Set | নির্দিষ্ট permission সেট করা, বাকিগুলো মুছে যাবে |
 
 <Tabs items={['Symbolic', 'Numeric']}>
   <Tabs.Tab>
-    Symbolic পদ্ধতিতে `u` (user/owner), `g` (group), `o` (others), `a` (all) ব্যবহার করা হয়:
-
     ```bash filename="Terminal"
     # Group-কে write permission দাও
     chmod g+w file.txt
@@ -88,7 +121,7 @@ Common permission patterns:
     # Owner-কে execute permission দাও
     chmod u+x script.sh
 
-    # সবাইকে read-only করো
+    # সবাইকে read-only করো (বাকি সব permission মুছে যাবে)
     chmod a=r file.txt
 
     # Directory এবং ভেতরের সব কিছুতে একসাথে (recursive)
@@ -172,66 +205,384 @@ sudo chmod 770 /var/www/project
 
 এখন `ls -la` দিলে দেখবে:
 
-```
+```bash filename="Terminal"
 drwxrwx--- 2 root developers 4096 Apr 10 23:00 project/
 ```
 
 `developers` গ্রুপের যেকোনো member এই folder-এ file তৈরি, edit, delete করতে পারবে।
 
+## Permission Pitfalls
+
+ফাইল পারমিশন ও গ্রুপ পারমিশন সেট করার পরও অনেকে ফাইল এক্সেস করতে সমস্যায় পড়েন। নিচে একটি বাস্তব উদাহরণের মাধ্যমে এই সমস্যা এবং সমাধানগুলো তুলে ধরা হলো।
+
+### Scenario: The 'Mango' Mystery
+
+ধরুন, ইউজার `the-king` রুটে একটি ডিরেক্টরি তৈরি করেছে — `/mango`। এটি `developers` গ্রুপের মেম্বারদের সাথে শেয়ার করা হয়েছে। কিন্তু `the-queen` (গ্রুপ মেম্বার) সেখানে ফাইল তৈরি করতে গিয়ে বিপদে পড়ল:
+
+```bash filename="Terminal"
+the-queen@omar-hp-linux:/mango$ touch test.txt
+touch: cannot touch 'test.txt': Permission denied
+```
+
+**কেন এটি হলো?** ডিরেক্টরিটির পারমিশন চেক করলে দেখা যায়:
+
+```bash filename="Terminal"
+ls -ld /mango
+# drwxr-xr-x 2 root developers 4096 Apr 11 11:31 /mango
+```
+
+**Decoding the string:**
+- মালিক (`root`): `rwx` (সব করতে পারে)।
+- গ্রুপ (`developers`): **`r-x`** (পড়তে ও ঢুকতে পারে, কিন্তু ফাইল তৈরি করতে পারবে না কারণ **`w`** নেই)।
+
+<Callout type="info">
+  **The Directory Write Rule:** ডিরেক্টরির ওপর `w` (Write) পারমিশন না থাকলে আপনি তার ভেতরে ফাইল তৈরি বা ডিলিট করতে পারবেন না। গ্রুপ এক্সেস দেওয়ার সময় আমরা প্রায়ই শুধু `r-x` দেই, যা ফাইল তৈরির জন্য যথেষ্ট নয়।
+</Callout>
+
+**সমাধান (The Fix):**
+গ্রুপকে রাইট (Write) পারমিশন দিতে নিচের কমান্ডটি ব্যবহার করুন:
+
+```bash filename="Terminal"
+sudo chmod g+w /mango
+```
+
+এখন চেক করলে দেখবেন সেটি `drwxrwxr-x` হয়ে গেছে এবং গ্রুপের সবাই কাজ করতে পারছে।
+
+<Callout type="default">
+  **Pro Tip:** যখন `ls -l` দিলে কোনো ফাইল দেখা যায় না এবং `total 0` দেখায়, তখন ঘাবড়াবেন না। এর মানে হলো ফোল্ডারটি খালি। আপনি যদি ভেতরের লুকানো রেফারেন্সগুলো (`.` এবং `..`) দেখতে চান, তবে `ls -la` ব্যবহার করুন।
+</Callout>
+
+### Home Directory Traversal
+
+আরেকটি কমন সমস্যা হলো হোম ডিরেক্টরি এক্সেস করতে না পারা:
+
+```bash filename="Terminal"
+the-queen@omar-hp-linux:/home$ cd the-king/
+bash: cd: the-king/: Permission denied
+```
+
+**কেন?** হোম ফোল্ডারের ভেতরের কোনো ফাইল যদি গ্রুপ-শেয়ার্ডও হয়, তবুও আপনি সেটাতে পৌঁছাতে পারবেন না যদি প্যারেন্ট ফোল্ডারে (`/home/the-king/`) আপনার **`x` (Execute)** পারমিশন না থাকে। সিকিউরিটির জন্য লিনাক্সে হোম ফোল্ডারগুলো সাধারণত বাইরের ডিরেক্টরি থেকে "Locked" থাকে।
+
+**Solution:** টিম প্রজেক্টের জন্য ব্যক্তিগত হোম ডিরেক্টরি ব্যবহার না করে `/srv/` বা `/shared/` এর মতো একটি কমন ডিরেক্টরি ব্যবহার করা বুদ্ধিমানের কাজ যা গ্রুপ-ক্রিয়েশনের সময়ই পারমিশন দেওয়া হয়েছে। 
+
+
+
 ## Special Permissions
 
-কিছু বিশেষ permission আছে যেগুলো security-তে অত্যন্ত গুরুত্বপূর্ণ:
+সাধারণ permission (r, w, x) ছাড়াও Linux-এ তিনটি বিশেষ permission আছে — **setuid**, **setgid**, এবং **sticky bit**। এগুলো বুঝতে হলে আগে জানতে হবে এগুলো কোথায় বসে।
 
-### setuid (`s`)
-File-টি যে চালাক না কেন, সেটি file-এর owner-এর permission-এ চলে।
+তুমি এর আগে শিখেছো `755`, `644` এর মতো ৩-digit number। Special permissions এই ৩-digit-এর **আগে** আরেকটি digit যোগ করে:
+
+```
+chmod 755 file      ← সাধারণ permission
+chmod 4755 file     ← প্রথম digit 4 = setuid চালু
+chmod 2770 folder   ← প্রথম digit 2 = setgid চালু
+chmod 1777 folder   ← প্রথম digit 1 = sticky bit চালু
+```
+
+প্রথম digit-এর মান:
+
+| Digit | কোনটা | কোথায় কাজ করে |
+|-------|--------|----------------|
+| `4` | setuid | শুধু executable file-এ |
+| `2` | setgid | file এবং directory-তে |
+| `1` | sticky bit | শুধু directory-তে |
+
+### setuid
+
+**setuid মানে:** কোনো program চালালে সেই program তার **মালিকের** ক্ষমতায় চলে — তোমার ক্ষমতায় না।
+
+<Callout type="info">
+  **একটি common ভুল ধারণা:** setuid মানে "root এর ক্ষমতায় চলে" — এটা সবসময় সত্য না।
+
+  setuid মানে **file-এর owner-এর** ক্ষমতায় চলে।
+
+  - owner = root হলে → root-এর ক্ষমতায় চলে
+  - owner = omar হলে → omar-এর ক্ষমতায় চলে
+  - owner = the-queen হলে → the-queen-এর ক্ষমতায় চলে
+
+  `passwd`-এর ক্ষেত্রে root power পাওয়া গেছে কারণ `passwd`-এর owner হলো root — setuid শুধু সেই owner-এর পরিচয়টা ব্যবহার করেছে।
+</Callout>
+
+**আগে জানো `/etc/shadow` কী:**
+
+`/etc/shadow` হলো একটি ফাইল যেখানে Linux সিস্টেমের **সব user-এর পাসওয়ার্ড** সংরক্ষিত থাকে — encrypted আকারে। এই ফাইলটি এতটাই sensitive যে **শুধুমাত্র root** এটি পড়তে বা লিখতে পারে।
 
 ```bash filename="Terminal"
-# setuid দেখার example
+# /etc/shadow এর permission দেখো
+ls -la /etc/shadow
+# ---------- 1 root shadow 1234 Apr 10 12:00 /etc/shadow
+# কোনো permission নেই সাধারণ user-এর জন্য
+```
+
+```bash filename="Terminal"
+# /etc/shadow এর ভেতরে থাকে এরকম:
+# omar:$6$xyz...$AbCdEfG...:19827:0:99999:7:::
+#  ^         ^                ^
+#  username  encrypted        last changed (days)
+#            password hash    (19827 = এপ্রিল ২০২৪)
+# plain text password থাকে না, শুধু hash
+```
+
+**এখন সমস্যাটা:**
+
+তুমি (`omar`) নিজের পাসওয়ার্ড বদলাতে চাও। এজন্য `/etc/shadow`-এ লিখতে হবে। কিন্তু তুমি root না, তাই তুমি সেই ফাইলে হাত দিতে পারবে না।
+
+**setuid এই সমস্যার সমাধান:**
+
+Linux-এ `passwd` নামে একটি program আছে যেটির কাজই হলো পাসওয়ার্ড বদলানো। এই program-টি root-এর মালিকানাধীন এবং তাতে **setuid** চালু আছে। তাই তুমি `passwd` চালালে:
+
+```
+তুমি (omar) টার্মিনালে লেখো: passwd
+                                  |
+            Linux দেখে: passwd এর মালিক root, setuid আছে
+                                  |
+            তাই program চলে root এর পরিচয়ে
+                                  |
+            তোমার কাছে জানতে চায়: পুরনো password কী?
+                                  |
+            তারপর জানতে চায়: নতুন password কী?
+                                  |
+            /etc/shadow তে গিয়ে শুধু omar-এর line আপডেট করে
+                                  |
+            program শেষ — root এর ক্ষমতা চলে গেছে
+```
+
+**তুমি কোনো মুহূর্তে root হওনি। program হয়েছিল।**
+
+তুমি নিজে `passwd` চালালে terminal এ এটা দেখবে:
+
+```bash filename="Terminal"
+omar@linux:~$ passwd
+Changing password for omar.
+Current password:       # পুরনো password দাও
+New password:           # নতুন password দাও
+Retype new password:    # আবার confirm করো
+passwd: password updated successfully
+```
+
+**Permission string-এ setuid দেখতে কেমন:**
+
+```bash filename="Terminal"
 ls -la /usr/bin/passwd
-# -rwsr-xr-x 1 root root ... /usr/bin/passwd
-#    └── s = setuid (root হিসেবে চলে, যাতে /etc/shadow লিখতে পারে)
+# -rwsr-xr-x 1 root root 59640 Apr 10 12:00 /usr/bin/passwd
+#    ^
+#    owner এর x এর জায়গায় s = setuid চালু + execute আছে
+```
 
-# setuid set করো
+**setuid set এবং remove করা:**
+
+`chmod` syntax মনে করো: `chmod [কে][+/-][কী] file`
+
+```bash filename="Terminal"
+# setuid দাও (symbolic)
+# u = user/owner, + = যোগ করো, s = setuid
+# মানে: owner-এর permission-এ setuid যোগ করো
 chmod u+s program
+
+# setuid দাও (numeric — 4 সামনে বসে)
+# 4 = setuid, 7 = owner rwx, 5 = group r-x, 5 = others r-x
+chmod 4755 program
+
+# setuid সরাও
+# u = user/owner, - = সরাও, s = setuid
+chmod u-s program
 ```
 
-### setgid (`s`)
-Directory-তে setgid থাকলে ভেতরে তৈরি সব file সেই directory-র group পাবে।
+`u+s` আর `chmod 4755` — দুটো একই কাজ করে, শুধু লেখার style আলাদা।
+
+**কখন কোনটা ব্যবহার করবে:**
+
+| Command | কখন | কারণ |
+|---------|-----|------|
+| `chmod u+s program` | শুধু setuid যোগ করতে | বাকি permission অপরিবর্তিত থাকে |
+| `chmod 4755 program` | setuid + permission একসাথে সেট করতে | সব permission নতুন করে define করা যায় |
+| `chmod u-s program` | setuid বন্ধ করতে | program আর owner হিসেবে চলবে না |
+
+<Callout type="warning">
+  **Cybersecurity — কেন setuid hacker-দের টার্গেট:**
+
+  `passwd`-এর মতো program গুলো ভালোভাবে লেখা, তাই নিরাপদ। কিন্তু যদি কোনো **buggy বা দুর্বল** program-এ root setuid থাকে, তাহলে hacker সেই bug ব্যবহার করে root shell পেতে পারে — কারণ program-টি root হিসেবে চলছে। এটাকে বলে **Privilege Escalation**।
+</Callout>
+
+<Callout type="default">
+  **`s` (lowercase) বনাম `S` (uppercase):**
+
+  - `s` — execute আছে + setuid চালু। সঠিক।
+  - `S` — execute নেই, setuid অকার্যকর। Program চলবেই না।
+
+  ```
+  -rwsr-xr-x  ← সঠিক, exploitable
+  -rwSr-xr-x  ← ভুল configuration, skip করো
+  ```
+</Callout>
+
+### setgid
+
+**setgid মানে:** Directory-তে setgid থাকলে, সেই directory-র ভেতরে যে কেউ যে file বা folder তৈরি করুক — সেটা automatically **directory-র group**-এর মালিকানাধীন হবে। তোমার নিজের primary group নয়।
+
+<Callout type="info">
+  **Primary group কী?** Linux-এ প্রতিটি user-এর একটি default group থাকে — সেটাই তার primary group। সাধারণত user-এর নামেই এই group থাকে। যেমন `omar`-এর primary group হলো `omar`, `the-queen`-এর primary group হলো `the-queen`। তুমি যখন file তৈরি করো, Linux automatically তোমার primary group-টি সেই file-এর group হিসেবে assign করে — যদি না setgid থাকে।
+</Callout>
+
+**কেন দরকার:**
 
 ```bash filename="Terminal"
-# Team directory-তে setgid — সব নতুন file developers group পাবে
-chmod g+s /var/www/project/
+# ধরো /srv/web_team folder টি developers group এর
+
+# setgid ছাড়া — group = user এর নিজস্ব primary group:
+omar creates file.txt    → owner: omar,      group: omar        # ভুল — developers না
+the-queen creates a.txt  → owner: the-queen, group: the-queen   # ভুল — developers না
+
+# setgid সহ — group = folder এর group, automatically:
+omar creates file.txt    → owner: omar,      group: developers   # সঠিক
+the-queen creates a.txt  → owner: the-queen, group: developers   # সঠিক
 ```
 
-### Sticky Bit (`t`)
-Directory-তে sticky bit থাকলে শুধুমাত্র file-এর owner সেটি delete করতে পারবে — অন্য group member পারবে না।
+প্রতিদিন manually `chown :developers` করার ঝামেলা নেই।
 
 ```bash filename="Terminal"
-# /tmp-এ sticky bit আছে
+# setgid দাও directory তে
+chmod g+s /srv/web_team/
+# অথবা numeric
+chmod 2770 /srv/web_team/
+
+# দেখতে কেমন:
+ls -la /srv/
+# drwxrwsr-x 2 root developers 4096 Apr 10 web_team/
+#       ^
+#       group এর x এর জায়গায় s = setgid চালু
+```
+
+<Callout type="default">
+  **Subdirectory-ও inherit করে।** setgid directory-র ভেতরে নতুন subdirectory তৈরি হলে সেটাও automatically setgid পায়। নিচের দিকে propagate হতে থাকে।
+</Callout>
+
+### Sticky Bit
+
+**আগে সমস্যাটা বোঝো:**
+
+ধরো `/shared/project` folder-এ `omar` এবং `the-queen` দুজনেই কাজ করে। দুজনেরই `w` (write) permission আছে।
+
+এর আগে তুমি শিখেছো — **directory-তে `w` permission থাকলে সেই directory-র যেকোনো file delete করা যায়**, এমনকি সেই file-এর মালিক না হলেও।
+
+তার মানে `omar` চাইলে `the-queen`-এর file মুছে দিতে পারে। এটা team-এ বিশৃঙ্খলা তৈরি করে।
+
+**sticky bit এই সমস্যার সমাধান।**
+
+**sticky bit মানে:** Directory-তে sticky bit থাকলে — **শুধুমাত্র file-এর মালিক** নিজের file delete করতে পারবে। অন্য কেউ পারবে না, এমনকি একই group-এর member-ও না।
+
+```
+sticky bit ছাড়া:
+  omar → the-queen-এর file delete করতে পারে   (w permission আছে বলে)
+
+sticky bit সহ:
+  omar → নিজের file delete করতে পারে
+  omar → the-queen-এর file delete করতে পারে না   (sticky bit block করে)
+  the-queen → শুধু নিজের file delete করতে পারে
+```
+
+**সরাসরি উদাহরণ:**
+
+```bash filename="Terminal"
+# omar একটি file তৈরি করলো
+omar@linux:/shared/project$ touch omar_work.txt
+
+# the-queen একটি file তৈরি করলো
+the-queen@linux:/shared/project$ touch queen_work.txt
+
+# sticky bit ছাড়া: omar চাইলে queen-এর file মুছতে পারে
+omar@linux:/shared/project$ rm queen_work.txt
+# সফল হবে — বিপজ্জনক
+
+# sticky bit দেওয়ার পর:
+omar@linux:/shared/project$ rm queen_work.txt
+# rm: cannot remove 'queen_work.txt': Operation not permitted
+# শুধু the-queen বা root পারবে
+```
+
+**কীভাবে দেবে:**
+
+```bash filename="Terminal"
+# symbolic
+chmod +t /shared/project/
+
+# numeric — 1 সামনে বসে
+chmod 1770 /shared/project/
+```
+
+**Permission string-এ দেখতে কেমন:**
+
+```bash filename="Terminal"
 ls -la /
 # drwxrwxrwt 1 root root ... tmp/
-#          └── t = sticky bit
-
-# Set করো
-chmod +t /shared/folder/
+#          ^
+#          others এর x এর জায়গায় t = sticky bit চালু
 ```
+
+<Callout type="info">
+  **Linux-এর `/tmp` folder।** সবাই `/tmp`-তে file তৈরি করতে পারে — কিন্তু অন্যের file delete করতে পারে না। কারণ `/tmp`-তে by default sticky bit চালু থাকে। নিজে দেখো:
+
+  ```bash filename="Terminal"
+  ls -la / | grep tmp
+  # drwxrwxrwt  root root  tmp
+  #          ^-- t আছে
+  ```
+</Callout>
+
+**তিনটা একসাথে মনে রাখার উপায়:**
+
+| Special Bit | Permission string-এ | Numeric | কাজ |
+|-------------|---------------------|---------|-----|
+| setuid | owner-এর `x` → `s` | `4___` | program মালিকের ক্ষমতায় চলে |
+| setgid | group-এর `x` → `s` | `2___` | নতুন file group inherit করে |
+| sticky | others-এর `x` → `t` | `1___` | শুধু মালিক delete করতে পারে |
+
+<Callout type="default">
+  **setuid এবং setgid — দুটোতেই `s` কেন?** হ্যাঁ, দুটোই `s` দেখায় — কিন্তু **কোথায় বসে** সেটাই পার্থক্য।
+
+  ```
+  -rwsr-xr-x   ← owner এর জায়গায় s = setuid
+  drwxrwsr-x   ← group এর জায়গায় s = setgid
+  ```
+
+  - owner (৩য় character) → `s` হলে setuid
+  - group (৬ষ্ঠ character) → `s` হলে setgid
+
+  Position দেখো, `s` কোথায় বসেছে সেটাই সব বলে দেবে।
+</Callout>
 
 ## CyberSec Note
 
 <Callout type="warning">
   **Weak Permission — Privilege Escalation-এর সবচেয়ে common path:**
 
-  ```bash filename="Terminal"
-  # World-writable files খোঁজো (সবাই লিখতে পারে — বিপজ্জনক)
-  find / -perm -o+w -type f 2>/dev/null
+  `find` command দিয়ে পুরো system স্ক্যান করা হয়। প্রতিটি part বোঝো:
 
-  # setuid files খোঁজো (root হিসেবে চলে)
+  ```
+  find  /         -perm -4000   -type f      2>/dev/null
+  │     │         │             │            │
+  │     │         │             │            └── error message লুকাও (permission denied গুলো)
+  │     │         │             └── শুধু regular file খোঁজো (directory নয়)
+  │     │         └── এই permission bit set আছে এমন file
+  │     └── এখান থেকে খোঁজা শুরু (পুরো system)
+  └── খোঁজার command
+  ```
+
+  ```bash filename="Terminal"
+  # World-writable files — others এর w bit চালু (0002 = others write)
+  # যে file সবাই edit করতে পারে — attacker inject করতে পারে
+  find / -perm -0002 -type f 2>/dev/null
+
+  # setuid files — 4000 = setuid bit
+  # এগুলো owner এর ক্ষমতায় চলে, root owner হলে বিপজ্জনক
   find / -perm -4000 -type f 2>/dev/null
 
-  # setgid files খোঁজো
+  # setgid files — 2000 = setgid bit
   find / -perm -2000 -type f 2>/dev/null
 
-  # আমার লেখার permission আছে এমন সব কিছু
+  # আমি যে file গুলোতে লিখতে পারি — misconfiguration খুঁজতে
+  # grep -v proc: /proc virtual files বাদ দাও (false positive এড়াতে)
   find / -writable -type f 2>/dev/null | grep -v proc
   ```
 
@@ -240,6 +591,42 @@ chmod +t /shared/folder/
   **Config file overwrite:**
   যদি কোনো config file world-writable হয় (`-rw-rw-rw-`), সেটা edit করে malicious command inject করা সম্ভব।
 </Callout>
+
+## Team Workflows
+
+বাস্তব জীবনে যখন আপনি একটি প্রোডাকশন সার্ভারে কাজ করবেন, তখন এলোমেলোভাবে ফোল্ডার তৈরি না করে একটি প্রফেশনাল পদ্ধতি অনুসরণ করা জরুরি।
+
+### কেন `/srv` ব্যবহার করবেন?
+
+লিনাক্সের নিয়ম অনুযায়ী, `/` (Root) ডিরেক্টরি সব সময় পরিষ্কার রাখা উচিত। আপনার প্রজেক্টের সব ডেটা বা সাধারণ ফাইল শেয়ারিংয়ের জন্য `/srv/` ডিরেক্টরিটি আদর্শ। এটি সিস্টেম ফাইল থেকে আপনার প্রজেক্ট ডেটাকে আলাদা রাখে এবং সার্ভার ম্যানেজমেন্ট সহজ করে।
+
+### ধাপ ১: প্রফেশনাল সেটিংস
+
+আপনি যখন একটি টিম হিসেবে কাজ করবেন, তখন নিচের এই ৫টি ধাপ অনুসরণ করা শ্রেষ্ঠ পদ্ধতি:
+
+```bash filename="Terminal"
+# ১. /srv ডিরেক্টরিতে প্রজেক্ট ফোল্ডার তৈরি করুন
+sudo mkdir -p /srv/web_team
+
+# ২. গ্রুপ মালিকানা সেট করুন
+sudo chown :developers /srv/web_team
+
+# ৩. গ্রুপকে Full Read-Write এক্সেস দিন
+sudo chmod 770 /srv/web_team
+
+# ৪. (ম্যাজিক স্টেপ) setgid সেট করুন 
+# এর ফলে নতুন সব ফাইল অটোমেটিক এই গ্রুপের মালিকানাধীন থাকবে
+sudo chmod g+s /srv/web_team
+
+# ৫. স্টিকি বিট সেট করুন (ঐচ্ছিক)
+# যাতে মেম্বাররা শুধু নিজেদের ফাইল ডিলিট করতে পারে
+sudo chmod +t /srv/web_team
+```
+
+**কেন এটিই সেরা পথ?**
+- এটি `/` ডিরেক্টরিকে পরিষ্কার রাখে।
+- গ্রুপ মেম্বাররা একে অপরের ফাইল দেখতে ও এডিট করতে পারে।
+- `setgid` এর কারণে প্রতিদিন পারমিশন ঠিক করার ঝামেলা নেই।
 
 ## Quick Check
 

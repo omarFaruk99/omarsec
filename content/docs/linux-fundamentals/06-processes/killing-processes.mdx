@@ -1,6 +1,6 @@
 ---
 title: Killing Processes
-description: Unwanted processes বন্ধ করো — kill, pkill, আর signals।
+description: Unwanted processes বন্ধ করো — signals কী, kill, pkill, এবং কখন কোনটা ব্যবহার করবে।
 ---
 
 import { Callout } from 'nextra/components'
@@ -8,182 +8,220 @@ import { Callout } from 'nextra/components'
 # Killing Processes
 
 <Callout type="info">
-  Process "kill" করা মানে forcefully বন্ধ করা। Linux-এ processes signal পাঠিয়ে control করা হয়। Kill করা তার মধ্যে একটা — কিন্তু signals আরও অনেক কাজ করতে পারে।
+  Linux-এ process "kill" করা মানে সেটাকে forcefully মুছে দেওয়া না। প্রথমে process-কে বিনয়ের সাথে বন্ধ হতে বলা হয় — কাজ না করলে তারপর force করা হয়। এই পুরো ব্যবস্থাটার নাম Signal।
 </Callout>
 
-## Signals
+## Signal কী
 
-Linux-এ process-কে signal পাঠিয়ে communicate করা হয়।
+**Signal হলো process-এর সাথে যোগাযোগের ভাষা।**
 
-| Signal | Number | কাজ |
-|--------|--------|-----|
-| `SIGTERM` | 15 | Process-কে gracefully বন্ধ হতে বলো (default) |
-| `SIGKILL` | 9 | Process-কে force kill করো — ignore করা যায় না |
-| `SIGHUP` | 1 | Process reload করো (config reload) |
-| `SIGSTOP` | 19 | Process pause করো |
-| `SIGCONT` | 18 | Paused process চালু করো |
+তুমি process-কে সরাসরি কথা বলতে পারো না। Linux-এর মাধ্যমে signal পাঠাও — process সেই signal দেখে কী করবে সিদ্ধান্ত নেয়।
+
+সবচেয়ে গুরুত্বপূর্ণ signals:
+
+| Signal | Number | কাজ | Process কি ignore করতে পারে? |
+|--------|--------|-----|------------------------------|
+| `SIGTERM` | 15 | "অনুগ্রহ করে বন্ধ হও" | হ্যাঁ |
+| `SIGKILL` | 9 | "এখনই বন্ধ করো" | না — কখনোই না |
+| `SIGHUP` | 1 | "config reload করো" | হ্যাঁ |
+| `SIGSTOP` | 19 | "থামো" | না |
+| `SIGCONT` | 18 | "চালু হও" | না |
+| `SIGINT` | 2 | "interrupt করো" (Ctrl+C) | হ্যাঁ |
+
+**SIGTERM vs SIGKILL — পার্থক্যটা জরুরি:**
+
+`SIGTERM` পাঠালে Linux process-কে বলে "বন্ধ হও"। Process চাইলে এই signal ধরতে পারে, নিজের কাজ গুছিয়ে (files save করা, connections বন্ধ করা) তারপর exit করতে পারে। চাইলে ignore-ও করতে পারে।
+
+`SIGKILL` একদম আলাদা — এটা process-এর কাছে যায়ই না। Kernel সরাসরি সেই process-কে memory থেকে মুছে দেয়। Process জানতেও পারে না কী হলো।
+
+```
+SIGTERM:  তুমি → Linux → process (process জানে, respond করতে পারে)
+SIGKILL:  তুমি → Linux → Kernel সরাসরি process মুছে দেয়
+```
 
 <Callout type="default">
-  সবসময় আগে `SIGTERM` (15) try করো। Process gracefully বন্ধ হতে পারে। কাজ না হলে `SIGKILL` (9) use করো।
+  **সবসময় আগে SIGTERM চেষ্টা করো।** Database বা web server-এ SIGKILL দিলে চলমান অপারেশন মাঝপথে কেটে যেতে পারে — data corrupt হতে পারে। SIGTERM দিলে সে নিজে data save করে তারপর বন্ধ হয়।
 </Callout>
-
----
 
 ## `kill`
 
 PID দিয়ে process-কে signal পাঠাও।
 
 ```bash filename="Terminal"
-# Graceful kill (SIGTERM — default)
-kill 1234
-
-# Force kill (SIGKILL)
-kill -9 1234
-kill -KILL 1234
-
-# Config reload (SIGHUP)
-kill -1 1234
-kill -HUP 1234
-
-# Process pause
-kill -19 1234
-
-# Process resume
-kill -18 1234
-
 # আগে PID খোঁজো
 ps aux | grep nginx
-# তারপর kill করো
+# omar   5678  0.1  0.2  nginx
+
+# Graceful kill — SIGTERM (default)
+kill 5678
+
+# কাজ না করলে — force kill (SIGKILL)
 kill -9 5678
+# অথবা
+kill -KILL 5678
+
+# Config reload — SIGHUP (service restart না করে)
+kill -1 5678
+kill -HUP 5678
 ```
 
----
+**Workflow: process বন্ধ করো**
+
+```bash filename="Terminal"
+# Step 1: PID খোঁজো
+ps aux | grep python3
+# omar  1234  python3 app.py
+
+# Step 2: Gracefully বন্ধ করার চেষ্টা
+kill 1234
+
+# Step 3: এখনো চলছে কিনা দেখো
+ps aux | grep python3
+
+# Step 4: এখনো চলছে? Force kill
+kill -9 1234
+```
 
 ## `pkill`
 
-PID না জেনে process-এর **নাম** দিয়ে kill করো।
+PID মনে না রেখে **নাম দিয়ে** kill করো।
 
 ```bash filename="Terminal"
-# নাম দিয়ে kill
+# নাম দিয়ে kill (SIGTERM)
 pkill nginx
 pkill python3
 
-# Force kill by name
+# Force kill
 pkill -9 firefox
 
-# নির্দিষ্ট user-এর process kill
+# নির্দিষ্ট user-এর process kill করো
 pkill -u omar python3
 
-# Exact match (partial match না)
+# Exact name match (partial না)
+# "nginx" match করবে কিন্তু "nginx-worker" করবে না
 pkill -x nginx
 ```
 
----
+<Callout type="default">
+  **`pkill` একসাথে সব matching process kill করে।** যেমন `pkill python3` দিলে সব `python3` process বন্ধ হবে — শুধু একটা নয়। সাবধানে ব্যবহার করো।
+</Callout>
 
 ## `killall`
 
-একই নামের সব processes একসাথে kill করো।
+একই নামের সব process একসাথে বন্ধ করো।
 
 ```bash filename="Terminal"
-# নামের সব instances kill করো
+# সব nginx process বন্ধ করো
 killall nginx
-killall python3
 
 # Force
 killall -9 chrome
 ```
 
----
+`pkill` এবং `killall` প্রায় একই কাজ করে — `pkill` regex সাপোর্ট করে এবং বেশি flexible।
 
 ## Keyboard Shortcuts
 
-Terminal-এ চলমান process দ্রুত control করো:
+Terminal-এ চলমান foreground process দ্রুত control করো:
 
 | Shortcut | Signal | কাজ |
 |---------|--------|-----|
-| `Ctrl + C` | SIGINT | Process interrupt/cancel করো |
-| `Ctrl + Z` | SIGSTOP | Process pause করো |
-| `Ctrl + \` | SIGQUIT | Process quit + core dump |
+| `Ctrl+C` | SIGINT (2) | Process cancel করো — সবচেয়ে বেশি ব্যবহার |
+| `Ctrl+Z` | SIGTSTP (20) | Process pause করো — পরে `fg` বা `bg` দিয়ে চালু করো |
+| `Ctrl+\` | SIGQUIT (3) | Process বন্ধ + core dump তৈরি করো |
 
----
+**Ctrl+C vs Ctrl+Z পার্থক্য:**
 
-## top থেকে Kill
+```
+Ctrl+C → process বন্ধ হয়ে যায়, আর নেই
+Ctrl+Z → process pause হয়, background-এ আটকে থাকে
+         তারপর: fg দিয়ে ফেরত আনো, বা bg দিয়ে background-এ চালাও
+```
+
+## `top` থেকে Kill
 
 ```bash filename="Terminal"
 # top চালাও
 top
 
-# k চাপো → PID দাও → signal number দাও (default 15)
+# k চাপো
+# "PID to signal/kill:" → PID দাও
+# "Signal number [15]:" → Enter (SIGTERM) বা 9 (SIGKILL)
 ```
-
----
 
 ## Practice
 
 ```bash filename="Terminal"
-# 1. Background-এ একটা process চালাও
+# 1. Background-এ একটা test process চালাও
 sleep 500 &
+# [1] 8888
 
 # 2. PID দেখো
-jobs
-# অথবা
-ps aux | grep sleep
+jobs        # job number দেখায়
+pgrep sleep # শুধু PID দেখায়
 
 # 3. Gracefully kill করো
-kill PID_NUMBER
+kill 8888
 
-# 4. Confirm করো — আর নেই
+# 4. আর নেই confirm করো
 ps aux | grep sleep
 ```
-
----
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **Process killing — attack আর defense:**
+  **Process kill — attack এবং defense:**
 
-  **Anti-forensics:**
-  ```bash
-  # Security monitoring process kill করো
-  pkill -9 auditd
+  **Anti-forensics — attacker যা করে:**
+
+  ```bash filename="Terminal"
+  # Security monitoring daemon বন্ধ করো
+  # auditd = Linux-এর security audit logging service
+  pkill -9 auditd    # log লেখা বন্ধ হয়ে যাবে
+
+  # ossec = intrusion detection system
   pkill -9 ossec
   ```
 
-  **Incident Response:**
-  ```bash
-  # Suspicious process খোঁজো
-  ps aux | grep -E "nc|netcat|ncat|bash -i"
+  এই কাজ করলে attacker-এর কার্যকলাপ log-এ থাকে না।
 
-  # Reverse shell kill করো
+  **Incident Response — defender যা করে:**
+
+  ```bash filename="Terminal"
+  # Suspicious process pattern খোঁজো
+  ps aux | grep -E "nc |ncat|netcat|bash -i"
+
+  # Reverse shell বন্ধ করো
   pkill -9 nc
+
+  # একটি নির্দিষ্ট command pattern kill করো
   kill -9 $(pgrep -f "bash -i")
+  #         ^-- pgrep -f = full command line match করে
   ```
 
-  **Service restart:**
-  ```bash
-  # Config change করার পর reload
+  **Config reload — restart না করে:**
+
+  ```bash filename="Terminal"
+  # nginx config পরিবর্তন করার পর
+  # restart = downtime, SIGHUP = no downtime
   kill -HUP $(pgrep nginx)
-  # অথবা
-  sudo systemctl restart nginx
+  # অথবা systemctl দিয়ে
+  sudo systemctl reload nginx
   ```
 
-  TryHackMe-এ CTF করার সময় stuck shell বা listener বন্ধ করতে `kill -9` সবচেয়ে বেশি লাগে।
+  CTF-এ stuck shell বা listener বন্ধ করতে `kill -9` সবচেয়ে বেশি লাগে।
 </Callout>
-
----
 
 ## Quick Check
 
-- [ ] `SIGTERM` আর `SIGKILL` এর পার্থক্য কী?
-- [ ] `kill` আর `pkill` এর পার্থক্য কী?
-- [ ] Terminal-এ চলমান process cancel করার shortcut কী?
-- [ ] `kill -HUP` কেন use করা হয়?
-
-এই section শেষ।
+- [ ] SIGTERM আর SIGKILL এর mechanical পার্থক্য কী? কোনটা process ignore করতে পারে?
+- [ ] `kill 1234` আর `kill -9 1234` — কোনটা কখন ব্যবহার করবে?
+- [ ] `pkill nginx` আর `kill $(pgrep nginx)` — একই কাজ?
+- [ ] Ctrl+C আর Ctrl+Z কীভাবে আলাদা?
+- [ ] `kill -HUP` কেন service restart না করে config reload করার জন্য ব্যবহার হয়?
 
 **পরবর্তী Section →** [Networking](/docs/linux-fundamentals/07-networking)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux kill process, kill -9, pkill, SIGTERM SIGKILL, linux signals, killing process linux, ctrl+c ctrl+z, process control
+  Search Keywords: linux kill process bangla, kill -9 SIGKILL SIGTERM, pkill killall, linux signals Bengali, killing process linux, ctrl+c ctrl+z difference, process control linux
 </span>

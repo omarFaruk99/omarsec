@@ -1,6 +1,6 @@
 ---
 title: sudo & root
-description: sudo আর su দিয়ে elevated access — কীভাবে কাজ করে, কীভাবে নিরাপদে ব্যবহার করে।
+description: sudo এবং su দিয়ে elevated access — কীভাবে কাজ করে, কেন দরকার, এবং cybersecurity-তে এটা কীভাবে exploit হয়।
 ---
 
 import { Callout, Tabs } from 'nextra/components'
@@ -8,172 +8,255 @@ import { Callout, Tabs } from 'nextra/components'
 # sudo & root
 
 <Callout type="info">
-  Linux-এ root হলো সর্বোচ্চ privilege। Root হিসেবে সব কিছু করা যায় — কোনো restriction নেই। `sudo` হলো নির্দিষ্ট commands root হিসেবে চালানোর নিরাপদ পদ্ধতি।
+  Linux-এ root হলো সেই user যার কাছে কোনো permission বাধা নেই। `sudo` হলো সাধারণ user-কে বিপজ্জনক root access না দিয়েও নির্দিষ্ট কাজ করানোর ব্যবস্থা। এই দুটো concept cybersecurity-র privilege escalation-এর কেন্দ্রে।
 </Callout>
 
 ## root User
 
-Root হলো Linux-এর super admin। UID 0। কোনো permission check হয় না।
+**আগে বোঝো root কী নয়:**
+
+root কোনো special account না যেটা password দিয়ে login করলেই পাওয়া যায়। root হলো Linux-এর একটি নির্দিষ্ট user যার **UID (User ID) = 0**।
+
+Linux প্রতিটি কাজের আগে check করে — "এই user-এর কি এটা করার permission আছে?" root-এর ক্ষেত্রে Linux এই check করেই না। UID 0 দেখলেই সব allow।
+
+**root কী করতে পারে যা সাধারণ user পারে না:**
 
 ```bash filename="Terminal"
-# Root-এর home folder
-ls /root
+# যেকোনো file পড়া — permission যাই হোক
+cat /etc/shadow       # সব user এর password hash
 
-# Root prompt দেখতে এরকম
-root@ubuntu:~#       ← # মানে root
-omar@ubuntu:~$       ← $ মানে normal user
+# যেকোনো file মুছে দেওয়া
+rm /etc/passwd        # user database মুছে দাও — system ভেঙে পড়বে
+
+# যেকোনো process বন্ধ করা
+kill -9 1             # PID 1 = init/systemd, পুরো system crash
+
+# যেকোনো port bind করা
+# সাধারণ user 1024 এর নিচের port ব্যবহার করতে পারে না
+# root পারে — যেমন port 80 (HTTP), port 22 (SSH)
 ```
 
----
-
-## `sudo`
-
-নির্দিষ্ট command root-এর permission-এ চালাও — পুরোপুরি root না হয়ে।
+**Terminal-এ root চেনার উপায়:**
 
 ```bash filename="Terminal"
-# Root permission দরকার এমন command
+root@ubuntu:~#        # # চিহ্ন = root
+omar@ubuntu:~$        # $ চিহ্ন = সাধারণ user
+```
+
+<Callout type="warning">
+  **কেন সরাসরি root হিসেবে কাজ করা বিপজ্জনক:** root হিসেবে একটি ভুল command — যেমন `rm -rf /` — পুরো system মুছে দিতে পারে। কোনো confirmation চাইবে না। এই কারণেই `sudo` তৈরি হয়েছে।
+</Callout>
+
+## sudo
+
+**sudo কেন তৈরি হলো:**
+
+ধরো তুমি একটি server manage করো এবং তোমার colleague `the-queen`-কে `apt` দিয়ে packages install করার permission দিতে চাও। কিন্তু `the-queen`-কে full root দিলে সে চাইলে system-এর যেকোনো file মুছে দিতে পারে, যেকোনো user-এর password বদলাতে পারে।
+
+**sudo এর সমাধান:** `the-queen`-কে শুধু `apt` চালানোর permission দাও — root password না দিয়ে, full root access না দিয়ে।
+
+**sudo ঠিক কীভাবে কাজ করে:**
+
+```
+তুমি লেখো: sudo apt update
+                  |
+    sudo check করে: তোমার কি এই command চালানোর permission আছে?
+    (এটা /etc/sudoers ফাইলে দেখা হয়)
+                  |
+          হ্যাঁ আছে → তোমার নিজের password চাইবে (root এর না)
+                  |
+          password সঠিক → command টি root হিসেবে চলবে
+                  |
+          command শেষ → root access চলে গেছে
+```
+
+**সাধারণ ব্যবহার:**
+
+```bash filename="Terminal"
+# একটি command root হিসেবে চালাও
 sudo apt update
 
-# যেকোনো command root হিসেবে
-sudo command
-
-# Root shell খোলো
-sudo -i
-# অথবা
-sudo su
-
-# অন্য user হিসেবে command চালাও
+# নির্দিষ্ট user হিসেবে command চালাও
+# web server এর user হিসেবে একটি command চালানো
 sudo -u www-data whoami
 
-# তোমার sudo permissions দেখো
+# তোমার কোন কোন sudo permission আছে দেখো
 sudo -l
+
+# Root shell খোলো (সব command root হিসেবে চলবে)
+sudo -i
 ```
 
 <Callout type="default">
-  `sudo` চালালে তোমার নিজের password চাইবে (root-এর না)। কিছুক্ষণ cached থাকে — এই সময়ের মধ্যে আবার চালালে password চাইবে না।
+  **Password caching:** `sudo` একবার password নেওয়ার পর ১৫ মিনিট মনে রাখে। এই সময়ের মধ্যে আবার `sudo` চালালে password চাইবে না। Session শেষ হলে বা `sudo -k` দিলে cache মুছে যায়।
 </Callout>
 
----
+## su
 
-## `su`
+**`su` এবং `sudo` এক জিনিস নয়।**
 
-অন্য user-এ switch করো।
+| | `sudo` | `su` |
+|--|--------|------|
+| কাজ | একটি command root হিসেবে চালানো | পুরোপুরি অন্য user-এ switch করা |
+| Password | তোমার নিজের password | যে user-এ যাবে তার password |
+| Session | command শেষে ফিরে আসো | `exit` না দেওয়া পর্যন্ত থাকো |
+| ব্যবহার | একটি কাজের জন্য | দীর্ঘ সময় অন্য user হিসেবে কাজ করতে |
 
 <Tabs items={['su - (recommended)', 'su (basic)']}>
   <Tabs.Tab>
-    ```bash
-    # Root-এ switch করো (root-এর environment load হয়)
+    ```bash filename="Terminal"
+    # Root-এ switch করো — root এর পুরো environment load হয়
     su -
 
-    # নির্দিষ্ট user-এ switch
+    # নির্দিষ্ট user-এ switch করো
     su - omar
     ```
 
-    `-` flag মানে সেই user-এর পুরো environment load করো — home folder, PATH সব।
+    `-` flag মানে সেই user-এর **পুরো environment** load করো — home directory, PATH, shell variables সব।
+
+    ```bash filename="Terminal"
+    # su - ছাড়া root হলে PATH ঠিকমতো set হয় না
+    su
+    which python3
+    # /usr/bin/python3 — হয়তো খুঁজে পাবে না
+
+    # su - দিয়ে root হলে root এর PATH পাবে
+    su -
+    which python3
+    # /usr/bin/python3 — ঠিকমতো কাজ করবে
+    ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
-    # Root-এ switch করো (environment load হয় না)
+    ```bash filename="Terminal"
+    # Root-এ switch করো — কিন্তু তোমার environment থেকে যাবে
     su
 
-    # নির্দিষ্ট user-এ switch
+    # নির্দিষ্ট user-এ switch করো
     su omar
     ```
 
-    Environment load হয় না — কিছু commands কাজ নাও করতে পারে।
+    Environment load হয় না। মানে তুমি root হয়েছো কিন্তু root-এর PATH, home folder ইত্যাদি পাবে না। `su -` ব্যবহার করা ভালো অভ্যাস।
   </Tabs.Tab>
 </Tabs>
 
----
-
 ## sudoers File
 
-কোন user কোন commands `sudo` দিয়ে চালাতে পারবে সেটা এখানে define করা আছে।
+`/etc/sudoers` ফাইলে define করা আছে — কোন user কোন command `sudo` দিয়ে চালাতে পারবে।
 
 ```bash filename="Terminal"
-# sudoers দেখো (direct edit করবে না)
+# sudoers দেখো — কিন্তু সরাসরি edit করবে না
 sudo cat /etc/sudoers
-
-# sudo group-এর সব users sudo access পায়
-# %sudo   ALL=(ALL:ALL) ALL
 ```
 
-sudoers syntax:
+**Syntax বিশ্লেষণ:**
 
 ```
-omar    ALL=(ALL:ALL) ALL
-  │      │    │   │    └── সব commands
-  │      │    │   └── যেকোনো group হিসেবে
-  │      │    └── যেকোনো user হিসেবে
-  │      └── সব hosts-এ
-  └── username
+omar    ALL=(ALL:ALL)   ALL
+│       │    │   │      │
+│       │    │   │      └── কোন commands — ALL মানে সব
+│       │    │   └── কোন group হিসেবে চালাতে পারবে — ALL মানে যেকোনো
+│       │    └── কোন user হিসেবে চালাতে পারবে — ALL মানে root সহ যেকোনো
+│       └── কোন host-এ — ALL মানে যেকোনো machine
+└── কার জন্য এই rule
 ```
 
-sudoers edit করতে সবসময় `visudo` use করো:
+**বাস্তব উদাহরণ — restricted access:**
 
 ```bash filename="Terminal"
-sudo visudo
+# শুধু apt চালাতে পারবে, password দিয়ে
+the-queen  ALL=(root) /usr/bin/apt
+
+# শুধু apt চালাতে পারবে, password ছাড়া
+the-queen  ALL=(root) NOPASSWD: /usr/bin/apt
+
+# sudo group এর সব user সব কিছু করতে পারবে
+%sudo      ALL=(ALL:ALL) ALL
+# % মানে এটা user নয়, group
 ```
 
-`visudo` syntax check করে save-এর আগে — ভুল করলে lock out হওয়ার risk কমায়।
+<Callout type="warning">
+  **সরাসরি `/etc/sudoers` edit করবে না।** ভুল syntax হলে sudo কাজ করা বন্ধ করে দিতে পারে। তখন root access হারিয়ে যেতে পারে। সবসময় `visudo` ব্যবহার করো — এটা save করার আগে syntax check করে।
 
----
+  ```bash filename="Terminal"
+  sudo visudo
+  ```
+</Callout>
 
-## Checking sudo Access
+## sudo -l
+
+Pentest বা troubleshoot-এ সবার আগে এটা চালাও:
 
 ```bash filename="Terminal"
-# তোমার sudo permissions দেখো
 sudo -l
-
-# Output example:
-# User omar may run the following commands on ubuntu:
-#     (ALL : ALL) ALL        ← সব commands চালাতে পারো
-#     (root) NOPASSWD: /usr/bin/apt   ← password ছাড়া apt
 ```
 
----
+```bash filename="Terminal"
+# Output example:
+User omar may run the following commands on ubuntu:
+    (ALL : ALL) ALL                       # সব commands — full sudo access
+    (root) NOPASSWD: /usr/bin/apt         # password ছাড়া শুধু apt
+    (root) /usr/bin/python3 /opt/run.py   # শুধু এই একটি script
+```
+
+এই output দেখলেই বোঝা যায় — কোথায় misconfiguration আছে, কোথায় পথ আছে।
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **sudo — privilege escalation-এর সবচেয়ে common path:**
+  **sudo misconfiguration — privilege escalation-এর সবচেয়ে common path:**
 
-  ```bash
-  # Target-এ প্রথমেই এটা চালাও
-  sudo -l
-  ```
+  **NOPASSWD misconfiguration:**
 
-  Common misconfigurations:
-
-  **NOPASSWD:**
   ```
   omar ALL=(ALL) NOPASSWD: /usr/bin/vim
   ```
-  এমন হলে vim দিয়ে root shell পাওয়া যায়:
-  ```bash
-  sudo vim -c '!bash'
+
+  এই line মানে `omar` password ছাড়াই `vim` root হিসেবে চালাতে পারে।
+
+  **কেন এটা exploit হয়:** `vim` হলো একটি text editor — কিন্তু vim থেকে সরাসরি shell চালানো যায়। যেহেতু vim root হিসেবে চলছে, সেই shell-ও root হিসেবে চলবে।
+
+  ```bash filename="Terminal"
+  # vim root হিসেবে চালাও
+  sudo vim
+
+  # vim এর ভেতরে এই command দাও (Escape চেপে)
+  :!bash
+
+  # এখন তুমি root shell-এ আছো
+  root@ubuntu:~#
   ```
 
   **Wildcard abuse:**
+
   ```
   omar ALL=(ALL) /usr/bin/python3 /opt/script.py
   ```
-  Script writable হলে content replace করে root shell পাওয়া সম্ভব।
 
-  **GTFOBins** (gtfobins.github.io) — sudo দিয়ে কোন binaries exploit করা যায় সেটার complete list।
+  মনে হচ্ছে শুধু একটি নির্দিষ্ট script চালানোর permission। কিন্তু যদি `/opt/script.py` file-টি writable হয় — তাহলে content বদলে দিলেই হলো:
+
+  ```bash filename="Terminal"
+  # script এর ভেতরে root shell চালু করার code লেখো
+  echo 'import os; os.system("/bin/bash")' > /opt/script.py
+
+  # এখন sudo দিয়ে চালাও
+  sudo /usr/bin/python3 /opt/script.py
+  # root shell পেয়ে যাবে
+  ```
+
+  **GTFOBins** (gtfobins.github.io) — sudo দিয়ে যেকোনো binary exploit করা যায় কিনা সেটার সম্পূর্ণ list। Pentest-এ `sudo -l` এর output দেখে GTFOBins-এ খোঁজো।
 </Callout>
-
----
 
 ## Quick Check
 
-- [ ] `sudo` আর `su` এর পার্থক্য কী?
-- [ ] `su -` আর `su` এর মধ্যে পার্থক্য কী?
-- [ ] `sudo -l` কী দেখায়?
-- [ ] sudoers edit করতে কোন command use করতে হয় এবং কেন?
+- [ ] root user-এর UID কত এবং এটা কেন গুরুত্বপূর্ণ?
+- [ ] `sudo command` আর `su -` — কোনটায় কী হয়?
+- [ ] `su` আর `su -` এর পার্থক্য কী?
+- [ ] sudoers-এ `NOPASSWD` কী করে?
+- [ ] `sudo -l` চালালে কী দেখা যায় এবং pentest-এ এটা কেন প্রথম চালাও?
+- [ ] `sudo vim` কেন root shell দিতে পারে?
 
 **পরবর্তী →** [SSH](/docs/linux-fundamentals/05-users-permissions/ssh)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux sudo su root, sudoers file, sudo -l privilege escalation, GTFOBins sudo, linux root access, sudo NOPASSWD exploit
+  Search Keywords: linux sudo su root bangla, sudoers file explanation, sudo -l privilege escalation, GTFOBins sudo exploit, linux root access bengali, sudo NOPASSWD exploit, su vs sudo difference
 </span>
