@@ -1,6 +1,6 @@
 ---
 title: Process Basics
-description: Process কী, PID কী, আর system-এ চলমান processes কীভাবে দেখা যায়।
+description: Process কী, PID কী, এবং ইন্টারনাল প্রসেস স্টোরি (ProcFS, System Calls, UIDs)।
 ---
 
 import { Callout } from 'nextra/components'
@@ -11,207 +11,97 @@ import { Callout } from 'nextra/components'
   তুমি যখন কোনো program চালাও, Linux সেটার জন্য RAM-এ জায়গা বরাদ্দ করে, CPU time দেয়, এবং একটি unique ID দেয় — এটাই process। System-এ কী চলছে সেটা না বুঝলে troubleshooting এবং cybersecurity দুটোই কঠিন।
 </Callout>
 
-## Process কী
+## Processes vs Programs
 
 **Program আর process এক জিনিস নয়।**
 
-`python3` হলো disk-এ থাকা একটি file — এটা program।
-তুমি যখন `python3 app.py` চালাও, Linux সেই file-কে RAM-এ load করে, CPU দিয়ে execute শুরু করে — এটা হলো process।
+`python3` হলো disk-এ থাকা একটি file — এটা program। যখন তুমি `python3 app.py` চালাও, Linux সেই file-কে RAM-এ load করে এবং CPU দিয়ে execute শুরু করে — এটা তখন একটি process।
 
-একই program থেকে একাধিক process হতে পারে:
+একই program থেকে একাধিক আলাদা আলাদা process তৈরি হতে পারে। প্রতিটি প্রসেসের নিজস্ব একটি **PID** (Process ID) থাকে।
 
-```bash filename="Terminal"
-python3 app.py &    # process 1 — PID 1001
-python3 app.py &    # process 2 — PID 1002
-python3 app.py &    # process 3 — PID 1003
-# তিনটো আলাদা process, একই program থেকে
-```
+## Process Identity
 
-**প্রতিটি process-এর নিজস্ব পরিচয় আছে:**
+প্রতিটি প্রসেসের পেছনে কিছু আইডেন্টিটি বা পরিচয় থাকে যা লিনাক্স কার্নেল সবসময় ট্র্যাক করে:
 
-| Property | মানে | কেন দরকার |
-|----------|------|-----------|
-| **PID** | Process ID — unique number | এই number দিয়েই process-কে target করা যায় |
-| **PPID** | Parent Process ID | কে এই process তৈরি করেছে |
-| **User** | কোন user-এর নামে চলছে | permission নির্ধারণ করে |
-| **State** | এখন কী করছে | Running, Sleeping, Zombie, Stopped |
-| **CPU/MEM** | কতটুকু resource নিচ্ছে | performance bottleneck খুঁজতে |
-
-**PPID কেন গুরুত্বপূর্ণ:**
-
-Linux-এ প্রতিটি process কোনো না কোনো process থেকে জন্ম নেয়। তুমি যখন terminal-এ `ls` চালাও:
-
-```
-terminal (bash) — PID 500
-    └── ls — PID 501, PPID 500
-```
-
-`bash` হলো parent, `ls` হলো child। এই parent-child সম্পর্ক system-এর behavior বোঝার জন্য জরুরি।
-
-## `ps`
-
-`ps` command চলমান processes-এর snapshot দেখায়।
-
-```bash filename="Terminal"
-# শুধু current shell-এর processes
-ps
-
-# সব users-এর সব processes — সবচেয়ে বেশি ব্যবহার হয়
-ps aux
-
-# নির্দিষ্ট process খোঁজো
-ps aux | grep nginx
-
-# Parent-child relationship দেখো (tree format)
-ps auxf
-```
-
-**`ps aux` এর output বোঝো:**
-
-```
-USER       PID  %CPU  %MEM    VSZ    RSS  TTY   STAT  START  TIME  COMMAND
-root         1   0.0   0.1  16952   4096  ?     Ss    09:00  0:01  /sbin/init
-omar      1234   0.5   1.2  123456  50000 pts/0  Sl   09:05  0:30  python3 app.py
-```
-
-| Column | মানে |
-|--------|------|
-| `USER` | কোন user-এর নামে চলছে |
-| `PID` | Process ID |
-| `%CPU` | এই মুহূর্তে CPU-র কত % ব্যবহার করছে |
-| `%MEM` | Physical RAM-এর কত % ব্যবহার করছে |
-| `VSZ` | Virtual memory — program যতটুকু চেয়েছে |
-| `RSS` | Resident Set Size — আসলে RAM-এ কতটুকু আছে |
-| `STAT` | Process-এর অবস্থা |
-| `COMMAND` | কোন program চলছে |
+| প্রপার্টি | মানে | কেন দরকার |
+| :--- | :--- | :--- |
+| **PID** | Process ID | প্রসেসটিকে ইউনিকভাবে চেনার জন্য |
+| **PPID** | Parent PID | কোন প্রসেস থেকে এটি তৈরি হয়েছে তা বোঝার জন্য |
+| **UID/EUID** | User ID | প্রসেসটি কোন ইউজারের পাওয়ার নিয়ে চলছে তা দেখতে |
 
 <Callout type="default">
-  **VSZ বনাম RSS:** VSZ হলো process-এর চাওয়া memory, RSS হলো আসলে ব্যবহার করা memory। অনেক সময় VSZ অনেক বড় দেখায় — ঘাবড়াবে না, RSS দেখো।
+  **Real vs Effective UID:**
+  মাঝে মাঝে একটি প্রসেসের দুজন মালিক থাকতে পারে। লিনাক্সে একটি প্রসেসের **Real UID** হলো সেই ইউজার যে আসলে এটি চালু করেছে। কিন্তু যদি প্রসেসটি কোনো **SUID** ফাইলের মাধ্যমে চলে, তবে তার **Effective UID** হতে পারে রুট (root)। এই ট্রিকের মাধ্যমেই সাধারণ ইউজাররা পাসওয়ার্ড চেঞ্জ (`passwd`) করার মতো রুট লেভেলের কাজ করতে পারে।
 </Callout>
 
-## `top`
+## ProcFS Internals
 
-`top` হলো live process monitor — প্রতি কয়েক সেকেন্ডে নিজে থেকে update হয়।
+লিনাক্সে ** everything is a file **। এমনকি প্রসেসগুলোও কার্নেলের কাছে কিছু ফাইলের সমষ্টি। `/proc/` ডিরেক্টরিটি হলো এক ধরণের ভার্চুয়াল ফাইলসিস্টেম যেখানে চলমান সব প্রসেসের তথ্য থাকে।
 
 ```bash filename="Terminal"
-top
+# একটি প্রসেসের (ধরো PID 1234) ফোল্ডারে ঢোকো
+ls /proc/1234
 ```
 
-`top`-এর ভেতরে keyboard দিয়ে control করো:
+সেখানে কিছু গুরুত্বপূর্ণ ফাইল থাকে যা ইনভেস্টিগেশনে কাজে লাগে:
+- `/proc/[pid]/environ`: প্রসেসটির সব এনভায়রনমেন্ট ভ্যারিয়েবল (ম্যালওয়্যার অনেক সময় এখানে সিক্রেট কী লুকিয়ে রাখে)।
+- `/proc/[pid]/cmdline`: পুরোপুরি কোন কমান্ড দিয়ে এটি চালু হয়েছে।
+- `/proc/[pid]/fd`: প্রসেসটি এই মুহূর্তে কোন কোন ফাইল বা নেটওয়ার্ক সকেট ব্যবহার করছে।
 
-| Key | কাজ |
-|-----|-----|
-| `q` | বের হও |
-| `k` | Process kill করো (PID দিতে হবে) |
-| `M` | Memory দিয়ে sort (কে বেশি RAM নিচ্ছে) |
-| `P` | CPU দিয়ে sort (কে বেশি CPU নিচ্ছে) |
-| `u` | নির্দিষ্ট user-এর processes দেখো |
-| `1` | প্রতিটি CPU core আলাদা দেখাও |
+## System Calls
 
-## `htop`
+প্রসেসগুলো যখন কোনো কাজ করতে চায় (যেমন: ফাইল পড়া বা নেটওয়ার্কে কানেক্ট করা), তখন তারা সরাসরি হার্ডওয়্যারের কাছে যায় না। তারা লিনাক্স **Kernel**-কে রিকোয়েস্ট পাঠায়। এই রিকোয়েস্টগুলোকে বলা হয় **System Calls** বা Syscalls।
 
-`top`-এর উন্নত version। Color-coded, mouse support, scroll করা যায়।
+একটি প্রসেস কার্নেলের সাথে কী কথা বলছে তা দেখার জন্য `strace` ব্যবহার করা হয়:
 
 ```bash filename="Terminal"
-# Install (না থাকলে)
-sudo apt install htop
-
-htop
+# একটি কমান্ড কার্নেলের সাথে কী কী কথা বলছে তা দেখো
+strace ls /tmp
 ```
 
-<Callout type="default">
-  **Practical note:** `top` সব Linux system-এ থাকে। `htop` install করতে হয় এবং remote server বা TryHackMe-এ নাও থাকতে পারে। `top` শেখাটাই বেশি কাজের।
-</Callout>
+## Monitoring Tools
 
-## Process States
+চলমান প্রসেসগুলো দেখার জন্য আমরা সাধারণত এই টুলগুলো ব্যবহার করি:
 
-প্রতিটি process সবসময় একটি নির্দিষ্ট অবস্থায় থাকে:
+- `ps aux`: বর্তমানে চলমান সব প্রসেসের একটি স্ন্যাপশট।
+- `top`: লাইভ প্রসেস মনিটর (রিয়েল-টাইম আপডেট হয়)।
+- `htop`: `top`-এর একটি সুন্দর ও ইন্টারঅ্যাক্টিভ ভার্সন।
 
-| State | মানে | কেন হয় |
-|-------|------|---------|
-| `R` (Running) | CPU-তে execute হচ্ছে | normal কাজ |
-| `S` (Sleeping) | কিছুর জন্য wait করছে | user input, timer |
-| `D` (Uninterruptible) | Disk বা network-এর জন্য wait | I/O operation চলছে |
-| `Z` (Zombie) | শেষ হয়েছে কিন্তু মুছে যায়নি | parent process এখনো exit code পড়েনি |
-| `T` (Stopped) | ইচ্ছাকৃতভাবে থামানো | Ctrl+Z চাপা হয়েছে |
-
-**Zombie process কেন হয়:**
-
-যখন কোনো process শেষ হয়, সে সাথে সাথে মুছে যায় না। Linux সেটার exit code সংরক্ষণ করে রাখে যাতে parent process জানতে পারে — "কাজ হয়েছিল কি ব্যর্থ হয়েছিল?"
-
-Parent process যদি সেই exit code না পড়ে (অথবা parent নিজেই crash করে), তাহলে child process zombie হয়ে আটকে থাকে।
-
+### `ps aux` এর আউটপুট বোঝা:
 ```bash filename="Terminal"
-# Zombie process দেখো
-ps aux | grep Z
-```
-
-অল্প zombie স্বাভাবিক। অনেক zombie থাকলে কোনো program-এ bug আছে।
-
-## Process খোঁজা
-
-```bash filename="Terminal"
-# নাম দিয়ে PID খোঁজো
-pgrep nginx
-pgrep python3
-
-# নাম + full command দেখো
-pgrep -a python3
-
-# Parent-child tree দেখো
-pstree -p
-
-# কোন process কোন port ব্যবহার করছে
-ss -tlnp | grep :80
+USER       PID  %CPU %MEM    COMMAND
+root         1   0.0  0.1    /sbin/init
+omar      1234   0.5  1.2    python3 app.py
 ```
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **Process analysis — malware এবং rootkit detection:**
+  **Rootkit Detection via /proc:**
 
-  **Unusual processes খোঁজা:**
+  অ্যাডভান্সড অ্যাটাকাররা অনেক সময় রুটকিট (Rootkit) ব্যবহার করে `ps` বা `top` কমান্ডের রেজাল্ট পরিবর্তন করে ফেলে যাতে তাদের ম্যালওয়্যার প্রসেস আমরা দেখতে না পাই। কিন্তু তারা `/proc` ডিরেক্টরি সহজে লুকাতে পারে না।
 
-  ```bash filename="Terminal"
-  # কোন কোন user এর process চলছে দেখো
-  ps aux | awk '{print $1}' | sort | uniq
-
-  # Unexpected network connection কোন process করছে
-  ss -tlnp
-
-  # সম্প্রতি শুরু হওয়া processes
-  ps aux --sort=start_time | tail -20
-  ```
-
-  **Rootkit detection — সবচেয়ে গুরুত্বপূর্ণ:**
-
-  Linux-এ সব running process-এর জন্য `/proc/` directory-তে একটি folder থাকে। Rootkit সাধারণত `ps` command-কে manipulate করে নিজেকে লুকায় — কিন্তু `/proc/` পরিবর্তন করা কঠিন।
+  আপনি যদি `ps` কমান্ড ব্যবহার করে কোনো প্রসেস না পান, কিন্তু `/proc/` এর ভেতর ফোল্ডারটি খুঁজে পান, তবে বুঝবেন আপনার সিস্টেমে রুটকিট অ্যাটাক হয়েছে। 
 
   ```bash filename="Terminal"
   # ps থেকে সব PID নাও
-  ps aux | awk '{print $2}' | sort -n > /tmp/ps_pids
-
+  ps aux | awk '{print $2}' > ps_pids.txt
   # /proc থেকে সব PID নাও
-  ls /proc | grep -E "^[0-9]+$" | sort -n > /tmp/proc_pids
-
+  ls /proc | grep -E "^[0-9]+$" > proc_pids.txt
   # তুলনা করো
-  diff /tmp/ps_pids /tmp/proc_pids
-  # /proc-এ আছে কিন্তু ps-এ নেই — rootkit suspect
+  diff ps_pids.txt proc_pids.txt
   ```
-
-  `ps` দেখাচ্ছে না কিন্তু `/proc`-এ দেখা যাচ্ছে — এই পার্থক্যটাই বলে দেয় যে `ps` কে manipulate করা হয়েছে।
 </Callout>
 
 ## Quick Check
 
-- [ ] Program আর process-এর পার্থক্য কী?
-- [ ] PID আর PPID — দুটোর কাজ আলাদা কেন?
-- [ ] `ps aux` এর `RSS` আর `VSZ` column কী বোঝায়?
-- [ ] Zombie process কেন হয় এবং কীভাবে?
-- [ ] `/proc` দিয়ে rootkit কীভাবে detect করা যায়?
+- [ ] প্রোগ্রাম এবং প্রসেসের মধ্যে মূল পার্থক্য কী?
+- [ ] কেন একটি প্রসেসের Real UID এবং Effective UID আলাদা হতে পারে?
+- [ ] `/proc/[pid]/fd` এর ভেতরে আমরা কী ধরণের তথ্য পেতে পারি?
+- [ ] `strace` কমান্ডটি কেন লিনাক্স ট্রাবলশুটিং বা ম্যালওয়্যার অ্যানালাইসিসে দরকার হয়?
 
 **পরবর্তী →** [Background Jobs](/docs/linux-fundamentals/06-processes/background-jobs)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux process bangla, PID PPID process id, ps aux htop top, process states zombie, linux process monitor bengali, rootkit detection process
+  linux process basics bangla, proc filesystem bengali, strace system calls bengali, real vs effective uid linux, linux process forensics bengali
 </span>

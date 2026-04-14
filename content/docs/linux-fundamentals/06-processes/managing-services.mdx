@@ -1,0 +1,132 @@
+---
+title: Managing Services
+description: Systemd এবং systemctl ব্যবহার করে লিনাক্স সার্ভিস এবং বুট-টাইম অটোমেশন ম্যানেজ করো।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Managing Services
+
+<Callout type="info">
+  সাধারণ প্রসেসগুলো টার্মিনাল বন্ধ করলে বন্ধ হয়ে যায়। কিন্তু সার্ভার রিলেটেড অ্যাপ্লিকেশন (যেমন: Apache, Database) সবসময় ব্যাকগ্রাউন্ডে চলতে হয়। এই "Services" বা "Daemons" গুলো ম্যানেজ করার জন্যই `systemctl` ব্যবহার করা হয়।
+</Callout>
+
+## Systemd
+
+**Systemd হলো লিনাক্সের "Mother of all processes"।**
+
+সিস্টেম বুট হওয়ার সময় এটিই প্রথম প্রসেস (PID 1) হিসেবে চালু হয় এবং বাকি সব সার্ভিস ম্যানেজ করে। আপনি যখন পিসি চালু করেন, কোন সার্ভিস আগে চালু হবে আর কোনটা পরে — সব `systemd` ঠিক করে দেয়।
+
+`systemctl` হলো সেই টুল যা দিয়ে আপনি `systemd`-এর সাথে কথা বলেন এবং সার্ভিসগুলো কন্ট্রোল করেন।
+
+## Basic Syntax
+
+কমান্ডের ফরম্যাট সাধারণত এরকম হয়:
+
+```bash filename="Terminal"
+systemctl [option] [service_name]
+```
+
+## Service Control
+
+একটি সার্ভিসকে এখনই কন্ট্রোল করার জন্য নিচের অপশনগুলো সবচেয়ে বেশি ব্যবহৃত হয়:
+
+| কমান্ড | কাজ | কেন ব্যবহার করবে |
+| :--- | :--- | :--- |
+| `start` | সার্ভিসটি চালু করে | ম্যানুয়ালি কোনো কাজ শুরু করতে |
+| `stop` | সার্ভিসটি বন্ধ করে | কাজ শেষ হলে বা রিসোর্স বাঁচাতে |
+| `status` | বর্তমান অবস্থা দেখায় | সার্ভিসটি ঠিকমতো চলছে কি না দেখতে |
+| `restart` | বন্ধ করে আবার চালু করে | কোনো কনফিগ পরিবর্তনের পর |
+| `reload` | বন্ধ না করেই কনফিগ লোড করে | সার্ভিস ডাউন না করে আপডেট দিতে |
+
+## Custom Service Files
+
+লার্নার হিসেবে শুধু কমান্ড শেখাই যথেষ্ট নয়, বরং নিজের একটি সার্ভিস বা টুলকে কীভাবে `systemd`-এর অধীনে রেজিস্টার করতে হয় তা জানা জরুরি। সার্ভিস ফাইলগুলো সাধারণত `/etc/systemd/system/` ডিরেক্টরিতে থাকে।
+
+### সার্ভিস ফাইলের গঠন (Anatomy)
+
+একটি `.service` ফাইলে তিনটি মূল অংশ থাকে:
+
+1. **[Unit]**: সার্ভিসের সাধারণ বর্ণনা এবং এটি অন্য কোন সার্ভিসের পর চালু হবে (Dependency)।
+2. **[Service]**: সার্ভিসটি কোন কমান্ড দিয়ে চালু হবে এবং কোন ইউজারের আন্ডারে চলবে।
+3. **[Install]**: সার্ভিসটি বুট হওয়ার সময় কীভাবে লোড হবে।
+
+```bash filename="Example Service File"
+[Unit]
+Description=My custom reverse shell script
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/bash /opt/backdoor.sh
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+<Callout type="default">
+  **Dependencies (After=, Requires=):**  
+  `After=network.target` এর মানে হলো সার্ভিসটি তখনই চালু হবে যখন ইন্টারনেটে বা নেটওয়ার্কে কানেক্ট হওয়ার ক্ষমতা সিস্টেম পেয়ে যাবে। এই চেইনিং সিস্টেম লিনাক্সের স্টাবিলিটি বজায় রাখে।
+</Callout>
+
+## Boot Automation
+
+সবচেয়ে গুরুত্বপূর্ণ কাজ হলো কোনো সার্ভিসকে "Enable" করা। এটি নিশ্চিত করে যে আপনার কম্পিউটার রিস্টার্ট হলেও সার্ভিসটি নিজে নিজেই চালু হবে।
+
+<Steps>
+### এনাবল করা
+কম্পিউটার চালু হওয়ার সাথে সাথে সার্ভিসটি রিস্টার্ট করার জন্য:
+```bash filename="Terminal"
+sudo systemctl enable apache2
+```
+
+### ডিজেবল করা
+অটো-স্টার্ট বন্ধ করার জন্য:
+```bash filename="Terminal"
+sudo systemctl disable apache2
+```
+</Steps>
+
+## Service Logs
+
+সার্ভিস যখন ঠিকমতো কাজ করে না, তখন `journalctl` ব্যবহার করে লগ দেখা হয়।
+
+```bash filename="Terminal"
+# একটি সার্ভিসের লগ রিয়েল-টাইম দেখো
+journalctl -f -u apache2
+
+# বুট হওয়ার পর থেকে সব লগ দেখো
+journalctl -b
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Security Persistence via Systemd:**
+
+  অ্যাটাকাররা যখন কোনো সিস্টেমে রুট প্রিভিলেজ পায়, তারা প্রায়ই একটি কাস্টম `.service` ফাইল তৈরি করে। এর ফলে তারা যদি আপনার টার্মিনাল সেশন কেটেও দেয়, তাদের ম্যালওয়্যার সার্ভিসটি নিজে থেকেই চলতে থাকবে এবং কম্পিউটার রিবুট করলেও আবার চালু হবে।
+
+  **ইনভেস্টিগেশন টিপস:**  
+  নতুন কোনো সার্ভিস রেজিস্টার করার পর সবসময় এই কমান্ডগুলো চালাতে হয়:
+  ```bash filename="Terminal"
+  # সিস্টেমকে নতুন সার্ভিস ফাইল সম্পর্কে জানাও
+  sudo systemctl daemon-reload
+  # এনাবল হওয়া সব সার্ভিস চেক করো
+  systemctl list-unit-files --state=enabled
+  ```
+  যদি `/etc/systemd/system/` এর ভেতর রহস্যময় কোনো `.service` ফাইল দেখো, তবে সেটি অবশ্যই চেক করবে।
+</Callout>
+
+## Quick Check
+
+- [ ] `systemctl daemon-reload` কমান্ডটি কেন দরকার?
+- [ ] একটি সার্ভিস ফাইলের `[Unit]` সেকশনের কাজ কী?
+- [ ] `After=network.target` কেন ব্যবহার করা হয়?
+- [ ] সার্ভিস রিস্টার্ট না করে নতুন কনফিগ পড়ার কমান্ড কোনটি?
+
+**পরবর্তী →** [Scheduling Tasks](/docs/linux-fundamentals/06-processes/scheduling-tasks)
+
+<span style={{ display: 'none' }}>
+  systemctl systemd bengali tutorial, creating custom linux service, systemd unit files bangla, journalctl logs bengali, linux persistence forensics
+</span>

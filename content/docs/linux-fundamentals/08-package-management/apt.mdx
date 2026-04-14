@@ -3,7 +3,7 @@ title: apt
 description: Ubuntu/Debian-এ software install, update, remove করার প্রধান tool — apt।
 ---
 
-import { Callout } from 'nextra/components'
+import { Callout, Steps } from 'nextra/components'
 
 # apt
 
@@ -16,203 +16,79 @@ import { Callout } from 'nextra/components'
 **Linux-এ software install করা Windows-এর মতো নয়।**
 
 Windows-এ কোনো software লাগলে: ওয়েবসাইট → installer download → next-next-finish।
-
 Linux-এ: `sudo apt install software-name` — শেষ।
 
 **কেন এটা ভালো:**
-
 `apt` software-টা কোথা থেকে download করবে সেটা আগে থেকে জানে — এটাকে বলে **repository** (repo)। Canonical (Ubuntu-র company) এই repo maintain করে। তাই:
-
 - Verified source থেকে আসে
-- Dependency automatically handle হয় (software চালাতে যা যা লাগে, সব আপনা আপনি install হয়)
+- Dependency automatically handle হয়
 - একটা command-এই সব software update হয়
 
-## `apt update`
+## Maintenance Workflow
 
-**Software install করার আগে এটা চালাও।**
+একটি লিনাক্স সিস্টেমকে সুস্থ রাখার জন্য সাধারণত এই তিনটি কমান্ড সিরিয়ালি ব্যবহৃত হয়:
 
-`apt update` নতুন কিছু install করে না। এটা শুধু repository থেকে latest package list download করে — "এখন কোন software-এর কোন version আছে" সেটা জানে।
+| Command | কাজ | কেন করবে? |
+| :--- | :--- | :--- |
+| `apt update` | প্যাকেজ লিস্ট রিফ্রেশ করা | বাজারের বর্তমান দাম বা নতুন কী আছে তা জানতে। |
+| `apt upgrade` | সব সফটওয়্যার আপডেট করা | বাগ ফিক্স এবং সিকিউরিটি প্যাচ পেতে। |
+| `apt autoremove` | অপ্রয়োজনীয় ফাইল ক্লিন করা | ডিস্ক স্পেস খালি করতে। |
 
+## Advanced Package Management
+
+একজন লার্নার হিসেবে বেসিক কমান্ডের বাইরেও কিছু প্রো-লেভেল কমান্ড জানা জরুরি:
+
+### ১. Version Holding (`apt-mark`)
+মাঝে মাঝে কোনো সফটওয়্যারের নতুন ভার্সনে বাগ থাকতে পারে। আপনি চাইলে লিনাক্সকে বলতে পারেন ওই নির্দিষ্ট সফটওয়্যারটি যেন আপাতত আপডেট না করে।
 ```bash filename="Terminal"
-sudo apt update
+# nmap-কে আপডেট হওয়া থেকে বিরত রাখো
+sudo apt-mark hold nmap
+
+# আবার আপডেট চালু করতে
+sudo apt-mark unhold nmap
 ```
 
-```
-# Output example:
-Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
-Get:2 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
-Fetched 126 kB in 1s
-Reading package lists... Done
-```
+### ২. Cleaning Up (`clean` vs `autoclean`)
+আপনি যখন সফটওয়্যার ইন্সটল করেন, `apt` সেই ফাইলগুলো (`.deb`) ডাউনলোড করে `/var/cache/apt/archives/` এ রেখে দেয়। এটি আপনার অনেক ডিস্ক স্পেস নষ্ট করতে পারে।
+- **`apt clean`:** সব ডাউনলোড করা প্যাকেজ ডিলিট করে দেয়।
+- **`apt autoclean`:** শুধু সেই ফাইলগুলো মোছে যেগুলোর নতুন ভার্সন চলে এসেছে (পুরনো ফাইলগুলো সরিয়ে ফেলে)।
 
-**apt update ছাড়া install করলে কী হয়:**
+## Troubleshooting: The Lock Error
 
-পুরনো package list থেকে install করবে — নতুন version miss হতে পারে। এমনকি "Package not found" error আসতে পারে নতুন software-এর ক্ষেত্রে।
+নতুন লার্নাররা সবচেয়ে বেশি যে এররটি দেখেন তা হলো:
+`E: Could not get lock /var/lib/dpkg/lock-frontend - open (11: Resource temporarily unavailable)`
 
-## `apt upgrade`
+**কেন এটি হয়?**  
+লিনাক্সে একসাথে দুটি প্রসেস `apt` ব্যবহার করতে পারে না। যদি ব্যাকগ্রাউন্ডে কোনো অটো-আপডেট চলতে থাকে বা অন্য কোনো টার্মিনালে আপনি `apt` চালান, তবে এই এররটি আসবে।
 
-**Installed software-গুলো latest version-এ update করো।**
-
+**সমাধান:**
+১. অন্য কোনো টার্মিনাল খোলা থাকলে সেটি বন্ধ করুন।
+২. কিছুক্ষণ অপেক্ষা করুন যাতে ব্যাকগ্রাউন্ড আপডেট শেষ হয়।
+৩. যদি অনেকক্ষণ ধরে সমস্যা থাকে, তবে নিচের কমান্ডটি দিয়ে দেখুন কোন প্রসেস এটি আটকে রেখেছে:
 ```bash filename="Terminal"
-sudo apt upgrade
-```
-
-<Callout type="default">
-  **`apt update` vs `apt upgrade` — সবচেয়ে common confusion:**
-
-  | Command | কাজ | কিছু install/update হয়? |
-  |---------|-----|--------------------------|
-  | `apt update` | Package list refresh করো | না — শুধু list |
-  | `apt upgrade` | Installed packages update করো | হ্যাঁ — existing packages |
-
-  সঠিক workflow সবসময়:
-  ```bash filename="Terminal"
-  sudo apt update && sudo apt upgrade
-  ```
-  আগে list update করো, তারপর upgrade করো।
-</Callout>
-
-## `apt install`
-
-Software install করো।
-
-```bash filename="Terminal"
-# Single package install
-sudo apt install nmap
-
-# একসাথে একাধিক
-sudo apt install nmap curl wget
-
-# Prompt ছাড়া install (script-এ ব্যবহার করতে)
-sudo apt install -y nmap
-```
-
-**Install-এর সময় কী হয়:**
-
-```
-# যা দেখবে:
-Reading package lists... Done
-Building dependency tree... Done
-The following NEW packages will be installed:
-  nmap
-0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
-Need to get 5,641 kB of archives.
-After this operation, 25.3 MB of additional disk space will be used.
-Do you want to continue? [Y/n]
-```
-
-"Dependency" মানে nmap চালাতে যে অন্য software লাগে, সেগুলো apt নিজে থেকেই install করে নেয়।
-
-## `apt remove` এবং `apt purge`
-
-Software remove করো।
-
-```bash filename="Terminal"
-# Software remove করো (config file রেখে দেয়)
-sudo apt remove nmap
-
-# সব কিছু মুছে দাও (config file সহ)
-sudo apt purge nmap
-
-# Remove করার পর অপ্রয়োজনীয় dependency মুছে দাও
-sudo apt autoremove
-```
-
-**`remove` vs `purge` পার্থক্য:**
-
-| Command | Software | Config files |
-|---------|----------|--------------|
-| `apt remove` | মুছে যায় | থাকে |
-| `apt purge` | মুছে যায় | মুছে যায় |
-
-নতুন করে install করলে আবার কাজ করবে। `purge` দিলে fresh start।
-
-## Package খোঁজা
-
-```bash filename="Terminal"
-# Package-এর নাম জানো না? খোঁজো
-apt search network scanner
-apt search "python3"
-
-# Package-এর বিস্তারিত দেখো
-apt show nmap
-
-# Installed packages-এর list
-apt list --installed
-
-# Upgradeable packages দেখো
-apt list --upgradeable
-```
-
-## Common Tools যা CTF-এ Install করতে হয়
-
-```bash filename="Terminal"
-# সব একসাথে update এবং কিছু essential tools install
-sudo apt update
-
-# Network tools
-sudo apt install -y nmap netcat-openbsd curl wget
-
-# Text processing
-sudo apt install -y jq         # JSON processing
-
-# Password cracking
-sudo apt install -y john hydra
-
-# Web tools
-sudo apt install -y gobuster dirb
-
-# Python
-sudo apt install -y python3 python3-pip
+sudo lsof /var/lib/dpkg/lock-frontend
 ```
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **Package management — security perspective:**
+  **The Persistence of Malicious Packages:**
 
-  **Outdated packages = vulnerability:**
+  সাইবার অ্যাটাকাররা যদি কোনোভাবে আপনার `sources.list`-এ একটি ফেক বা ম্যালিশিয়াস রিপোজিটরি ঢুকিয়ে দিতে পারে, তবে আপনি যখন `sudo apt upgrade` দেবেন, আপনার পিসি নিজে থেকেই হ্যাকারের পাঠানো আপডেটটি ইন্সটল করে নেবে।
 
-  ```bash filename="Terminal"
-  # System-এ upgrade দরকার কিনা দেখো
-  apt list --upgradeable 2>/dev/null
-
-  # Security updates শুধু install করো (full upgrade না করে)
-  sudo apt install -y unattended-upgrades
-  ```
-
-  **Malicious package source:**
-
-  Third-party PPA (Personal Package Archive) যোগ করার সময় সাবধান। অবিশ্বস্ত source থেকে package install করলে malware আসতে পারে।
-
-  ```bash filename="Terminal"
-  # কোন repositories আছে দেখো
-  cat /etc/apt/sources.list
-  ls /etc/apt/sources.list.d/
-  ```
-
-  **CTF-এ target machine-এ:** কোনো software installed কিনা এবং কোন version — এটা দেখে vulnerability খোঁজা হয়:
-
-  ```bash filename="Terminal"
-  # Installed packages এবং version দেখো
-  dpkg -l | grep -i "apache\|nginx\|mysql\|php"
-
-  # নির্দিষ্ট package-এর version
-  dpkg -l nmap
-  apt show nmap
-  ```
+  **Admin Tip:**  
+  ভার্নারেবিলিটি স্ক্যান করার সময় সবসময় চেক করুন কোন প্যাকেজগুলো "Hold" করা আছে। কারণ হ্যাকাররা অনেক সময় পুরনো ভার্সনের সফটওয়্যার হোল্ড করে রাখে যাতে সেখানে থাকা সিকিউরিটি হোল (Loophole) আপনি ফিক্স করতে না পারেন।
 </Callout>
 
 ## Quick Check
 
-- [ ] `apt update` চালালে নতুন software install হয়? কারণসহ বলো।
-- [ ] `apt remove` আর `apt purge` এর পার্থক্য কী?
-- [ ] Software install করার আগে কেন `apt update` দরকার?
-- [ ] `apt install -y` এ `-y` কী করে?
-- [ ] `apt autoremove` কখন ব্যবহার করবে?
+- [ ] `apt update` এবং `apt upgrade` এর মধ্যে মূল পার্থক্য কী?
+- [ ] কেন একটি প্যাকেজকে `hold` করে রাখা প্রয়োজন হতে পারে?
+- [ ] `/var/lib/dpkg/lock` এরর আসলে আপনি প্রথম কী চেক করবেন?
+- [ ] `apt purge` এবং `apt remove` ব্যবহারের ফলাফল কি একই?
 
 **পরবর্তী →** [dpkg](/docs/linux-fundamentals/08-package-management/dpkg)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: linux apt bangla, apt install update upgrade Bengali, package manager linux, apt remove purge, software install linux bengali, apt search
+  linux apt bangla, apt install update upgrade Bengali, package manager linux, apt-mark hold bangla, lock-frontend error fix bengali, apt search
 </span>

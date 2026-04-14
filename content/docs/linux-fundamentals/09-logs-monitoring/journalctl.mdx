@@ -1,0 +1,82 @@
+---
+title: Mastering journalctl
+description: Systemd-র বাইনারি লগিং সিস্টেম journalctl ব্যবহার করে আধুনিক লিনাক্স লগিং বুঝুন।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Mastering journalctl
+
+<Callout type="info">
+  পুরনো দিনের লিনাক্স শুধু টেক্সট ফাইলে লগ রাখতো। কিন্তু আধুনিক লিনাক্স ডিস্ট্রিবিউশন (যেমন উবুন্টু) এখন **systemd-journald** ব্যবহার করে। এটি লগগুলোকে একটি "Binary" ফরম্যাটে রাখে, যা দ্রুত সার্চ করা যায় এবং অনেক বেশি সিকিউর। 
+</Callout>
+
+## Why journalctl?
+
+প্রথাগত টেক্সট লগের কিছু সীমাবদ্ধতা আছে (যেমন: ফাইল সাইজ বড় হলে সার্চ করা কঠিন)। কিন্তু **journalctl** দিয়ে আপনি খুব সহজেই নির্দিষ্ট সময়, সার্ভিস বা ইনটেন্সিটির ভিত্তিতে লগ ফিল্টার করতে পারেন।
+
+## Filtering Logs
+
+`journalctl` এর সবচেয়ে বড় শক্তি হলো এর ফিল্টারিং ক্ষমতা। নিচের কমান্ডগুলো আপনার মুখস্থ থাকা প্রয়োজন:
+
+### ১. নির্দিষ্ট সার্ভিস ফিল্টার করা
+শুধুমাত্র একটি বিশেষ সার্ভিসের (যেমন: Apache বা SSH) লগ দেখতে:
+```bash filename="Terminal"
+sudo journalctl -u apache2
+```
+
+### ২. সময় অনুযায়ী ফিল্টার
+আপনি কি জানতে চান গত ১০ মিনিটে বা ১ ঘণ্টায় কী হয়েছে?
+```bash filename="Terminal"
+sudo journalctl --since "1 hour ago"
+sudo journalctl --since "2026-04-14 10:00:00" --until "2026-04-14 10:30:00"
+```
+
+### ৩. প্রায়োরিটি বা সিরিয়াসনেস অনুযায়ী
+লগের গুরুত্ব বা অগ্রাধিকার (Priority) অনুযায়ী ফিল্টার করুন:
+```bash filename="Terminal"
+# শুধুমাত্র এরর (Error) এবং তার চেয়ে সিরিয়াস লগগুলো দেখো
+sudo journalctl -p err -b
+```
+*(০: Emergency থেকে ৭: Debug পর্যন্ত ৮টি লেভেল থাকে)*
+
+## Real-time Monitoring
+
+টার্মিনালে লাইভ লগ আপডেট দেখতে:
+```bash filename="Terminal"
+sudo journalctl -f
+```
+
+## Maintenance & Storage
+
+বাইনারি লগগুলো আপনার পিসির হার্ড ড্রাইভে অনেক জায়গা নিতে পারে। এটি ম্যানেজ করার জন্য:
+```bash filename="Terminal"
+# লগগুলো এই মুহূর্তে কতটুকু জায়গা দখল করে আছে
+journalctl --disk-usage
+
+# ৫০০ মেগাবাইটের বেশি পুরনো সব লগ ডিলিট করে দাও
+sudo journalctl --vacuum-size=500M
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  **The Persistence of Binary Logs:**
+
+  ডিফল্টভাবে অনেক লিনাক্স সিস্টেমে জার্নাল লগগুলো `/run/log/journal` এ থাকে, যা পিসি রিস্টার্ট দিলে মুছে যায় (Volatile)। কিন্তু সিকিউরিটির জন্য আমাদের প্রয়োজন **Persistent Logging**। 
+
+  যাতে অ্যাটাক হওয়ার পর পিসি রিবুট দিলেও লগ সংরক্ষিত থাকে, সেজন্য লিনাক্স অ্যাডমিনরা `/var/log/journal` ফোল্ডারটি তৈরি করেন এবং `systemd-journald` রিস্টার্ট দেন। আপনি ইনভেস্টিগেশন করার সময় সবসময় দেখবেন যে লগগুলো রিস্টার্ট সেশন পার করে সংরক্ষিত আছে কি না (`journalctl --list-boots` দিয়ে এটি চেক করা যায়)।
+</Callout>
+
+## Quick Check
+
+- [ ] `journalctl -u` এর কাজ কী?
+- [ ] গত ১০ মিনিটের লগ দেখার কমান্ডটি কী?
+- [ ] `-p err` ব্যবহার করলে কোন ধরণের মেসেজ দেখা যাবে?
+- [ ] জার্নাল লগের সাইজ কমানোর কমান্ড কোনটি?
+
+**পরবর্তী →** [Log Maintenance](/docs/linux-fundamentals/09-logs-monitoring/log-maintenance)
+
+<span style={{ display: 'none' }}>
+  linux journalctl bangla tutorial, systemd logs bengali, journalctl filtering priority bangla, persistent journald linux, log vacuuming journalctl bangla
+</span>

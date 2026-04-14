@@ -1,6 +1,6 @@
 ---
 title: Processes
-description: Linux-এ processes কীভাবে কাজ করে — দেখা, manage করা, আর control করা।
+description: Linux-এ processes কীভাবে কাজ করে — দেখা, manage করা, আর ইন্টারনাল কন্ট্রোল।
 ---
 
 import { Callout } from 'nextra/components'
@@ -8,17 +8,23 @@ import { Callout } from 'nextra/components'
 # Section 06 — Processes
 
 <Callout type="info">
-  তুমি যতটা command বা program চালাও, সেটাই একটা process। Linux-এ সব কিছু process — background services, network listeners, তোমার terminal। এগুলো দেখতে আর control করতে পারাটা সিস্টেম বোঝার জন্য এবং cybersecurity-র জন্য অপরিহার্য।
+  তুমি যতটা command বা program চালাও, সেটাই একটা process। Linux-এ সব কিছু process — background services, network listeners, তোমার terminal। এই সেকশনে আমরা প্রসেসের বেসিক থেকে শুরু করে সিস্টেম ইন্টারনালস এবং অটোমেশন শিখবো।
 </Callout>
 
 এই section শেষ করলে তুমি জানবে:
 
-- System-এ কোন processes চলছে সেটা দেখতে
+- প্রসেসের ইন্টারনাল আইডেন্টিটি (UID, EUID) এবং `/proc` ফাইলসিস্টেম
 - Background-এ jobs চালাতে আর manage করতে
-- Unwanted processes বন্ধ করতে
+- Unwanted processes বন্ধ করতে এবং সিগন্যাল কন্ট্রোল করতে
+- কাস্টম Systemd সার্ভিস তৈরি এবং ম্যানেজ করতে
+- Cron এবং Systemd Timers ব্যবহার করে টাস্ক অটোমেট করতে
+- Nice এবং Renice ব্যবহার করে প্রসেসর প্রায়োরিটি কন্ট্রোল করতে
 
 ## Topics
 
-- [Process Basics](/docs/linux-fundamentals/06-processes/process-basics) — PID, `ps`, `top`, `htop`
+- [Process Basics](/docs/linux-fundamentals/06-processes/process-basics) — PID, PPID, ProcFS, Syscalls, Real/Effective UID
 - [Background Jobs](/docs/linux-fundamentals/06-processes/background-jobs) — `&`, `bg`, `fg`, `jobs`
-- [Killing Processes](/docs/linux-fundamentals/06-processes/killing-processes) — `kill`, `pkill`, signals
+- [Killing Processes](/docs/linux-fundamentals/06-processes/killing-processes) — `kill`, `pkill`, signals, `strace`
+- [Managing Services](/docs/linux-fundamentals/06-processes/managing-services) — `systemctl`, Custom Units, Dependencies
+- [Scheduling Tasks](/docs/linux-fundamentals/06-processes/scheduling-tasks) — `cron`, Environment Traps, Systemd Timers
+- [Process Priority](/docs/linux-fundamentals/06-processes/process-priority) — `nice`, `renice`, CPU Scheduling

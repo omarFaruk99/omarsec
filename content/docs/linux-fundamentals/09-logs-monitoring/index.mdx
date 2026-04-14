@@ -1,0 +1,25 @@
+---
+title: Logs & Monitoring
+description: লিনাক্স সিস্টেমের "ডায়েরি" বা Logs এবং সিস্টেম মনিটরিং-এর মাধ্যমে ভিজিবিলিটি অর্জন করো।
+---
+
+import { Callout } from 'nextra/components'
+
+# Logs & Monitoring
+
+<Callout type="info">
+  সিস্টেম অ্যাডমিনিস্ট্রেশন বা সাইবার সিকিউরিটির সবচেয়ে গুরুত্বপূর্ণ কাজ হলো সিস্টেমে কী ঘটছে তা জানতে পারা। লিনাক্স সিস্টেমের প্রতিটি ছোট-বড় ঘটনা "Logs" আকারে জমা থাকে। এই সেকশনে আমরা শিখবো কীভাবে সেই লগগুলো পড়তে হয় এবং সিস্টেমের স্বাস্থ্য মনিটর করতে হয়।
+</Callout>
+
+এই section শেষ করলে তুমি জানবে:
+
+- লিনাক্সের প্রথাগত টেক্সট লগ (`/var/log`) এবং এর গুরুত্ব
+- আধুনিক বাইনারি লগিং সিস্টেম `journalctl` ব্যবহার করা
+- লগ মেইনটেন্যান্স এবং `logrotate` এর কারিগরি বিষয়
+- লগের মাধ্যমে সিকিউরিটি ইনভেস্টিগেশন এবং ফরেনসিকের বেস
+
+## Topics
+
+- [Traditional Logs](/docs/linux-fundamentals/09-logs-monitoring/traditional-logs) — `/var/log`, `auth.log`, `syslog`, `dmesg`
+- [Mastering journalctl](/docs/linux-fundamentals/09-logs-monitoring/journalctl) — Binary logs, filtering, and priority
+- [Log Maintenance](/docs/linux-fundamentals/09-logs-monitoring/log-maintenance) — `logrotate`, archiving, and persistence

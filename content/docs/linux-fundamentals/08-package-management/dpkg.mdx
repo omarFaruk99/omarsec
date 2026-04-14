@@ -3,162 +3,88 @@ title: dpkg
 description: .deb file manually install করো — dpkg দিয়ে apt ছাড়াই package management।
 ---
 
-import { Callout } from 'nextra/components'
+import { Callout, Steps } from 'nextra/components'
 
 # dpkg
 
 <Callout type="info">
-  `apt` internet থেকে package download করে install করে। কিন্তু যদি manually একটা `.deb` file থাকে — যেমন GitHub থেকে download করা tool — তখন `dpkg` লাগে। CTF এবং pentesting-এ এটা প্রায়ই লাগে।
+  `apt` আসলে একটি স্মার্ট এসিস্ট্যান্ট যে ইন্টারনেট থেকে ফাইল খুঁজে আনে। আর `dpkg` হলো সেই কারিগর যে আপনার পিসিতে থাকা কোনো নির্দিষ্ট `.deb` ফাইল নিয়ে কাজ করে। এটি একটি lower-level টুল।
 </Callout>
 
-## apt vs dpkg
+## .deb File Internals
 
-**apt এবং dpkg আসলে একে অপরের সাথে connected।**
+একজন সিকিউরিটি লার্নার হিসেবে আপনার জানা উচিত একটি `.deb` ফাইলের ভেতরে আসলে কী থাকে। এটি মূলত একটি **ar archive** (এক প্রকার জিপ ফাইল), যার ভেতরে তিনটি মূল জিনিস থাকে:
 
-`apt` আসলে ভেতরে `dpkg` ব্যবহার করে। তুমি যখন `apt install nmap` দাও:
+1.  **debian-binary:** এটি একটি টেক্সট ফাইল যা বলে দেয় এটি কোন ভার্সনের ডেবিয়ান প্যাকেজ।
+2.  **control.tar.xz:** এখানে থাকে সব মেটাডাটা— যেমন প্যাকেজের নাম, ভার্সন, এবং সবচেয়ে গুরুত্বপূর্ণ **Maintainer Scripts** (pre-install, post-install স্ক্রিপ্ট)।
+3.  **data.tar.xz:** এখানে থাকে সেই আসল সফটওয়্যার ফাইলগুলো যা আপনার সিস্টেমে ইন্সটল হবে।
 
+## Advanced Inspection (dpkg-deb)
+
+আমরা প্রায়ই ইন্টারনেটে অনেক টুল পাই যেগুলো `.deb` ফাইল হিসেবে থাকে। কিন্তু কোনো অপরিচিত ফাইল সরাসরি `sudo` দিয়ে ইন্সটল করা বিপজ্জনক। ইন্সটল করার আগেই ফাইলটি পরীক্ষা করা বুদ্ধিমানের কাজ।
+
+### ১. ইন্সটল না করেই ফাইল লিস্ট দেখা
+সফটওয়্যারটি ইন্সটল হলে আপনার পিসির কোথায় কী ফাইল বসাবে তা দেখতে:
+```bash filename="Terminal"
+dpkg -c package.deb
 ```
-apt → internet থেকে nmap.deb download করে
-    → dpkg দিয়ে সেই .deb file install করে
+
+### ২. কন্ট্রোল ফাইল বা স্ক্রিপ্ট এক্সট্র্যাক্ট করা
+সফটওয়্যারটি ইন্সটল হওয়ার সময় কোনো সিক্রেট কোড বা ম্যালওয়্যার রান করবে কি না তা দেখতে আমরা তার কন্ট্রোল ফাইলগুলো আলাদা করতে পারি:
+```bash filename="Terminal"
+# কন্ট্রোল ফাইলগুলো 'tmp_info' ফোল্ডারে বের করো
+dpkg-deb -e package.deb tmp_info
+ls tmp_info
+```
+এখানে যদি আপনি `postinst` বা `preinst` ফাইল দেখেন, তবে বুঝবেন ইন্সটলেশনের সময় এই স্ক্রিপ্টগুলো রুট (root) পাওয়ার নিয়ে চলবে।
+
+### ৩. কনটেন্ট এক্সট্র্যাক্ট করা (Extract without Installing)
+সিস্টেমে ইন্সটল না করে শুধু ফাইলগুলো কোনো এক জায়গায় বের করে দেখতে:
+```bash filename="Terminal"
+dpkg-deb -x package.deb ./extracted_folder
 ```
 
-তাই `dpkg` হলো lower-level tool। `apt` হলো সেটার উপরে সুবিধাজনক wrapper।
+## Common Use Cases
 
-| | apt | dpkg |
-|-|-----|------|
-| Package source | Internet (repository) | Local `.deb` file |
-| Dependency handle | হ্যাঁ — automatic | না — manually করতে হয় |
-| Common use | নতুন software install | Downloaded .deb install |
+| কমান্ড | কাজ | কেন ব্যবহার করবে? |
+| :--- | :--- | :--- |
+| `dpkg -i` | ইন্সটল করা | নতুন ডাউনলোড করা সফটওয়্যারের জন্য। |
+| `dpkg -r` | রিমুভ করা | কনফিগ ফাইল রেখে সফটওয়্যার মোছা। |
+| `dpkg -P` | পার্জ করা | একদম ক্লিন ভাবে সব মোছা। |
+| `dpkg -l` | লিস্ট দেখা | সিস্টেমে কী কী ইন্সটল আছে দেখতে। |
+| `dpkg -L` | লোকেশন দেখা | একটি বিশেষ সফটওয়্যারের ফাইলগুলো কোথায় আছে। |
 
-## `.deb` File কোথা থেকে আসে
+## Dependency Resolution
+
+`dpkg` নিজে থেকে ডিপেন্ডেন্সি (Dependency) হ্যান্ডেল করতে পারে না। যদি এরর দেয়, তবে আপনাকে ম্যানুয়ালি `apt` ব্যবহার করে তা ফিক্স করতে হবে।
 
 ```bash filename="Terminal"
-# GitHub release page থেকে download করা tool
-wget https://github.com/tool/releases/latest/tool.deb
-
-# কোনো vendor-এর official installer
-wget https://example.com/software_1.0_amd64.deb
-
-# apt দিয়ে শুধু download করো, install নয়
-apt download nmap
-# Current directory-তে nmap.deb চলে আসবে
-```
-
-## `dpkg` — Basic Commands
-
-```bash filename="Terminal"
-# .deb file install করো
-sudo dpkg -i package.deb
-# -i = install
-
-# Package remove করো
-sudo dpkg -r package-name
-# -r = remove (config file রাখে)
-
-# Package purge করো (config সহ)
-sudo dpkg -P package-name
-# -P = purge
-
-# Installed packages-এর list
-dpkg -l
-
-# নির্দিষ্ট package installed কিনা
-dpkg -l nmap
-dpkg -s nmap    # বিস্তারিত status
-
-# Package-এর কোন files কোথায় আছে
-dpkg -L nmap
-```
-
-## Dependency Error ঠিক করা
-
-**dpkg-র সবচেয়ে বড় সমস্যা:** dependency automatic handle করে না।
-
-```bash filename="Terminal"
-# dpkg install করার সময় error দিতে পারে:
-sudo dpkg -i tool.deb
-# dpkg: dependency problems prevent configuration of tool:
-#  tool depends on libssl1.1; however:
-#  Package libssl1.1 is not installed.
-
-# সমাধান — apt দিয়ে missing dependency fix করো
+# ১. ইন্সটল করার চেষ্টা করো
+sudo dpkg -i mytool.deb
+# ২. যদি এরর দেয়, তবে এটি দিয়ে ফিক্স করো
 sudo apt install -f
-# -f = fix broken
-```
-
-`apt install -f` চালালে apt বুঝতে পারে কোন dependency missing এবং সেগুলো install করে দেয়।
-
-## Real Example — Burp Suite Install
-
-Burp Suite (web pentesting tool) official site থেকে `.deb` file হিসেবে আসে:
-
-```bash filename="Terminal"
-# Step 1: Download করো
-wget https://portswigger.net/burp/releases/download -O burpsuite.deb
-
-# Step 2: dpkg দিয়ে install করো
-sudo dpkg -i burpsuite.deb
-
-# Step 3: Dependency error হলে fix করো
-sudo apt install -f
-
-# Step 4: চালাও
-burpsuite
-```
-
-## Package Information দেখা
-
-```bash filename="Terminal"
-# Package installed কিনা এবং version
-dpkg -s nmap
-# Package: nmap
-# Status: install ok installed
-# Version: 7.93+dfsg1-1
-
-# Package-এর সব files কোথায় আছে
-dpkg -L nmap
-# /usr/bin/nmap
-# /usr/share/man/man1/nmap.1.gz
-# ...
-
-# কোন package এই file-টা install করেছে
-dpkg -S /usr/bin/nmap
-# nmap: /usr/bin/nmap
 ```
 
 ## CyberSec Note
 
 <Callout type="warning">
-  **dpkg — CTF এবং pentesting-এ:**
+  **The Danger of Pre-install Scripts:**
 
-  **Target machine-এ installed software version খোঁজো:**
+  অ্যাটাকাররা অনেক সময় এমন `.deb` প্যাকেজ তৈরি করে যা ইন্সটল হওয়ার সাথে সাথে আপনার ব্যাকগ্রাউন্ডে একটি রিভার্স শেল (Reverse Shell) ওপেন করে দেয়। কারণ `dpkg -i` কমান্ডটি রুট পাওয়ারে চলে এবং এটি প্যাকেজের ভেতরের স্ক্রিপ্টগুলোকেও রুট পাওয়ার দেয়।
 
-  ```bash filename="Terminal"
-  # সব installed packages
-  dpkg -l
-
-  # নির্দিষ্ট software-এর version
-  dpkg -l | grep -i "apache2\|nginx\|openssh\|php"
-
-  # Exact version দেখো
-  dpkg -s apache2 | grep Version
-  # Version: 2.4.41-4ubuntu3
-  ```
-
-  এই version দিয়ে CVE database-এ (`cve.mitre.org`, `exploit-db.com`) known vulnerability খোঁজো।
-
-  **Malicious .deb:** Attacker কখনো কখনো malicious `.deb` file তৈরি করে। `dpkg` install করার সময় post-install script চলে — এখানে malicious code থাকতে পারে। অবিশ্বস্ত `.deb` file কখনো install করবে না।
+  **Forensics Tip:**  
+  যদি কোনো সন্দেহজনক প্যাকেজ অডিট করতে হয়, তবে সবসময় `dpkg-deb -e` কমান্ডটি ব্যবহার করে তার ভেতরের স্ক্রিপ্টগুলো আগে পড়ে দেখুন।
 </Callout>
 
 ## Quick Check
 
-- [ ] `apt` আর `dpkg` এর মূল পার্থক্য কী?
-- [ ] `dpkg -i` এর পর dependency error আসলে কী করবে?
-- [ ] `dpkg -L nmap` কী দেখায়?
-- [ ] কোন situation-এ `dpkg` ব্যবহার করতে হয় — `apt` নয়?
+- [ ] একটি `.deb` ফাইলের ভেতরে `control.tar.xz` এর কাজ কী?
+- [ ] ইন্সটল না করে কোনো প্যাকেজের কন্টেন্ট দেখার কমান্ডটি কী?
+- [ ] কেন অবিশ্বস্ত সোর্স থেকে `.deb` ফাইল ইন্সটল করা রিস্কি?
+- [ ] `dpkg -L nmap` কমান্ডটি কেন লিনাক্স ট্রাবলশুটিংয়ে কাজে লাগে?
 
-**পরবর্তী →** [Bash Scripting](/docs/linux-fundamentals/09-scripting-intro)
+**পরবর্তী →** [Logs & Monitoring](/docs/linux-fundamentals/09-logs-monitoring)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: dpkg linux bangla, deb file install Bengali, dpkg install remove, apt vs dpkg, dependency fix apt install -f, dpkg list packages
+  dpkg linux bangla, deb file install Bengali, dpkg-deb inspect bangla, deb file contents bengali, linux package forensics bangla, dpkg dependency fix
 </span>

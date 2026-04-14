@@ -8,6 +8,7 @@ export default {
   '06-processes': 'Processes',
   '07-networking': 'Networking',
   '08-package-management': 'Package Management',
-  '09-scripting-intro': 'Scripting Intro',
+  '09-logs-monitoring': 'Logs & Monitoring',
+  '10-scripting-automation': 'Scripting & Automation',
   'cheatsheet': 'Cheatsheet',
 }
