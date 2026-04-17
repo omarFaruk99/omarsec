@@ -1,0 +1,173 @@
+---
+title: PM2 — Process Manager
+description: Keep your Next.js app running with PM2, handle crashes automatically, view logs, and ensure the app starts on server reboot.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# PM2 — Process Manager
+
+<Callout type="info">
+  এই page-এ শিখবেন PM2 দিয়ে app background-এ চালু করতে, crash হলে auto-restart করতে, server reboot-এ app আবার উঠানোর ব্যবস্থা করতে এবং real-time log দেখতে।
+</Callout>
+
+## Why PM2?
+
+আপনি যদি সরাসরি `npm run start` দিয়ে app চালান তবে তিনটি সমস্যা আছে:
+
+**সমস্যা ১ — Terminal বন্ধ হলে app বন্ধ:**
+Terminal-এর সাথে app-এর connection আছে। Terminal বন্ধ করলে বা SSH disconnect হলে app মরে যায়।
+
+**সমস্যা ২ — Crash হলে কেউ restart করে না:**
+কোনো error-এর কারণে app crash করলে সেটি বন্ধ হয়ে পড়ে থাকে — আপনি manually restart না করা পর্যন্ত।
+
+**সমস্যা ৩ — Server reboot হলে app উঠে না:**
+VPS বা EC2 reboot (update, maintenance) হলে app আর চালু হয় না।
+
+PM2 এই তিনটি সমস্যাই সমাধান করে। এটি আপনার app-কে একটি **system service** হিসেবে চালায়।
+
+<Steps>
+
+### Install PM2
+
+```bash filename="SERVER — Terminal"
+npm install -g pm2
+```
+
+Installation verify করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 --version
+```
+
+### Start the App
+
+আপনার project folder-এ গিয়ে PM2 দিয়ে app চালু করুন:
+
+```bash filename="SERVER — Terminal"
+cd ~/YOUR_REPO
+pm2 start npm --name "myapp" -- start
+```
+
+**Command breakdown:**
+- `pm2 start` — PM2-কে একটি নতুন process শুরু করতে বলছে
+- `npm` — process হিসেবে `npm` চালাবে
+- `--name "myapp"` — process-এর একটি নাম দিচ্ছে যাতে পরে সহজে manage করা যায়
+- `-- start` — npm-কে `start` script চালাতে বলছে (অর্থাৎ `npm run start`)
+
+App-এর status দেখুন:
+
+```bash filename="SERVER — Terminal"
+pm2 list
+```
+
+`status` column-এ `online` দেখলে app সফলভাবে চলছে।
+
+### Enable Auto-Restart on Reboot
+
+Server reboot হলে PM2 যাতে নিজে থেকে app চালু করে তার জন্য দুটি কাজ করতে হবে:
+
+**প্রথমে** current PM2 process list save করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 save
+```
+
+**এরপর** system startup script generate করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 startup
+```
+
+এই command একটি দীর্ঘ command output করবে, দেখতে এরকম:
+
+```
+[PM2] To setup the Startup Script, copy/paste the following command:
+sudo env PATH=$PATH:/home/queen/.nvm/versions/node/v20.x.x/bin pm2 startup systemd -u queen --hp /home/queen
+```
+
+ওই `sudo env PATH=...` দিয়ে শুরু হওয়া পুরো command-টি copy করে run করুন।
+
+<Callout type="warning">
+  `pm2 startup` শুধু command print করে — নিজে execute করে না। আপনাকে সেই command manually run করতে হবে। অনেকে এই ধাপ মিস করেন।
+</Callout>
+
+### View Logs
+
+App কি সঠিকভাবে চলছে? কোনো error আছে? Real-time log দেখুন:
+
+```bash filename="SERVER — Terminal"
+pm2 logs myapp
+```
+
+শুধু error log দেখতে:
+
+```bash filename="SERVER — Terminal"
+pm2 logs myapp --err
+```
+
+Log বন্ধ করতে `Ctrl+C` চাপুন।
+
+<Callout type="info">
+  PM2-এর log ফাইলগুলো `~/.pm2/logs/` folder-এ থাকে। App-এর নাম অনুযায়ী দুটি ফাইল থাকে:
+  - `myapp-out.log` — সাধারণ output (console.log)
+  - `myapp-error.log` — শুধু error messages
+</Callout>
+
+</Steps>
+
+## Essential Commands
+
+```bash filename="SERVER — Terminal"
+pm2 list                  # সব running process দেখুন
+pm2 logs myapp            # real-time log দেখুন
+pm2 logs myapp --lines 50 # শেষ ৫০ লাইন log দেখুন
+pm2 restart myapp         # app restart করুন
+pm2 stop myapp            # app বন্ধ করুন
+pm2 start myapp           # বন্ধ app চালু করুন
+pm2 delete myapp          # PM2 থেকে app সরিয়ে দিন
+pm2 monit                 # real-time CPU ও memory দেখুন
+```
+
+## Update Workflow
+
+নতুন code deploy করার সময় full workflow:
+
+```bash filename="SERVER — Terminal"
+cd ~/YOUR_REPO
+git pull
+npm install        # নতুন package যোগ হলে
+npm run build
+pm2 restart myapp
+```
+
+<Callout type="info">
+  **`npm install` কখন করবেন?** যদি `package.json`-এ নতুন dependency যোগ হয়ে থাকে তবেই করতে হবে। শুধু code change হলে `npm install` skip করা যায়।
+</Callout>
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Log Analysis হলো Security-র চোখ।** `pm2 logs` দিয়ে আপনি দেখতে পাবেন কারা আপনার app-এ unusual request পাঠাচ্ছে। যেমন:
+
+  - বারবার `/admin`, `/wp-login.php`, `/phpmyadmin` request আসছে — এগুলো automated scanner-এর sign
+  - অনেক বেশি 4xx error — কেউ আপনার API-তে brute-force করছে
+  - অস্বাভাবিক সময়ে (রাত ৩টায়) হঠাৎ traffic বাড়া
+
+  `pm2 monit` দিয়ে CPU ও memory একটু বেশি দেখলে সন্দেহ করুন — কোনো malicious process চলছে কিনা।
+
+  এই কারণেই log নিয়মিত দেখা একটি ভালো security practice।
+</Callout>
+
+## Quick Check
+
+- [ ] `pm2 list` দেখাচ্ছে app `online` status-এ?
+- [ ] `pm2 startup` command run করা হয়েছে?
+- [ ] `pm2 save` করা হয়েছে?
+- [ ] `pm2 logs myapp` দেখালে কোনো critical error নেই?
+
+**পরবর্তী →** [First Deployment](/docs/server-deployment/01-mvp/first-deployment)
+
+<span style={{ display: 'none' }}>
+  pm2 bangla tutorial, process manager bangla, pm2 startup bangla, pm2 logs bangla, nextjs pm2 bangla, node.js production server bangla, pm2 restart bangla, pm2 save bangla
+</span>

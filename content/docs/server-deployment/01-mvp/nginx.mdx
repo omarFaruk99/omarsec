@@ -1,0 +1,147 @@
+---
+title: Nginx & Reverse Proxy
+description: Install Nginx, understand reverse proxy, and configure it to serve your Next.js app on port 80/443.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Nginx & Reverse Proxy
+
+<Callout type="info">
+  এই page-এ শিখবেন Nginx কেন দরকার, কিভাবে ইনস্টল করতে হয় এবং আপনার Next.js অ্যাপকে সরাসরি internet-এ serve করার জন্য এটি কিভাবে কনফিগার করতে হয়।
+</Callout>
+
+## Why Nginx?
+
+আপনার Next.js অ্যাপ `npm run start` দিলে সাধারণত `http://localhost:3000`-এ চলে। কিন্তু ব্যবহারকারীরা তো আর `yoursite.com:3000` লিখে আসবে না — তারা শুধু `yoursite.com` লিখবে।
+
+এখানেই **Nginx**-এর ভূমিকা। এটি একটি **Reverse Proxy** হিসেবে কাজ করে।
+
+**Reverse Proxy কী?** সহজ ভাষায় — Nginx হলো আপনার অ্যাপের সামনে দাঁড়ানো একজন দারোয়ান। ব্যবহারকারী `yoursite.com`-এ request পাঠালে Nginx সেটি গ্রহণ করে, ভেতর থেকে `localhost:3000`-এ পাঠায়, অ্যাপের response নিয়ে আবার ব্যবহারকারীকে দেয়। ব্যবহারকারী জানেই না যে ভেতরে কী চলছে।
+
+এর সুবিধাগুলো হলো:
+- আপনার অ্যাপ `3000` port-এ চললেও ব্যবহারকারী `80` (HTTP) বা `443` (HTTPS) port ব্যবহার করতে পারে
+- একই server-এ একাধিক অ্যাপ চালানো যায়
+- আপনার অ্যাপের সামনে একটি সিকিউরিটি স্তর যুক্ত হয়
+
+<Steps>
+
+### Install Nginx
+
+```bash filename="SERVER — Terminal"
+sudo apt update
+sudo apt install nginx -y
+```
+
+ইনস্টলের পর Nginx চালু হয়েছে কিনা চেক করুন:
+
+```bash filename="SERVER — Terminal"
+sudo systemctl status nginx
+```
+
+`Active: active (running)` দেখলে সফল।
+
+### Understand the Config Structure
+
+Nginx-এর কনফিগারেশন দুটি ফোল্ডারে থাকে:
+
+```
+/etc/nginx/
+├── sites-available/   ← কনফিগ ফাইল এখানে লেখা হয়
+└── sites-enabled/     ← এখানে শুধু symlink থাকে (যেগুলো active)
+```
+
+<Callout type="info">
+  **Symlink কী?** এটি একটি shortcut-এর মতো। আপনি `sites-available`-এ আপনার কনফিগ লিখবেন এবং `sites-enabled`-এ সেটির একটি লিংক তৈরি করবেন। এতে কনফিগ enable/disable করা সহজ হয়।
+</Callout>
+
+### Create Config File
+
+`sites-available`-এ আপনার অ্যাপের জন্য একটি নতুন কনফিগ ফাইল তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/nginx/sites-available/myapp
+```
+
+নিচের কনফিগটি paste করুন:
+
+```nginx filename="/etc/nginx/sites-available/myapp"
+server {
+    listen 80;
+    server_name YOUR_DOMAIN_OR_IP;
+
+    # server version লুকিয়ে রাখুন (Security Best Practice)
+    server_tokens off;
+
+    location / {
+        # সব request আমাদের Next.js অ্যাপে পাঠাও
+        proxy_pass http://localhost:3000;
+
+        # আসল ব্যবহারকারীর IP অ্যাপকে জানাও
+        proxy_set_header X-Real-IP $remote_addr;
+
+        # original request-এর host name পাঠাও
+        proxy_set_header Host $host;
+
+        # proxy chain-এর সব IP রাখো
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হন।
+
+### Enable the Site
+
+এখন এই কনফিগটিকে `sites-enabled`-এ symlink করুন যাতে Nginx এটি পড়তে পারে:
+
+```bash filename="SERVER — Terminal"
+# symlink তৈরি করুন
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+
+# default config সরিয়ে দিন যা conflict করতে পারে
+sudo rm /etc/nginx/sites-enabled/default
+```
+
+### Test and Reload
+
+কনফিগে কোনো ভুল আছে কিনা test করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nginx -t
+```
+
+`syntax is ok` এবং `test is successful` দেখলে Nginx reload করুন:
+
+```bash filename="SERVER — Terminal"
+sudo systemctl reload nginx
+```
+
+</Steps>
+
+## Verify
+
+এখন আপনার browser থেকে `http://YOUR_SERVER_IP` visit করুন। যদি Next.js অ্যাপ চালু থাকে, তবে সেটি দেখতে পাবেন।
+
+<Callout type="warning">
+  Next.js অ্যাপ এখনো চালু না হলে Nginx একটি error দেখাবে। চিন্তা করবেন না — পরের page-এ আমরা PM2 দিয়ে অ্যাপটি background-এ চালু করব।
+</Callout>
+
+## CyberSec Note
+
+<Callout type="warning">
+  কনফিগে `server_tokens off` লেখার কারণটি মনে রাখবেন। এটি না লিখলে HTTP response header-এ Nginx-এর version দেখা যায় (যেমন: `nginx/1.24.0`)। একজন attacker এই তথ্য দিয়ে ওই version-এর known vulnerability খুঁজবে। এই একটি লাইন দিয়ে আপনি তাকে অনেক কম তথ্য দিচ্ছেন। এটিকে বলে **Information Hiding** — সিকিউরিটির একটি মৌলিক নীতি।
+</Callout>
+
+## Quick Check
+
+- [ ] `sudo systemctl status nginx` দেখাচ্ছে `active (running)`?
+- [ ] `sudo nginx -t` দেখাচ্ছে `syntax is ok`?
+- [ ] `sites-enabled`-এ আপনার config-এর symlink আছে?
+- [ ] `http://YOUR_SERVER_IP` visit করলে connection হচ্ছে?
+
+**পরবর্তী →** [SSL & HTTPS](/docs/server-deployment/01-mvp/ssl-https)
+
+<span style={{ display: 'none' }}>
+  nginx bangla tutorial, reverse proxy bangla, nginx next.js setup, nginx sites-available bangla, server_tokens off bangla, nginx proxy_pass bangla, web server setup ubuntu bangla
+</span>

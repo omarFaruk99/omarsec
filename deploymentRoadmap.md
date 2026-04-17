@@ -16,6 +16,36 @@ Two dedicated sub-sections visible in the sidebar:
 
 ---
 
+## Current Status
+
+> **[AI CONTEXT NOTE]**
+> Phase 1 (MVP) is fully complete as of 2026-04-17.
+> Phase 2 will begin approximately 1 week later (around 2026-04-24).
+> When resuming work, start directly with `02-full-production/` folder creation.
+> Do NOT re-create or modify any Phase 1 files unless the user explicitly asks.
+
+### Phase 1 — COMPLETE
+
+All 9 pages created and registered in `_meta.js`:
+
+- [x] `index.mdx` — Phase 1 overview
+- [x] `choose-server.mdx` — Contabo VPS + AWS EC2 walkthrough (two separate Step flows)
+- [x] `secure-server.mdx` — Non-root user (`queen`), SSH key auth, disable password login, UFW firewall
+- [x] `nginx.mdx` — Reverse proxy concept, installation, config, server_tokens off
+- [x] `ssl-https.mdx` — DNS setup, Certbot, Let's Encrypt, MITM attack explanation
+- [x] `github-setup.mdx` — SSH Deploy Key vs PAT, daily update workflow, dev vs production build
+- [x] `env-variables.mdx` — .env on server, .gitignore, chmod 600, real breach example
+- [x] `pm2.mdx` — Process manager, startup + save, logs, update workflow
+- [x] `first-deployment.mdx` — End-to-end walkthrough with create-next-app
+
+**Note:** `github-setup.mdx` was added during Phase 1 (not in original roadmap) because it is essential for production workflow understanding.
+
+### Phase 2 — NOT STARTED
+
+Planned to begin around **2026-04-24**. Full structure listed below.
+
+---
+
 ## Navigation Structure (How It Looks on the Site)
 
 When a user visits `omarsec.com/docs/server-deployment`, the sidebar shows:
@@ -25,14 +55,15 @@ Server Deployment
 ├── Overview (index)
 │
 ├── Phase 1 — MVP
-│   ├── Introduction
-│   ├── Choose a Server
-│   ├── Secure the Server
-│   ├── Nginx & Reverse Proxy
-│   ├── SSL & HTTPS
-│   ├── Environment Variables
-│   ├── PM2 — Process Manager
-│   └── First Deployment (Full Walkthrough)
+│   ├── Introduction              ✅
+│   ├── Choose a Server           ✅
+│   ├── Secure the Server         ✅
+│   ├── Nginx & Reverse Proxy     ✅
+│   ├── SSL & HTTPS               ✅
+│   ├── GitHub Setup              ✅ (added — not in original plan)
+│   ├── Environment Variables     ✅
+│   ├── PM2 — Process Manager     ✅
+│   └── First Deployment          ✅
 │
 └── Phase 2 — Full Production
     ├── Introduction
@@ -55,46 +86,49 @@ content/docs/server-deployment/
 ├── _meta.js
 ├── index.mdx                              → Section overview, Vercel vs Server question, prerequisites
 │
-├── 01-mvp/
+├── 01-mvp/                                ← COMPLETE
 │   ├── _meta.js
-│   ├── index.mdx                          → Phase 1 overview — what we'll build, what you'll have at the end
-│   ├── choose-server.mdx                  → VPS vs Cloud, Hetzner vs AWS, create a server instance
-│   ├── secure-server.mdx                  → Non-root user, SSH key auth, disable password login, UFW firewall
-│   ├── nginx.mdx                          → What is Nginx, reverse proxy concept, write server block
-│   ├── ssl-https.mdx                      → Point domain to server, Certbot, Let's Encrypt, auto-renewal
-│   ├── env-variables.mdx                  → .env file on server, .gitignore, never commit secrets
-│   ├── pm2.mdx                            → What is PM2, start app, auto-restart on reboot, view logs
-│   └── first-deployment.mdx              → End-to-end walkthrough: create-next-app → server → Nginx → live
+│   ├── index.mdx
+│   ├── choose-server.mdx
+│   ├── secure-server.mdx
+│   ├── nginx.mdx
+│   ├── ssl-https.mdx
+│   ├── github-setup.mdx                  ← Added (production workflow essential)
+│   ├── env-variables.mdx
+│   ├── pm2.mdx
+│   └── first-deployment.mdx
 │
-├── 02-full-production/
+├── 02-full-production/                    ← NOT STARTED (begins ~2026-04-24)
 │   ├── _meta.js
-│   ├── index.mdx                          → Phase 2 overview — what "production ready" actually means
-│   ├── docker-overview.mdx               → What Docker solves, image vs container, Dockerfile example (overview only)
-│   ├── cicd-overview.mdx                 → What CI/CD is, GitHub Actions flow, push-to-deploy concept (overview only)
-│   ├── database.mdx                       → PostgreSQL on server (local-only access) vs Managed DB (RDS/Supabase)
-│   ├── file-storage.mdx                   → Why not store uploads on server, AWS S3 vs Cloudflare R2
-│   ├── cloudflare-cdn.mdx                → DNS setup, CDN, DDoS protection, free WAF, Cloudflare free tier
-│   ├── monitoring.mdx                     → UptimeRobot (uptime), Sentry (errors), reading server logs
-│   ├── backup.mdx                         → Why backups matter, cron job + S3 script, how to test a restore
-│   └── client-checklist.mdx             → Real project readiness — 10 questions before taking a client project
+│   ├── index.mdx
+│   ├── docker-overview.mdx
+│   ├── cicd-overview.mdx
+│   ├── database.mdx
+│   ├── file-storage.mdx
+│   ├── cloudflare-cdn.mdx
+│   ├── monitoring.mdx
+│   ├── backup.mdx
+│   └── client-checklist.mdx
 │
 └── cheatsheet.mdx                         → All commands from both phases in one place
 ```
 
 ---
 
-## Page Count
+## Key Design Decisions (Phase 1)
 
-| Section | Pages |
-|---|---|
-| Root (index + cheatsheet) | 2 |
-| 01-mvp | 8 |
-| 02-full-production | 9 |
-| **Total** | **19 pages** |
+| Decision | Choice | Reason |
+|---|---|---|
+| Server providers | Contabo + AWS EC2 | Low cost, learner-friendly |
+| VPS user | `queen` (not `deploy`) | User's preference |
+| SSH key type | ed25519 | Modern, more secure than RSA |
+| GitHub auth | SSH Deploy Key (primary), PAT (alternative) | Least privilege principle |
+| Build approach | npm run build + PM2 | Never use npm run dev on server |
+| App for walkthrough | create-next-app | Simple, no distractions from deployment |
 
 ---
 
-## Scope Rules (Important)
+## Scope Rules
 
 | Topic | What This Section Does |
 |---|---|
@@ -111,104 +145,18 @@ content/docs/server-deployment/
 
 ---
 
-## Decisions Made
-
-| Decision | Choice | Reason |
-|---|---|---|
-| Section name | Server Deployment | Clear, specific, no jargon |
-| Folder structure | Numbered phases (01-mvp, 02-full-production) | Consistent with linux-fundamentals |
-| Primary provider | Hetzner (AWS mentioned as alternative) | Cheapest, beginner-friendly |
-| Database | PostgreSQL only | Modern stack standard |
-| App type in walkthrough | create-next-app (generic Next.js starter) | Simple and clean for walkthrough |
-| Docker/CI/CD depth | Overview only | Dedicated sections planned for both |
-| Cloudflare | Included in Phase 2 | Free, critical for production, cybersec context |
-| Client Checklist | Included in Phase 2 | Prepares learner for real client work |
-
----
-
-## Key Design Notes
-
-### index.mdx Must Answer: "Why Server? Not Vercel?"
-
-> The site itself (omarsec.com) runs on Vercel. A learner will immediately ask:
-> "Vercel is free and easy — why bother with a server?"
-
-The `index.mdx` must answer this clearly before anything else:
-- Vercel is for frontend/static — has limits on backend, databases, file storage
-- Server = full control — run any language, any database, any background job
-- Client projects often need things Vercel cannot provide
-- Understanding servers makes you a complete engineer, not just a frontend dev
-
-### Phase 1 Has No Database — Add a Note
-
-Phase 1 deploys a stateless app (no database). Most real projects need one.
-The `first-deployment.mdx` must include a clear callout:
-> "তোমার app-এ database লাগলে Phase 2 → Database Setup দেখো।"
-
-### first-deployment.mdx — What App to Deploy
-
-App used in walkthrough: **`create-next-app`** (the default Next.js starter)
-Reason: Simple, no dependencies, learner can focus on the deployment process — not the app code.
-
-Steps in this page:
-1. On local machine: `npx create-next-app@latest myapp`
-2. Push to GitHub
-3. On server: clone repo, install Node, build
-4. Configure PM2
-5. Configure Nginx
-6. Test live at the domain
-
-### cloudflare-cdn.mdx — Why This Is Critical for a CyberSec Site
-
-Most DevOps tutorials skip Cloudflare. But for a cybersecurity-focused audience:
-- Cloudflare free tier = real DDoS protection
-- Free WAF = blocks common web attacks (SQLi, XSS) automatically
-- CDN = site loads faster globally
-- Hides your real server IP (attackers cannot target your server directly)
-
-This page has strong cybersecurity context by nature.
-
-### client-checklist.mdx — What This Contains
-
-10 questions a developer must answer before starting any client deployment:
-
-1. How many daily users? (determines server size)
-2. Does the app need a database?
-3. Does the app handle file uploads? Where will files go?
-4. Does the client have a domain? If not, they need to buy one.
-5. Does the app send emails? (Use Resend, SendGrid — never your own mail server)
-6. What is the uptime requirement?
-7. Who handles security updates after launch?
-8. Does the client need automated backups?
-9. Is there a staging environment needed before production?
-10. What happens if the server goes down at 2am — who is responsible?
-
----
-
 ## CyberSec Angles Per Page
 
 | Page | CyberSec Context |
 |---|---|
-| `secure-server.mdx` | How bots scan for open SSH ports, brute-force attacks on port 22 |
-| `ssl-https.mdx` | MITM attack explained — how HTTPS prevents it |
-| `env-variables.mdx` | Real breach examples: .env files leaked on GitHub |
+| `secure-server.mdx` | Brute-force attacks, server hardening, Defense in Depth |
+| `ssl-https.mdx` | MITM attack, TLS encryption, Wireshark demo reference |
+| `github-setup.mdx` | Least Privilege, Deploy Key vs personal key risk |
+| `env-variables.mdx` | Real breach example ($50k AWS bill), GitHub secret scanning |
+| `pm2.mdx` | Log analysis to detect attacks, suspicious traffic patterns |
 | `docker-overview.mdx` | Container isolation as a security boundary |
 | `cicd-overview.mdx` | Supply chain attacks via compromised CI/CD pipelines |
 | `database.mdx` | Why DB exposed to public internet = critical vulnerability |
 | `file-storage.mdx` | Signed URLs, preventing unauthorized file access |
 | `cloudflare-cdn.mdx` | DDoS, WAF, hiding server IP from attackers |
 | `backup.mdx` | Ransomware scenario — backups as the last line of defense |
-
----
-
-## Approval Checklist
-
-- [ ] Phase 1 structure (8 pages) approved
-- [ ] Phase 2 structure (9 pages) approved — includes Cloudflare + Client Checklist
-- [ ] Scope confirmed (Docker/CI/CD = overview only)
-- [ ] `create-next-app` as walkthrough app confirmed
-- [ ] Hetzner as primary provider confirmed
-- [ ] Ready to create files
-
-Once approved, files will be created in this order:
-`index.mdx` → `01-mvp/` (all 8 pages) → `02-full-production/` (all 9 pages) → `cheatsheet.mdx`

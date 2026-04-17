@@ -1,0 +1,222 @@
+---
+title: GitHub Setup
+description: Connect your server to GitHub using SSH Deploy Keys or Personal Access Tokens to securely pull code from private repositories.
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# GitHub Setup
+
+<Callout type="info">
+  এই page-এ server-কে GitHub-এর সাথে connect করবেন যাতে আপনার code সহজে server-এ নিয়ে আসা যায়। দুটো পদ্ধতি দেখাবো — solo developer-দের জন্য সহজ উপায় এবং production-এর জন্য প্রফেশনাল উপায়।
+</Callout>
+
+## Why This Matters
+
+অনেকে মনে করেন server-এ code নেওয়ার জন্য সরাসরি file copy করলেই হয়। কিন্তু এটি কখনো করবেন না। সঠিক workflow হলো:
+
+```
+আপনার Computer  →  push  →  GitHub  →  pull  →  Server
+```
+
+এই workflow-এর সুবিধা:
+- প্রতিটি code change-এর history থাকে — কে কখন কী পরিবর্তন করেছে
+- কোনো সমস্যা হলে যেকোনো পুরোনো version-এ ফিরে যাওয়া যায়
+- Team-এ কাজ করলে সবাই একই codebase share করতে পারে
+- পরবর্তীতে CI/CD pipeline যোগ করা সহজ হয়
+
+সুতরাং server-এর GitHub-এর সাথে connection থাকা একটি **বাধ্যতামূলক** production practice।
+
+## Two Methods
+
+<Callout type="default">
+  **Public repository** হলে কোনো authentication লাগে না — সরাসরি `git clone URL` এবং `git pull` কাজ করবে। এই page শুধু **private repository**-র জন্য প্রযোজ্য।
+</Callout>
+
+<Tabs items={['SSH Deploy Key (প্রফেশনাল)', 'Personal Access Token (সহজ)']}>
+<Tabs.Tab>
+
+### SSH Deploy Key
+
+এটি production-এর জন্য সবচেয়ে নিরাপদ পদ্ধতি। Server-এ একটি নতুন SSH key তৈরি করা হয় এবং সেটি শুধুমাত্র ওই নির্দিষ্ট GitHub repository-র read access পায়।
+
+<Steps>
+
+### Generate Key on Server
+
+Server-এ একটি নতুন SSH key তৈরি করুন। এটি আপনার personal key থেকে আলাদা — শুধু এই server-এর জন্য:
+
+```bash filename="SERVER — Terminal"
+ssh-keygen -t ed25519 -C "server-deploy-key" -f ~/.ssh/github_deploy
+```
+
+এটি দুটি ফাইল তৈরি করবে:
+1. `~/.ssh/github_deploy` — Private Key (server-এ থাকবে, কাউকে দেবেন না)
+2. `~/.ssh/github_deploy.pub` — Public Key (GitHub-এ যোগ করবেন)
+
+### Add to GitHub
+
+Public key-এর content দেখুন:
+
+```bash filename="SERVER — Terminal"
+cat ~/.ssh/github_deploy.pub
+```
+
+Output copy করুন। এখন GitHub-এ যান:
+- আপনার repository → **Settings** → **Deploy Keys** → **Add deploy key**
+- Title: `Production Server`
+- Key: paste করুন
+- **Allow write access**: টিক দেবেন না (শুধু read access দিন)
+- **Add key** click করুন
+
+<Callout type="info">
+  **Deploy Key কেন read-only?** Server-এর কাজ শুধু code নিয়ে আসা (pull), কোনো code পাঠানো (push) নয়। Write access না দেওয়া মানে server compromise হলেও attacker আপনার GitHub-এ কোনো malicious code push করতে পারবে না।
+</Callout>
+
+### Configure SSH
+
+Server-এ SSH config file তৈরি করুন যাতে GitHub connection-এ এই key ব্যবহার হয়:
+
+```bash filename="SERVER — Terminal"
+nano ~/.ssh/config
+```
+
+নিচের content যোগ করুন:
+
+```bash filename="~/.ssh/config"
+Host github.com
+    IdentityFile ~/.ssh/github_deploy
+    IdentitiesOnly yes
+```
+
+### Test Connection
+
+```bash filename="SERVER — Terminal"
+ssh -T git@github.com
+```
+
+`Hi username! You've successfully authenticated` দেখলে সফল।
+
+### Clone Repository
+
+SSH URL ব্যবহার করে clone করুন (HTTPS নয়):
+
+```bash filename="SERVER — Terminal"
+git clone git@github.com:YOUR_USERNAME/YOUR_REPO.git
+```
+
+</Steps>
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+### Personal Access Token (PAT)
+
+Solo developer বা quick setup-এর জন্য PAT সহজ পদ্ধতি। তবে PAT-কে সবসময় password-এর মতো treat করুন।
+
+<Steps>
+
+### Create PAT on GitHub
+
+GitHub-এ যান: **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)** → **Generate new token**
+
+Settings:
+- **Note:** `server-pull-token`
+- **Expiration:** ৯০ দিন (unlimited দেবেন না)
+- **Scopes:** শুধু `repo` tick করুন (minimum permission)
+
+Token copy করুন — এটি একবারই দেখা যাবে।
+
+### Clone with Token
+
+```bash filename="SERVER — Terminal"
+git clone https://YOUR_TOKEN@github.com/YOUR_USERNAME/YOUR_REPO.git
+```
+
+<Callout type="warning">
+  Token-টি `.bash_history`-তে থেকে যাবে। নিচের command দিয়ে history clear করুন:
+
+  ```bash filename="SERVER — Terminal"
+  history -c
+  ```
+
+  অথবা token-কে git credential store-এ রাখুন:
+
+  ```bash filename="SERVER — Terminal"
+  git config --global credential.helper store
+  git pull  # প্রথমবার username ও token চাইবে, পরে save হয়ে যাবে
+  ```
+</Callout>
+
+</Steps>
+
+</Tabs.Tab>
+</Tabs>
+
+## Daily Update Workflow
+
+Code update করতে হলে server-এ গিয়ে:
+
+```bash filename="SERVER — Terminal"
+# project folder-এ যান
+cd ~/YOUR_REPO
+
+# নতুন code নিন (GitHub থেকে)
+git pull
+
+# production build তৈরি করুন
+npm run build
+
+# app restart করুন (PM2 setup হলে)
+pm2 restart myapp
+```
+
+<Callout type="info">
+  **প্রতিটি command কী করে:**
+
+  - `git pull` — GitHub থেকে নতুন সব commit নামিয়ে আনে। এটি শুধু code download করে, app restart করে না।
+  - `npm run build` — আপনার Next.js code-কে optimized production bundle-এ রূপান্তরিত করে। এই ফাইলগুলো `.next/` folder-এ থাকে।
+  - `pm2 restart myapp` — চলমান app-টি বন্ধ করে নতুন build দিয়ে আবার চালু করে।
+
+  `git pull`-এর পরে `npm run build` না করলে পুরোনো build দিয়েই app চলতে থাকবে — নতুন code কাজ করবে না।
+</Callout>
+
+<Callout type="warning">
+  **Server-এ কখনো `npm run dev` চালাবেন না।**
+
+  `npm run dev` শুধু আপনার নিজের computer-এ development-এর জন্য। Server-এ সবসময় `npm run build` করে `npm run start` চালাতে হয় (PM2-এর মাধ্যমে)।
+
+  | Command | কোথায় চালাবেন | কেন |
+  |---|---|---|
+  | `npm run dev` | শুধু Local | Development, hot reload, error details দেখায় |
+  | `npm run build` | Server | Optimized bundle তৈরি করে |
+  | `npm run start` | Server (PM2 দিয়ে) | Production server চালু করে |
+</Callout>
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Least Privilege Principle:** Deploy Key-কে read-only রাখা এবং PAT-এ minimum scope দেওয়া — এই ধারণাটি সিকিউরিটির একটি মৌলিক নীতি।
+
+  SSH Deploy Key কেন personal key-এর চেয়ে নিরাপদ:
+  - Personal key compromise হলে attacker আপনার সব GitHub repo-তে access পাবে
+  - Deploy Key compromise হলে শুধু ওই একটি repo-র read access পাবে
+
+  PAT-এর জন্য মনে রাখবেন:
+  - Expiration date সেট করুন — token পুরনো হলে rotate করুন
+  - `.env` ফাইলে token রাখবেন না — এটি `git pull`-এর credential, deploy করার পরে `.git/config`-এ থাকে
+  - Token কখনো GitHub-এ push করবেন না — GitHub নিজেই secret scanning করে এবং exposed token revoke করে দেয়
+</Callout>
+
+## Quick Check
+
+- [ ] `ssh -T git@github.com` সফল হচ্ছে? (SSH Deploy Key পদ্ধতিতে)
+- [ ] Deploy Key-এ write access দেওয়া হয়নি?
+- [ ] `git clone` সফলভাবে সম্পন্ন হয়েছে?
+- [ ] `git pull` দিলে latest code আসছে?
+
+**পরবর্তী →** [Environment Variables](/docs/server-deployment/01-mvp/env-variables)
+
+<span style={{ display: 'none' }}>
+  github server setup bangla, ssh deploy key bangla, personal access token bangla, git pull server bangla, private repo server bangla, github authentication server bangla, deploy key vs pat bangla
+</span>

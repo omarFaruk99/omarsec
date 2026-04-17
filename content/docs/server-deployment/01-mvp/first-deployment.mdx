@@ -1,0 +1,253 @@
+---
+title: First Deployment
+description: End-to-end walkthrough — take a brand new Next.js app from your local machine, push to GitHub, and deploy it live on your server with Nginx and PM2.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# First Deployment
+
+<Callout type="info">
+  এটি Phase 1-এর সবচেয়ে গুরুত্বপূর্ণ page। এখানে আপনি একটি নতুন Next.js app তৈরি থেকে শুরু করে live server-এ চালু হওয়া পর্যন্ত পুরো প্রক্রিয়াটি একবারে দেখবেন।
+</Callout>
+
+## What We Are Building
+
+এই walkthrough-এ আমরা deploy করব:
+- **App:** `create-next-app` দিয়ে তৈরি একটি default Next.js starter
+- **Server:** আপনার Contabo বা AWS EC2 instance (আগের page-এ setup করা)
+- **Domain:** আপনার domain বা server IP
+- **Result:** `https://yourdomain.com` visit করলে Next.js app দেখা যাবে
+
+<Callout type="default">
+  **কেন `create-next-app`?** এই walkthrough-এ app-এর code গুরুত্বপূর্ণ নয় — deployment process গুরুত্বপূর্ণ। Default starter ব্যবহার করলে আপনি app-এর complexity-র কথা না ভেবে সম্পূর্ণ মনোযোগ deployment-এ দিতে পারবেন। একবার এই process শিখলে যেকোনো Next.js app deploy করতে পারবেন।
+</Callout>
+
+## Prerequisites
+
+এই page শুরু করার আগে নিশ্চিত করুন:
+
+- [ ] Server তৈরি আছে এবং `queen` user দিয়ে login করা যাচ্ছে
+- [ ] Nginx install এবং configure করা আছে
+- [ ] SSL certificate নেওয়া আছে (domain থাকলে)
+- [ ] GitHub account আছে
+
+## The Deployment
+
+<Steps>
+
+### Create App Locally
+
+আপনার **local computer-এ** একটি নতুন Next.js app তৈরি করুন:
+
+```bash filename="LOCAL — Terminal"
+npx create-next-app@latest myapp
+```
+
+কিছু প্রশ্ন করবে — সব default (Enter) রাখুন। App তৈরি হলে folder-এ প্রবেশ করুন:
+
+```bash filename="LOCAL — Terminal"
+cd myapp
+```
+
+একবার locally test করুন:
+
+```bash filename="LOCAL — Terminal"
+npm run dev
+```
+
+Browser-এ `http://localhost:3000` visit করুন — Next.js welcome page দেখলে সফল। `Ctrl+C` দিয়ে বন্ধ করুন।
+
+### Push to GitHub
+
+GitHub-এ একটি নতুন repository তৈরি করুন (`myapp` নামে)। এরপর local app-টি push করুন:
+
+```bash filename="LOCAL — Terminal"
+git init
+git add .
+git commit -m "initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/myapp.git
+git push -u origin main
+```
+
+GitHub-এ গিয়ে verify করুন যে code সফলভাবে push হয়েছে।
+
+### Server-এ Node.js Install করুন
+
+**Server-এ** login করুন এবং Node.js install করুন (NVM দিয়ে):
+
+```bash filename="SERVER — Terminal"
+# NVM install করুন
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# shell reload করুন
+source ~/.bashrc
+
+# LTS version install করুন
+nvm install --lts
+nvm use --lts
+
+# verify করুন
+node -v
+npm -v
+```
+
+এরপর PM2 install করুন:
+
+```bash filename="SERVER — Terminal"
+npm install -g pm2
+```
+
+### Clone Repository on Server
+
+Server-এ GitHub থেকে app clone করুন:
+
+```bash filename="SERVER — Terminal"
+cd ~
+git clone https://github.com/YOUR_USERNAME/myapp.git
+cd myapp
+```
+
+### Build the App
+
+Server-এ production build তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+npm install
+npm run build
+```
+
+<Callout type="info">
+  `npm run build` সফল হলে `.next/` folder তৈরি হবে। এটিই production-এ serve হয়। Build যত বেশি optimized, app তত দ্রুত load হয়।
+</Callout>
+
+### Start with PM2
+
+PM2 দিয়ে app চালু করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 start npm --name "myapp" -- start
+pm2 save
+pm2 startup
+```
+
+`pm2 startup` যে command output করবে সেটি copy করে run করুন।
+
+App চলছে কিনা verify করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 list
+```
+
+`status: online` দেখলে app চলছে।
+
+### Configure Nginx
+
+Nginx config তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/nginx/sites-available/myapp
+```
+
+নিচের config paste করুন:
+
+```nginx filename="/etc/nginx/sites-available/myapp"
+server {
+    listen 80;
+    server_name YOUR_DOMAIN_OR_IP;
+
+    server_tokens off;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Save করুন এবং enable করুন:
+
+```bash filename="SERVER — Terminal"
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### SSL Setup (Domain থাকলে)
+
+Domain ব্যবহার করলে Certbot দিয়ে SSL নিন:
+
+```bash filename="SERVER — Terminal"
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+IP address ব্যবহার করলে এই step skip করুন।
+
+### Test Live
+
+Browser-এ visit করুন:
+- Domain থাকলে: `https://yourdomain.com`
+- IP হলে: `http://YOUR_SERVER_IP`
+
+Next.js welcome page দেখলে আপনার **first deployment সফল**।
+
+</Steps>
+
+## Update Workflow
+
+এখন থেকে নতুন code deploy করতে:
+
+```bash filename="LOCAL — Terminal"
+# local-এ changes করুন, তারপর push করুন
+git add .
+git commit -m "your change description"
+git push
+```
+
+```bash filename="SERVER — Terminal"
+# server-এ এসে update নিন
+cd ~/myapp
+git pull
+npm run build
+pm2 restart myapp
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  আপনি এইমাত্র একটি **production server** চালু করেছেন। এটি এখন internet-এ publicly accessible। কিছু বিষয় মনে রাখুন:
+
+  - **`pm2 logs myapp`** নিয়মিত দেখুন — অস্বাভাবিক request pattern attack-এর sign হতে পারে
+  - **Server update রাখুন:** `sudo apt update && sudo apt upgrade` মাসে একবার চালান
+  - **SSH-এ root login বন্ধ আছে তো?** `secure-server.mdx`-এ করা configuration verify করুন
+  - **`.env` file কখনো git-এ push করবেন না** — GitHub-এ secret গেলে তৎক্ষণাৎ revoke করুন
+
+  আপনি এই Phase 1 সম্পন্ন করে একটি secure, production-grade deployment করতে শিখেছেন। বেশিরভাগ developer এই level-এর security সম্পর্কে সচেতন থাকে না।
+</Callout>
+
+<Callout type="default">
+  **Database লাগলে?** এই deployment-এ কোনো database নেই। Real project-এ database দরকার হলে **Phase 2 → Database Setup** দেখুন।
+</Callout>
+
+## Phase 1 Complete
+
+আপনি যা শিখলেন এবং করলেন:
+
+- Server তৈরি এবং secure করা (non-root user, SSH key, UFW)
+- Nginx দিয়ে reverse proxy setup
+- SSL certificate দিয়ে HTTPS চালু
+- GitHub থেকে server-এ code নিয়ে আসার professional workflow
+- Environment variables নিরাপদে manage করা
+- PM2 দিয়ে app production-এ চালানো
+- End-to-end deployment সম্পন্ন
+
+**পরবর্তী →** [Phase 2 — Full Production](/docs/server-deployment/02-full-production)
+
+<span style={{ display: 'none' }}>
+  first deployment bangla, nextjs deploy tutorial bangla, full deployment walkthrough bangla, production server bangla, create-next-app deploy bangla, nginx pm2 nextjs bangla, live deploy bangla tutorial
+</span>

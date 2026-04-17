@@ -188,10 +188,16 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub -o "IdentityFile ~/.ssh/myapp-key.pem" ubun
 এখন সার্ভারের ভেতর থেকে ওই কী-টি `queen` ইউজারের হোমে কপি করতে হবে:
 
 ```bash filename="SERVER — Terminal"
-# queen-এর জন্য .ssh ফোল্ডার তৈরি
+# queen-এর জন্য .ssh ফোল্ডার তৈরি করুন
 sudo mkdir -p /home/queen/.ssh
+
+# ubuntu ইউজার থেকে অলরেডি অথরাইজড কী-গুলো queen-এ কপি করুন
 sudo cp ~/.ssh/authorized_keys /home/queen/.ssh/
+
+# ফোল্ডার ও ফাইলের মালিকানা queen ইউজারকে দিয়ে দিন
 sudo chown -R queen:queen /home/queen/.ssh
+
+# ফোল্ডার এবং ফাইলের সিকিউর পারমিশন সেট করুন (নইলে SSH কাজ করবে না)
 sudo chmod 700 /home/queen/.ssh
 sudo chmod 600 /home/queen/.ssh/authorized_keys
 ```
@@ -227,7 +233,17 @@ sudo ufw allow 443
 sudo ufw enable
 ```
 
-এরপর **অবশ্যই** AWS Console থেকে "Security Group" এ গিয়ে এই একই পোর্টগুলো (22, 80, 443) ইনবাউন্ড রুলস (Inbound Rules) হিসেবে allow করতে হবে। এটি না করলে UFW থাকা সত্ত্বেও আপনার সাইট দেখা যাবে না।
+এরপর **AWS Console**-এ গিয়ে নিশ্চিত করুন যে Security Group-এ এই পোর্টগুলো (22, 80, 443) আগে থেকেই allow করা আছে (যা আমরা server তৈরি করার সময় সেট করেছিলাম)।
+
+<Callout type="info">
+  **UFW বনাম Security Group:** 
+  আপনার মনে প্রশ্ন আসতে পারে—উভয় জায়গায় কেন পোর্ট ওপেন করছি? 
+  - **AWS Security Group** হলো আপনার সার্ভারের "বাইরের গেট" (Cloud Level)। 
+  - **UFW** হলো আপনার সার্ভারের "নিজের দরজা" (OS Level)। 
+  প্রফেশনাল সিকিউরিটির জন্য উভয় স্তরেই ফায়ারওয়াল থাকা জরুরি। একে বলা হয় **"Defense in Depth"**। এর ফলে হাগের কোনো সিকিউরিটি লেভেলে ত্রুটি থাকলেও অন্যটি আপনার সার্ভারকে সুরক্ষিত রাখে।
+</Callout>
+
+যদি কোনো পোর্ট আগের ধাপে বাদ পড়ে থাকে, তবে এখনই "Edit inbound rules"-এ গিয়ে সেগুলো যোগ করে নিন। 
 
 </Steps>
 

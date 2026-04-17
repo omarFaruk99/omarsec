@@ -1,0 +1,145 @@
+---
+title: SSL & HTTPS
+description: Point your domain to the server, install Certbot, get a free SSL certificate from Let's Encrypt, and enable auto-renewal.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# SSL & HTTPS
+
+<Callout type="info">
+  এই page-এ আপনার domain-কে server-এ point করবেন, Certbot দিয়ে free SSL certificate নেবেন এবং HTTPS চালু করবেন।
+</Callout>
+
+## Why HTTPS?
+
+আপনার site যদি শুধু `http://` দিয়ে চলে, তাহলে browser সেটিকে "Not Secure" দেখায়। তার চেয়েও বড় সমস্যা হলো — HTTP traffic সম্পূর্ণ plain text-এ যায়। যে কেউ network-এ থাকলে আপনার ব্যবহারকারীর password, form data সব দেখতে পারে। এটিকে বলে **Man-in-the-Middle (MITM) Attack**।
+
+**HTTPS** এই সমস্যার সমাধান করে। এটি আপনার browser এবং server-এর মধ্যে সব data **encrypt** করে পাঠায়। কেউ মাঝপথে ধরলেও encrypted data থেকে কিছু বুঝতে পারবে না।
+
+**Let's Encrypt** একটি free, automated Certificate Authority যা আপনাকে বিনামূল্যে SSL certificate দেয়। **Certbot** হলো সেই certificate automatically নেওয়া ও renew করার tool।
+
+<Steps>
+
+### Point Domain to Server
+
+প্রথমে আপনার domain-এর DNS settings-এ গিয়ে একটি **A Record** যোগ করুন:
+
+```
+Type:  A
+Name:  @ (অথবা yourdomain.com)
+Value: YOUR_SERVER_IP
+TTL:   Auto
+```
+
+Subdomain-এর জন্য (যেমন `www`):
+
+```
+Type:  A
+Name:  www
+Value: YOUR_SERVER_IP
+TTL:   Auto
+```
+
+<Callout type="info">
+  DNS propagation সম্পূর্ণ হতে ৫ মিনিট থেকে ৪৮ ঘণ্টা পর্যন্ত লাগতে পারে। পরের step-এ যাওয়ার আগে নিচের command দিয়ে check করুন domain আপনার server-এ point করছে কিনা:
+
+  ```bash filename="LOCAL — Terminal"
+  nslookup yourdomain.com
+  ```
+
+  Output-এ আপনার server IP দেখালে এগিয়ে যান।
+</Callout>
+
+### Update Nginx Config
+
+Certbot কাজ করার আগে Nginx config-এ domain name সেট করতে হবে:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/nginx/sites-available/myapp
+```
+
+`server_name` line-এ আপনার domain দিন:
+
+```nginx filename="/etc/nginx/sites-available/myapp"
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    server_tokens off;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Config test করুন এবং reload করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Install Certbot
+
+```bash filename="SERVER — Terminal"
+sudo apt install certbot python3-certbot-nginx -y
+```
+
+### Get SSL Certificate
+
+```bash filename="SERVER — Terminal"
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+Certbot কিছু প্রশ্ন করবে:
+- Email address দিন (renewal notification-এর জন্য)
+- Terms of Service agree করুন: `Y`
+- Email sharing: আপনার পছন্দমতো
+
+সফল হলে Certbot নিজেই Nginx config update করবে এবং HTTPS চালু হয়ে যাবে।
+
+### Verify Auto-Renewal
+
+Let's Encrypt certificate **৯০ দিন** পর expire হয়। Certbot একটি cron job তৈরি করে যা automatically renew করে। নিচের command দিয়ে test করুন:
+
+```bash filename="SERVER — Terminal"
+sudo certbot renew --dry-run
+```
+
+`Congratulations, all simulated renewals succeeded` দেখলে auto-renewal সঠিকভাবে কাজ করছে।
+
+</Steps>
+
+## Verify
+
+Browser-এ `https://yourdomain.com` visit করুন। URL bar-এ তালার চিহ্ন (padlock icon) দেখালে HTTPS সফলভাবে চালু হয়েছে।
+
+`http://` দিয়ে গেলে Certbot automatically `https://`-এ redirect করবে।
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Man-in-the-Middle Attack:** HTTP connection-এ আপনার ISP, public WiFi-এর admin, বা network path-এর যেকোনো attacker আপনার ব্যবহারকারীর traffic পড়তে এবং পরিবর্তন করতে পারে। এটিকে MITM বলে।
+
+  HTTPS এটি প্রতিরোধ করে কারণ TLS handshake-এ server তার certificate দিয়ে নিজেকে প্রমাণ করে এবং তারপর একটি encrypted tunnel তৈরি হয়। Attacker এই tunnel-এর ভেতরের data decrypt করতে পারে না — শুধু encrypted bytes দেখতে পায়।
+
+  TryHackMe-র **"Wireshark: The Basics"** room-এ দেখবেন HTTP traffic-এ password কিভাবে plain text-এ দেখা যায় — HTTPS-এ তা সম্ভব নয়।
+</Callout>
+
+## Quick Check
+
+- [ ] `nslookup yourdomain.com` আপনার server IP দেখাচ্ছে?
+- [ ] `https://yourdomain.com` browser-এ padlock দেখাচ্ছে?
+- [ ] `http://` দিয়ে গেলে `https://`-এ redirect হচ্ছে?
+- [ ] `sudo certbot renew --dry-run` সফল হচ্ছে?
+
+**পরবর্তী →** [GitHub Setup](/docs/server-deployment/01-mvp/github-setup)
+
+<span style={{ display: 'none' }}>
+  ssl certificate bangla, https setup ubuntu bangla, certbot bangla tutorial, lets encrypt bangla, nginx ssl bangla, domain point server bangla, mitm attack bangla, https free certificate bangla
+</span>

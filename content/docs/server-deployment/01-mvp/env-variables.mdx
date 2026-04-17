@@ -1,0 +1,157 @@
+---
+title: Environment Variables
+description: Store secrets securely on the server using .env files, understand what never goes into Git, and protect sensitive configuration from exposure.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Environment Variables
+
+<Callout type="info">
+  এই page-এ শিখবেন server-এ `.env` ফাইল কিভাবে তৈরি করতে হয়, কোন তথ্য কখনো Git-এ push করা যাবে না এবং কেন এই বিষয়টি production security-র সবচেয়ে গুরুত্বপূর্ণ অংশ।
+</Callout>
+
+## Why Environment Variables?
+
+আপনার app-এ অনেক sensitive তথ্য থাকে — database password, API key, payment gateway secret। এই তথ্যগুলো সরাসরি code-এ লিখলে যে সমস্যা হয়:
+
+- `git push` করলে GitHub-এ সবার কাছে দৃশ্যমান হয়
+- কোনো team member চলে গেলেও সে এই secrets দেখতে পারবে
+- আলাদা server-এ deploy করতে হলে code পরিবর্তন করতে হয়
+
+**Environment Variable** হলো এই সমস্যার সমাধান। এটি আপনার code থেকে secret তথ্যগুলোকে আলাদা করে রাখে। Code থাকে GitHub-এ, secrets থাকে শুধু server-এ।
+
+Next.js-এ environment variable-এর নাম `NEXT_PUBLIC_` দিয়ে শুরু হলে browser-এও পাঠানো হয়, অন্যথায় শুধু server-side-এ থাকে।
+
+<Callout type="warning">
+  **Real Breach Example:** ২০২২ সালে একটি বড় company-র developer ভুল করে `.env` ফাইল GitHub-এ push করেন। সেই ফাইলে AWS access key ছিল। কয়েক মিনিটের মধ্যে automated bots সেই key ব্যবহার করে হাজার হাজার EC2 instance চালু করে crypto mine করতে শুরু করে। সেই company-র এক রাতেই ৫০,০০০ ডলারের বেশি AWS bill আসে।
+</Callout>
+
+<Steps>
+
+### Ensure .gitignore is Correct
+
+সার্ভারে repository clone করার আগে নিশ্চিত করুন আপনার project-এ `.gitignore` ফাইলে `.env` listed আছে। **Local machine-এ** চেক করুন:
+
+```bash filename="LOCAL — Terminal"
+cat .gitignore | grep .env
+```
+
+Output-এ `.env` দেখলে ঠিক আছে। না দেখলে `.gitignore`-এ যোগ করুন:
+
+```bash filename=".gitignore"
+# environment files
+.env
+.env.local
+.env.production
+.env*.local
+```
+
+এরপর commit এবং push করুন — তারপরেই server-এ কাজ করুন।
+
+### Create .env on Server
+
+Server-এ আপনার project folder-এ যান এবং `.env` ফাইল তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+cd ~/YOUR_REPO
+nano .env
+```
+
+আপনার project অনুযায়ী প্রয়োজনীয় variables লিখুন:
+
+```bash filename="SERVER — .env"
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+
+# Authentication
+NEXTAUTH_SECRET=your-long-random-secret-here
+NEXTAUTH_URL=https://yourdomain.com
+
+# Environment
+NODE_ENV=production
+
+# Third-party APIs
+STRIPE_SECRET_KEY=sk_live_xxxxx
+```
+
+`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হন।
+
+<Callout type="info">
+  **NEXTAUTH_SECRET কিভাবে তৈরি করবেন?** একটি random, অনুমান করা যায় না এমন string দরকার। নিচের command দিয়ে তৈরি করুন:
+
+  ```bash filename="SERVER — Terminal"
+  openssl rand -base64 32
+  ```
+
+  Output-টি copy করে `NEXTAUTH_SECRET`-এর value হিসেবে দিন।
+</Callout>
+
+### Secure the File
+
+`.env` ফাইলে server-এর সবচেয়ে sensitive তথ্য থাকে। File permission সীমিত করুন যাতে শুধু current user পড়তে পারে:
+
+```bash filename="SERVER — Terminal"
+chmod 600 .env
+```
+
+<Callout type="info">
+  **`chmod 600` কী করে?** এটি file-এর permission এমনভাবে সেট করে যে শুধু file-এর owner (আপনার `queen` user) পড়তে এবং লিখতে পারবে। অন্য কোনো user এই file দেখতে পারবে না।
+
+  Verify করুন:
+  ```bash filename="SERVER — Terminal"
+  ls -la .env
+  ```
+  Output-এ `-rw-------` দেখলে সঠিক।
+</Callout>
+
+### Verify Variables Load
+
+Next.js সঠিকভাবে variable পাচ্ছে কিনা test করুন:
+
+```bash filename="SERVER — Terminal"
+node -e "require('dotenv').config(); console.log(process.env.NODE_ENV)"
+```
+
+`production` দেখলে `.env` সঠিকভাবে load হচ্ছে।
+
+</Steps>
+
+## How Next.js Reads Variables
+
+Next.js automatically `.env` ফাইল থেকে variable পড়ে। কিন্তু কোনটি কোথায় পাওয়া যাবে তার নিয়ম আছে:
+
+| Variable Name | Server-side | Browser |
+|---|---|---|
+| `DATABASE_URL` | পাওয়া যাবে | পাওয়া যাবে না |
+| `NEXTAUTH_SECRET` | পাওয়া যাবে | পাওয়া যাবে না |
+| `NEXT_PUBLIC_API_URL` | পাওয়া যাবে | পাওয়া যাবে |
+
+`NEXT_PUBLIC_` prefix আছে এমন variable browser-এ পাঠানো হয় — তাই এখানে কখনো secret রাখবেন না।
+
+## CyberSec Note
+
+<Callout type="warning">
+  **GitHub Secret Scanning:** যদি আপনি ভুলে `.env` ফাইল push করেন, GitHub নিজেই কিছু API key এবং token detect করে এবং আপনাকে email করে। তবে সব secret GitHub detect করতে পারে না।
+
+  একবার কোনো secret GitHub-এ push হয়ে গেলে শুধু ফাইল delete করলেই নিরাপদ নন — Git history-তে সেটি থেকে যায়। এক্ষেত্রে করণীয়:
+  1. **তৎক্ষণাৎ** সেই API key বা secret revoke করুন (invalidate করুন)
+  2. নতুন key তৈরি করুন
+  3. Git history থেকে সরাতে `git filter-repo` ব্যবহার করুন
+
+  সবচেয়ে ভালো হলো এই পরিস্থিতিতে না পড়া — `.gitignore` সঠিকভাবে configure করুন।
+</Callout>
+
+## Quick Check
+
+- [ ] `.gitignore`-এ `.env` listed আছে?
+- [ ] Server-এ `.env` ফাইল তৈরি হয়েছে?
+- [ ] `chmod 600 .env` করা হয়েছে?
+- [ ] `ls -la .env` দেখাচ্ছে `-rw-------`?
+- [ ] `NEXT_PUBLIC_` prefix ছাড়া কোনো secret রাখা হয়নি?
+
+**পরবর্তী →** [PM2 — Process Manager](/docs/server-deployment/01-mvp/pm2)
+
+<span style={{ display: 'none' }}>
+  environment variables bangla, env file server bangla, nextjs env setup, dotenv bangla, gitignore env bangla, chmod 600 env bangla, secret management bangla, api key security bangla
+</span>
