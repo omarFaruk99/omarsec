@@ -1,0 +1,93 @@
+---
+title: Phase 1 — MVP Deployment
+description: Learn to manually deploy a Next.js app on a Linux server — step by step, from a blank VPS to a live HTTPS site.
+---
+
+import { Callout, Steps, FileTree } from 'nextra/components'
+
+# Phase 1 — MVP Deployment
+
+<Callout type="info">
+  এই phase-এ আপনি একটি Next.js app **manually** deploy করবেন একটি real Linux server-এ। কোনো automation নেই, কোনো Docker নেই — প্রতিটি step নিজে হাতে করবেন। এটাই সঠিক শেখার পদ্ধতি।
+</Callout>
+
+## Why Manual First?
+
+অনেকে সরাসরি Docker বা CI/CD দিয়ে শুরু করতে চান। এটা একটি common ভুল।
+
+Manual deployment শিখলে আপনি জানবেন:
+- আপনার app server-এ **কোথায়** থাকে এবং **কিভাবে** চলে
+- Nginx আসলে কী করছে পর্দার পিছনে
+- কোনো কিছু ভাঙলে **কোথায় দেখতে হবে**
+
+এই জ্ঞান ছাড়া Docker বা GitHub Actions-এর error debug করা প্রায় অসম্ভব।
+
+## What You Will Build
+
+Phase 1 শেষে আপনার কাছে থাকবে:
+
+<FileTree>
+  <FileTree.Folder name="Your Server (Ubuntu 22.04)" defaultOpen>
+    <FileTree.Folder name="Running Services">
+      <FileTree.File name="Nginx — handles incoming requests" />
+      <FileTree.File name="PM2 — keeps your app alive" />
+      <FileTree.File name="Certbot — manages SSL certificate" />
+    </FileTree.Folder>
+    <FileTree.Folder name="/var/www/myapp">
+      <FileTree.File name="Your Next.js app (built & running)" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+এবং আপনার domain `https://yourdomain.com`-এ app live থাকবে।
+
+## What You Will NOT Do in Phase 1
+
+<Callout type="default">
+  Phase 1-এ ইচ্ছাকৃতভাবে কিছু জিনিস রাখা হয়নি — complexity কমাতে।
+</Callout>
+
+- **Database নেই** — stateless app deploy করা হবে। Database setup Phase 2-এ আছে।
+- **Docker নেই** — manually চালাবেন। Docker overview Phase 2-এ আছে।
+- **CI/CD নেই** — manually deploy করবেন। Automation Phase 2-এ আছে।
+
+## Steps in Phase 1
+
+<Steps>
+
+### Choose a Server
+একটি VPS provider বেছে নিন এবং Ubuntu server তৈরি করুন।
+
+### Secure the Server
+Non-root user তৈরি করুন, SSH key setup করুন এবং firewall চালু করুন।
+
+### Set Up Nginx
+Nginx install করুন এবং reverse proxy configure করুন।
+
+### Enable HTTPS
+Domain connect করুন এবং free SSL certificate নিন।
+
+### Configure Environment Variables
+Server-এ `.env` file তৈরি করুন।
+
+### Set Up PM2
+PM2 দিয়ে app চালু করুন এবং auto-restart configure করুন।
+
+### Deploy Your First App
+`create-next-app` থেকে শুরু করে live পর্যন্ত — পুরো walkthrough।
+
+</Steps>
+
+## CyberSec Note
+
+<Callout type="warning">
+  Manual deployment শেখার একটি বড় সুবিধা হলো **attack surface বোঝা**। যখন আপনি নিজে firewall configure করেন, SSH hardening করেন এবং non-root user তৈরি করেন — তখন বুঝতে পারেন কেন এই steps না থাকলে একটি server মিনিটের মধ্যে compromise হতে পারে।
+
+  TryHackMe-তে "Linux Privilege Escalation" এবং "Advent of Cyber" rooms-এ দেখবেন attackers ঠিক এই misconfiguration-গুলোই exploit করে।
+</Callout>
+
+**পরবর্তী →** [Choose a Server](/docs/server-deployment/01-mvp/choose-server)
+
+<span style={{ display: 'none' }}>
+  mvp deployment bangla, manual server deploy, nextjs deploy linux, vps deploy tutorial bangla, nginx pm2 ssl bangla
+</span>

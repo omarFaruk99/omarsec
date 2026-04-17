@@ -1,0 +1,204 @@
+---
+title: Choose a Server
+description: Understand the difference between VPS and Cloud, compare providers, and create your first Ubuntu server on Contabo or AWS EC2.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Choose a Server
+
+<Callout type="info">
+  এই page-এ শিখবেন server কী, কোন ধরনের server আপনার জন্য সঠিক, এবং কিভাবে Contabo বা AWS EC2-তে একটি Ubuntu server তৈরি করে connect করতে হয়।
+</Callout>
+
+## What Is a Server?
+
+আপনার laptop বা desktop computer একটি server হতে পারে — কিন্তু সেটি সবসময় চালু থাকে না, আপনার internet connection stable নয়, এবং IP address পরিবর্তন হয়।
+
+একটি **server** হলো একটি computer যা:
+- ২৪/৭ চালু থাকে
+- একটি fixed public IP address রাখে
+- একটি data center-এ physical বা virtual হিসেবে চলে
+- high-speed internet-এর সাথে connected থাকে
+
+আপনি যখন একটি server "কিনছেন" — আসলে আপনি একটি data center-এ থাকা computer-এর একটি অংশ **ভাড়া** নিচ্ছেন।
+
+## VPS vs Cloud
+
+**VPS (Virtual Private Server):** একটি নির্দিষ্ট monthly মূল্যে নির্দিষ্ট resource (CPU, RAM, disk) পাবেন। মাসের শুরুতে bill জানবেন।
+
+**Cloud (যেমন AWS EC2):** Resource ব্যবহার অনুযায়ী bill আসে। Scale করা সহজ, কিন্তু শেখার জন্য complex।
+
+| | VPS (Contabo, DigitalOcean) | Cloud (AWS EC2) |
+|---|---|---|
+| Monthly cost | Fixed, predictable | Variable, usage-based |
+| Setup complexity | Simple | More complex |
+| Scaling | Manual | Automatic (paid) |
+| Best for | Learning, small projects | Enterprise, high traffic |
+| Free tier | No | Yes (12 months free) |
+
+## Provider Comparison
+
+| Provider | Best For | Notes |
+|---|---|---|
+| **Contabo** | Learning + Small Projects | Good value, simple setup |
+| **DigitalOcean** | Beginners | Very clean UI, great docs |
+| **Vultr** | Beginners | Similar to DigitalOcean |
+| **AWS EC2** | Learning (free) + Professional | 12 months free tier, industry standard |
+
+<Callout type="default">
+  শেখার জন্য দুটি সেরা option:
+
+  **Contabo** — paid কিন্তু সস্তা, simple setup, real VPS experience পাবেন।
+
+  **AWS EC2** — ১২ মাস **সম্পূর্ণ ফ্রি** (Free Tier)। টাকা ছাড়া শিখতে চাইলে এটি সেরা, তবে setup একটু বেশি জটিল।
+
+  নিচে দুটো provider-এর জন্য আলাদাভাবে walkthrough দেওয়া আছে। আপনি যেটি use করছেন সেটি follow করুন।
+</Callout>
+
+## Contabo Setup
+
+<Steps>
+
+### Create a Server
+
+Contabo-তে account তৈরি করুন: **contabo.com**। "Cloud VPS" section-এ যান এবং নতুন server create করুন।
+
+Server তৈরির সময় এই options বেছে নিন:
+
+**Region:** আপনার client-এর কাছের region বেছে নিন।
+
+**Image (Operating System):** Ubuntu 24.04 LTS
+
+<Callout type="warning">
+  Ubuntu 24.04 LTS বেছে নিন — "latest" বা অন্য version নয়। LTS মানে Long Term Support, যার মানে দীর্ঘমেয়াদী security update পাবেন। Production server-এ সবসময় LTS version ব্যবহার করতে হয়।
+</Callout>
+
+**Server Size:** শেখার জন্য সবচেয়ে ছোট plan যথেষ্ট — 2 vCPU, 4 GB RAM। Current pricing দেখুন **contabo.com**-এ।
+
+**Root Password:** একটি strong password সেট করুন। পরের page-এ এটি SSH key দিয়ে replace করা হবে।
+
+"Order Now" বা "Create" click করুন। কয়েক মিনিটের মধ্যে server ready হবে এবং email-এ IP address পাবেন।
+
+### Connect to Your Server
+
+Server-এ login করুন। Contabo-তে default user হলো `root`:
+
+```bash filename="LOCAL — Terminal"
+ssh root@YOUR_SERVER_IP
+```
+
+Password চাইবে — server তৈরির সময় যে password দিয়েছিলেন সেটি দিন।
+
+Login সফল হলে terminal-এ দেখাবে:
+
+```
+root@vps-xxxxx:~#
+```
+
+<Callout type="warning">
+  আপনি এখন `root` user হিসেবে server-এ আছেন। Root user মানে সব permission আছে — যেকোনো file delete করতে পারবেন, যেকোনো service বন্ধ করতে পারবেন। এই অবস্থায় একটি ভুল command পুরো server নষ্ট করতে পারে।
+
+  পরের page-এ আমরা একটি নিরাপদ user তৈরি করব এবং root login বন্ধ করব।
+</Callout>
+
+</Steps>
+
+## AWS EC2 Setup
+
+<Callout type="info">
+  AWS EC2 Free Tier-এ **t2.micro** বা **t3.micro** instance ১২ মাস ফ্রি পাবেন। Credit card দরকার হয় account তৈরিতে, কিন্তু free tier limit-এর মধ্যে থাকলে charge হয় না।
+</Callout>
+
+<Steps>
+
+### Create a Server
+
+AWS Console-এ login করুন এবং EC2 service-এ যান। "Launch Instance" click করুন।
+
+**Name:** `myapp-production` বা যেকোনো নাম।
+
+**AMI (Operating System):** Ubuntu Server 24.04 LTS — "Free tier eligible" tag দেখে confirm করুন।
+
+**Instance Type:** `t2.micro` — Free tier eligible।
+
+**Key Pair:** "Create new key pair" click করুন।
+- Key pair name: `myapp-key`
+- Key pair type: ED25519
+- Private key file format: `.pem`
+
+"Create key pair" click করলে `myapp-key.pem` file আপনার **local computer-এর Downloads folder**-এ download হবে।
+
+<Callout type="warning">
+  এই `.pem` file-টি হারালে আর server-এ login করতে পারবেন না। এটি কখনো GitHub বা কোথাও upload করবেন না।
+</Callout>
+
+**Network Settings:** "Edit" click করুন।
+- "Allow SSH traffic from" → **Anywhere** বেছে নিন
+- "Allow HTTP traffic from the internet" → check করুন
+- "Allow HTTPS traffic from the internet" → check করুন
+
+<Callout type="warning">
+  "Anywhere" মানে পৃথিবীর যেকোনো IP থেকে আপনার server-এর SSH port-এ connection attempt করা যাবে। শেখার জন্য এটি সবচেয়ে সহজ — কারণ আপনার নিজের IP পরিবর্তন হলেও কোনো সমস্যা হবে না।
+
+  AWS EC2-তে default-এ password login বন্ধ থাকে এবং শুধু `.pem` key দিয়ে login করতে হয়, তাই "Anywhere" রাখলে password brute-force হওয়ার ভয় নেই। তবে production-এ এটি নির্দিষ্ট IP-তে restrict করাই best practice — কারণ এটি আপনার server-এর **Attack Surface** কমায় (অর্থাৎ attackers আপনার server সম্পর্কে তথ্য কম পাবে)। 
+</Callout>
+
+
+<Callout type="default">
+  AWS-এ এই Network Settings-কে বলে **Security Group** — এটি AWS-এর বিল্ট-ইন firewall। পরের page-এ UFW firewall configure করার পাশাপাশি AWS Security Group-এর বিষয়ে আরও বলা হবে।
+</Callout>
+
+"Launch Instance" click করুন। কয়েক মিনিটের মধ্যে instance "Running" state-এ আসবে।
+
+### Connect to Your Server
+
+Downloads folder থেকে `.pem` file-টি `~/.ssh/` folder-এ move করুন যাতে সহজে খুঁজে পাওয়া যায়:
+
+```bash filename="LOCAL — Terminal"
+mv ~/Downloads/myapp-key.pem ~/.ssh/myapp-key.pem
+```
+
+এখন file-এর permission পরিবর্তন করতে হবে। Linux-এ যদি একটি private key file অন্য কেউ read করতে পারে, SSH সেটি security risk হিসেবে গণ্য করে এবং connection refuse করে। `chmod 400` মানে শুধু **আপনি** read করতে পারবেন — অন্য কেউ না:
+
+```bash filename="LOCAL — Terminal"
+chmod 400 ~/.ssh/myapp-key.pem
+```
+
+এখন server-এ login করুন। AWS EC2-তে default user হলো **`ubuntu`** — `root` নয়:
+
+```bash filename="LOCAL — Terminal"
+ssh -i ~/.ssh/myapp-key.pem ubuntu@YOUR_EC2_IP
+```
+
+Login সফল হলে terminal-এ দেখাবে:
+
+```
+ubuntu@ip-xxx-xxx-xxx-xxx:~#
+```
+
+<Callout type="default">
+  AWS-এ আপনি `ubuntu` user হিসেবে আছেন যার `sudo` access আছে — সরাসরি root নন। পরের page-এ আমরা একটি dedicated `queen` user তৈরি করব উভয় provider-এর জন্য।
+</Callout>
+
+</Steps>
+
+## CyberSec Note
+
+<Callout type="warning">
+  একটি নতুন server public internet-এ connect হওয়ার পর থেকে **automated bots** SSH port (22) scan করা শুরু করে। এই bots common username (`root`, `admin`, `ubuntu`) এবং weak password দিয়ে login করার চেষ্টা করে — এটিকে বলে **brute-force attack**।
+
+  Server তৈরির পর failed login attempt দেখতে পারবেন:
+
+  ```bash filename="SERVER — Terminal"
+  grep "Failed password" /var/log/auth.log | tail -20
+  ```
+
+  এই কারণেই পরের page-এ SSH hardening এবং firewall setup **app deploy করার আগেই** করা হবে।
+</Callout>
+
+**পরবর্তী →** [Secure the Server](/docs/server-deployment/01-mvp/secure-server)
+
+<span style={{ display: 'none' }}>
+  contabo server setup bangla, aws ec2 free tier bangla, vps vs cloud bangla, ubuntu server create, server deploy bangla, vps provider comparison bangla, aws ec2 ubuntu login, server queen user bangla
+</span>

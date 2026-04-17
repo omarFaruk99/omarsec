@@ -7,5 +7,6 @@ export default {
   },
   'git-github': 'Git & GitHub',
   'linux-fundamentals': 'Linux Fundamentals',
+  'server-deployment': 'Server Deployment',
   'contributors': 'Contributors'
 }

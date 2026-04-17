@@ -1,0 +1,252 @@
+---
+title: Secure the Server
+description: Create a non-root user, set up SSH key authentication, disable password login, and configure a firewall before deploying anything.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Secure the Server
+
+<Callout type="info">
+  App deploy করার আগে server secure করা **বাধ্যতামূলক**। এই page-এ শিখবেন নিরাপদ user তৈরি করতে, SSH key দিয়ে login করতে, password login বন্ধ করতে এবং firewall চালু করতে।
+</Callout>
+
+## Why Secure First?
+
+**১. Non-root user (`queen`):** Root বা admin হিসেবে সরাসরি কাজ করা ঝুঁকিপূর্ণ। কারণ root হিসেবে একটি সামান্য টাইপিং ভুলে পুরো সার্ভার মুছে যেতে পারে। আমরা একটি সাধারণ ইউজার তৈরি করব যা প্রয়োজনে `sudo` দিয়ে admin-এর কাজ করতে পারবে।
+
+**২. SSH Key Authentication:** পাসওয়ার্ডের চেয়ে SSH Key অনেক বেশি নিরাপদ। এটি একটি cryptographic key pair:
+- **Private Key:** এটি আপনার নিজের চাবির মতো, যা শুধু আপনার নিজের কম্পিউটারে থাকবে। কাউকে এটি দেবেন না।
+- **Public Key:** এটি একটি তালার মতো, যা আমরা সার্ভারে রেখে দেব।
+সার্ভারে লগিন করার সময় আপনার কম্পিউটার নিজের Private key দিয়ে সার্ভারের Public key-এর সাথে ম্যাচ করে। এটি পাসওয়ার্ডের চেয়ে অনেক শক্তিশালী এবং হ্যাকারদের পক্ষে ব্রেক করা প্রায় অসম্ভব।
+
+## Contabo / Standard VPS Setup
+
+আপনি যদি Contabo বা অন্য কোনো সাধারণ VPS ব্যবহার করেন তবে এই ধাপগুলো অনুসরণ করুন।
+
+<Steps>
+
+### Login as Root
+
+প্রথমে আপনার কম্পিউটারের টার্মিনাল থেকে root হিসেবে লগিন করুন:
+
+```bash filename="LOCAL — Terminal"
+ssh root@YOUR_SERVER_IP
+```
+
+### Create Queen User
+
+সার্ভারে একটি নতুন ইউজার তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+adduser queen
+```
+
+পাসওয়ার্ড সেট করুন এবং বাকি তথ্যগুলো Enter চেপে স্কিপ করুন। এখন এই ইউজারকে `sudo` পারমিশন দিন:
+
+<Callout type="info">
+  **usermod:** User Modify.  
+  **-aG:** Append to Group (ইউজারকে তার আগের গ্রুপগুলো থেকে বাদ না দিয়েই নতুন গ্রুপে যুক্ত করা)।
+</Callout>
+
+```bash filename="SERVER — Terminal"
+usermod -aG sudo queen
+```
+
+### Generate SSH Key (Local)
+
+সার্ভারে কী পাঠানোর আগে আপনার নিজের কম্পিউটারে (Local Machine) একটি key pair তৈরি করতে হবে। আপনার টার্মিনালে এই কমান্ডটি দিন:
+
+```bash filename="LOCAL — Terminal"
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+**যা যা ঘটবে:**
+এই কমান্ডটি চালানোর পর আপনার কম্পিউটারের `~/.ssh/` ডিরেক্টরিতে **দুটি ফাইল** তৈরি হবে:
+1.  **`id_ed25519` (Private Key):** এটি আপনার গোপন চাবি। এটি কক্ষনো কাউকে দেবেন না বা কোথাও শেয়ার করবেন না।
+2.  **`id_ed25519.pub` (Public Key):** এটি আপনার পাবলিক কী। এই ফাইলটির ভেতরের লেখাটুকু আমরা সার্ভারে পাঠাব যাতে সার্ভার আপনাকে চিনতে পারে।
+
+### Setup SSH Key Authentication
+
+এখন আপনার তৈরি করা **Public Key** সার্ভারে পাঠাতে হবে যাতে সার্ভার আপনার কম্পিউটারকে চিনতে পারে। এর জন্য আমরা `ssh-copy-id` টুলটি ব্যবহার করব:
+
+<Callout type="default">
+  **Pro Tip:** প্রফেশনাল এনভায়রনমেন্টে প্রতিটি ডেভেলপারের নিজস্ব আলাদা SSH Key থাকে। এতে করে কোনো অঘটন ঘটলে কে কখন সার্ভারে লগিন করেছে তা সহজে ট্র্যাক করা যায়।
+</Callout>
+
+<Callout type="info">
+  **ssh-copy-id কী?** এটি আপনার কম্পিউটারের পাবলিক কী-টিকে স্বয়ংক্রিয়ভাবে সার্ভারের `~/.ssh/authorized_keys` ফাইলে কপি করে দেয়। ফলে আপনাকে ম্যানুয়ালি ফাইল এডিট করতে হয় না।
+</Callout>
+
+```bash filename="LOCAL — Terminal"
+ssh-copy-id -i ~/.ssh/id_ed25519.pub queen@YOUR_SERVER_IP
+```
+
+পাসওয়ার্ড চাইলে `queen` এর পাসওয়ার্ড দিন। এখন পাসওয়ার্ড ছাড়াই লগিন করা যাচ্ছে কিনা চেক করুন:
+
+```bash filename="LOCAL — Terminal"
+ssh queen@YOUR_SERVER_IP
+```
+
+### Disable Password Login
+
+পাসওয়ার্ড লগিন বন্ধ করা অত্যন্ত জরুরি। সার্ভারে থাকাকালীন নিচের ফাইলটি এডিট করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config
+```
+
+নিচের লাইন দুটি খুঁজে বের করুন এবং পরিবর্তন করুন:
+
+```bash filename="SERVER — /etc/ssh/sshd_config"
+PasswordAuthentication no
+PermitRootLogin no
+```
+
+`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হয়ে আসুন। এরপর SSH রিস্টার্ট দিন:
+
+```bash filename="SERVER — Terminal"
+sudo systemctl restart sshd
+```
+
+### Configure Firewall (UFW)
+
+শুধু প্রয়োজনীয় পোর্টগুলো (২২, ৮০, ৪৪৩) ওপেন রাখুন:
+
+```bash filename="SERVER — Terminal"
+# SSH allow নিশ্চিত করুন
+sudo ufw allow OpenSSH
+
+# Web traffic
+sudo ufw allow 80
+sudo ufw allow 443
+
+# Firewall চালু করুন
+sudo ufw enable
+```
+
+সার্ভার এখন নিরাপদ।
+
+</Steps>
+
+## AWS EC2 Setup
+
+আপনি যদি AWS EC2 Free Tier ব্যবহার করেন তবে এই ধাপগুলো অনুসরণ করুন।
+
+<Steps>
+
+### Login as Ubuntu
+
+AWS-এর ডিফল্ট ইউজার `ubuntu` এবং আপনার `.pem` ফাইল ব্যবহার করে লগিন করুন:
+
+```bash filename="LOCAL — Terminal"
+ssh -i ~/.ssh/myapp-key.pem ubuntu@YOUR_EC2_IP
+```
+
+### Create Queen User
+
+নতুন ইউজার তৈরি করুন এবং তাকে `sudo` পারমিশন দিন:
+
+<Callout type="info">
+  **usermod:** User Modify.  
+  **-aG:** Append to Group.
+</Callout>
+
+```bash filename="SERVER — Terminal"
+sudo adduser queen
+sudo usermod -aG sudo queen
+```
+
+### Generate SSH Key (Local)
+
+যদি আপনার কম্পিউটারে আগে থেকে SSH Key না থাকে, তবে নিচের কমান্ডটি দিয়ে এক জোড়া কী তৈরি করে নিন:
+
+```bash filename="LOCAL — Terminal"
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+এটি আপনার জন্য **দুটি ফাইল** তৈরি করবে: একটি **Private Key** (যা আপনার কাছে থাকবে) এবং অন্যটি **Public Key** (যা আমরা এখন সার্ভারে আপলোড করব)।
+
+### Setup SSH Key Authentication
+
+AWS-এ `ssh-copy-id` সরাসরি কাজ করে না কারণ আপনি `.pem` ফাইল দিয়ে কানেক্ট আছেন। তবে কিছু ফ্ল্যাগ ব্যবহার করে আমরা এটি করতে পারি। প্রথমে আপনার তৈরি করা **Public Key (`id_ed25519.pub`)** `ubuntu` ইউজারের কাছে পাঠান:
+
+<Callout type="default">
+  **প্রশ্ন হতে পারে:** AWS তো নিজেই একটি `.pem` ফাইল দেয়, তাহলে নতুন কী কেন?
+  **উত্তর:** AWS-এর `.pem` ফাইলটি অনেকটা "মাস্টার কি"-র মতো। কিন্তু প্রোডাকশনে সিকিউরিটির খাতিরে আমরা সেটি সব ইউজারকে দিই না। আপনার নিজস্ব জেনারেট করা কী ব্যবহার করা একটি ইন্ডাস্ট্রি স্ট্যান্ডার্ড এবং অনেক বেশি নিরাপদ।
+</Callout>
+
+<Callout type="info">
+  এখানে `ssh-copy-id` ব্যবহার করা হচ্ছে যাতে ম্যানুয়ালি কী কপি করার ঝামেলা পোহাতে না হয়। এটি আপনার লোকাল পাবলিক কী-কে সার্ভারের `ubuntu` ইউজারের অনুমোদিত তালিকার শুরুতে যোগ করে দেবে।
+</Callout>
+
+```bash filename="LOCAL — Terminal"
+# আপনার local public key copy করুন
+ssh-copy-id -i ~/.ssh/id_ed25519.pub -o "IdentityFile ~/.ssh/myapp-key.pem" ubuntu@YOUR_EC2_IP
+```
+
+এখন সার্ভারের ভেতর থেকে ওই কী-টি `queen` ইউজারের হোমে কপি করতে হবে:
+
+```bash filename="SERVER — Terminal"
+# queen-এর জন্য .ssh ফোল্ডার তৈরি
+sudo mkdir -p /home/queen/.ssh
+sudo cp ~/.ssh/authorized_keys /home/queen/.ssh/
+sudo chown -R queen:queen /home/queen/.ssh
+sudo chmod 700 /home/queen/.ssh
+sudo chmod 600 /home/queen/.ssh/authorized_keys
+```
+
+এখন আপনার লোকাল কম্পিউটার থেকে সরাসরি `queen` হিসেবে লগিন চেক করুন:
+
+```bash filename="LOCAL — Terminal"
+ssh queen@YOUR_EC2_IP
+```
+
+### Disable Password Login
+
+AWS-এ ডিফল্টভাবে পাসওয়ার্ড অফ থাকলেও, নতুন ইউজার `queen`-এর জন্য এটি নিশ্চিত করা প্রয়োজন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config
+```
+
+নিচে পরিবর্তন করুন:
+- `PasswordAuthentication no`
+- `PermitRootLogin no`
+
+এরপর SSH রিস্টার্ট দিন: `sudo systemctl restart sshd`।
+
+### Configure Firewall (UFW + Security Group)
+
+প্রথমে সার্ভারে UFW সেটআপ করুন:
+
+```bash filename="SERVER — Terminal"
+sudo ufw allow OpenSSH
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
+```
+
+এরপর **অবশ্যই** AWS Console থেকে "Security Group" এ গিয়ে এই একই পোর্টগুলো (22, 80, 443) ইনবাউন্ড রুলস (Inbound Rules) হিসেবে allow করতে হবে। এটি না করলে UFW থাকা সত্ত্বেও আপনার সাইট দেখা যাবে না।
+
+</Steps>
+
+## Quick Check
+
+- [ ] `queen` user তৈরি হয়েছে এবং `sudo` group-এ আছে?
+- [ ] SSH key দিয়ে `queen` user হিসেবে পাসওয়ার্ড ছাড়াই লগিন হচ্ছে?
+- [ ] পাসওয়ার্ড দিয়ে লগিন করার চেষ্টায় `Permission denied` আসছে?
+- [ ] `sudo ufw status` দেখাচ্ছে port 22, 80, 443 open?
+- [ ] AWS ব্যবহারকারী: Security Group-এও এই রুলগুলো আছে?
+
+## CyberSec Note
+
+<Callout type="warning">
+  এই পেজে আপনি যা করলেন তাকে বলে **Server Hardening**। এটি একটি স্ট্যান্ডার্ড সিকিউরিটি প্র্যাকটিস। পেনিট্রেশন টেস্টাররা যখন কোনো সার্ভারে অ্যাটাক করার চেষ্টা করেন, তারা প্রথমেই দেখেন কোনো ভুল কনফিগারেশন আছে কিনা (যেমন: রুট লগিন অন রাখা বা উইক পাসওয়ার্ড)। আপনি এই ধাপগুলো সম্পন্ন করার মধ্য দিয়ে আপনার সার্ভারের সিকিউরিটি লেভেল অনেক বাড়িয়ে নিয়েছেন।
+</Callout>
+
+**পরবর্তী →** [Nginx & Reverse Proxy](/docs/server-deployment/01-mvp/nginx)
+
+<span style={{ display: 'none' }}>
+  server hardening bangla, ssh key setup bangla, ufw firewall bangla, aws security group bangla, disable password login ssh, queen user linux bangla, server security bangla tutorial, contabo ubuntu setup
+</span>

@@ -1,0 +1,96 @@
+---
+title: Server Deployment
+description: Learn how to deploy a Next.js application on a real Linux server — from a blank VPS to a live production site.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Server Deployment
+
+<Callout type="info">
+  এই section-টি তাদের জন্য যারা ইতিমধ্যে একটি web application (React/Next.js) বানাতে পারেন এবং এখন সেটিকে একটি **real server**-এ deploy করতে শিখতে চান — ঠিক যেভাবে professional Software Engineers করেন।
+</Callout>
+
+## Vercel vs. a Real Server
+
+এই প্রশ্নটি প্রায় সবার মনে আসে:
+
+> "Vercel তো free এবং সহজ — তাহলে নিজের server কেন?"
+
+এটা একটি সৎ প্রশ্ন এবং এর উত্তর জানা দরকার।
+
+Vercel চমৎকার — এই সাইটটিও (omarsec.com) Vercel-এ চলে। কিন্তু Vercel একটি **managed platform**, যার মানে হলো Vercel আপনার হয়ে অনেক সিদ্ধান্ত নেয়।
+
+| | Vercel | Your Own Server |
+|---|---|---|
+| Setup | Zero config | Manual, full control |
+| Database | External service only | Run anything locally |
+| Background jobs | Not supported | Fully supported |
+| File storage | External service only | Local or cloud |
+| Cost at scale | Expensive | Predictable monthly cost |
+| Learning value | Low | High |
+
+Client projects-এ প্রায়ই এমন requirements আসে যা Vercel-এ সম্ভব না — যেমন একটি custom background worker, একটি database যা same server-এ চলবে, বা একটি real-time WebSocket server। এই মুহূর্তে আপনার নিজের server-এ deploy করার দক্ষতা লাগবে।
+
+আরেকটি কারণ আরো গুরুত্বপূর্ণ:
+
+> যে engineer server বোঝেন না, তিনি যে কোনো platform ব্যবহার করুন — production-এ কিছু ভাঙলে তিনি অন্ধ।
+
+## Prerequisites
+
+<Callout type="warning">
+  এই section শুরু করার আগে নিচের বিষয়গুলো জানা থাকতে হবে।
+</Callout>
+
+- Linux terminal basics — `cd`, `ls`, `cat`, file permissions, [SSH](/docs/linux-fundamentals/05-users-permissions/ssh) (Linux Fundamentals section দেখুন)
+- Git workflow — `git clone`, `git push` (Git & GitHub section দেখুন)
+- একটি Next.js project আছে বা `create-next-app` দিয়ে তৈরি করতে পারেন
+- একটি GitHub account আছে
+
+Database বা Docker জানা **দরকার নেই**। এই section-এ এগুলো ধাপে ধাপে দেখানো হবে।
+
+## What You Will Learn
+
+এই section দুটি phase-এ ভাগ করা হয়েছে।
+
+### Phase 1 — MVP
+
+Manual deployment — প্রতিটা step নিজে হাতে করবেন যাতে পুরো process বোঝা যায়।
+
+Phase 1 শেষে আপনি পারবেন:
+- একটি VPS server তৈরি এবং secure করতে
+- Nginx দিয়ে reverse proxy configure করতে
+- HTTPS চালু করতে (free SSL certificate)
+- আপনার Next.js app live রাখতে server reboot-এর পরেও
+
+### Phase 2 — Full Production
+
+একটি real production environment এ কী কী লাগে সেটা বোঝা এবং implement করা।
+
+Phase 2 শেষে আপনি জানবেন:
+- Docker এবং CI/CD কী এবং কেন দরকার (বিস্তারিত আলাদা dedicated section-এ)
+- Database কিভাবে server-এ চালাতে হয়
+- Cloudflare দিয়ে DDoS protection এবং CDN কিভাবে সেটাপ করতে হয়
+- Monitoring, backup এবং file storage কিভাবে handle করতে হয়
+
+## How to Use This Section
+
+<Steps>
+
+### Phase 1 থেকে শুরু করুন
+
+Phase 1 skip করবেন না। Manual process বোঝা ছাড়া Phase 2-এর automation-এর কারণ বোঝা যাবে না। কোনো কিছু ভাঙলে কোথায় দেখতে হবে সেটাও বোঝা যাবে না।
+
+### প্রতিটি command নিজে চালান
+
+শুধু পড়লে হবে না। একটি real server নিন (Hetzner-এ €4/month থেকে শুরু) এবং প্রতিটি step নিজে করুন।
+
+### Phase 1 সম্পূর্ণ করার পর Phase 2 যান
+
+Phase 1-এ একটি app live করার পর Phase 2 পড়লে অনেক বেশি sense করবে।
+
+</Steps>
+
+<span style={{ display: 'none' }}>
+  server deployment bangla, deploy nextjs server, vps deploy bangla, nginx bangla tutorial, linux server deploy, production deploy bangla, hetzner aws deploy bangla, devops bangla
+</span>
