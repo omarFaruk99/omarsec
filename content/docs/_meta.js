@@ -5,8 +5,23 @@ export default {
       breadcrumb: false
     }
   },
-  'git-github': 'Git & GitHub',
-  'linux-fundamentals': 'Linux Fundamentals',
-  'server-deployment': 'Server Deployment',
+  'git-github': {
+    title: 'Git & GitHub',
+    theme: {
+      collapsed: false
+    }
+  },
+  'linux-fundamentals': {
+    title: 'Linux Fundamentals',
+    theme: {
+      collapsed: true
+    }
+  },
+  'server-deployment': {
+    title: 'Server Deployment',
+    theme: {
+      collapsed: true
+    }
+  },
   'contributors': 'Contributors'
 }

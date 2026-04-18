@@ -1,7 +1,12 @@
 export default {
   index: {
     title: 'Home',
-    type: 'page'
+    type: 'page',
+    theme: {
+      toc: false,
+      sidebar: false,
+      timestamp: false
+    }
   },
   docs: {
     title: 'Docs',
