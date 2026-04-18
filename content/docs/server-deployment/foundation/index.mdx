@@ -1,14 +1,14 @@
 ---
-title: Phase 1 — MVP Deployment
+title: Server Foundation
 description: Learn to manually deploy a Next.js app on a Linux server — step by step, from a blank VPS to a live HTTPS site.
 ---
 
 import { Callout, Steps, FileTree } from 'nextra/components'
 
-# Phase 1 — MVP Deployment
+# Server Foundation
 
 <Callout type="info">
-  এই phase-এ আপনি একটি Next.js app **manually** deploy করবেন একটি real Linux server-এ। কোনো automation নেই, কোনো Docker নেই — প্রতিটি step নিজে হাতে করবেন। এটাই সঠিক শেখার পদ্ধতি।
+  এই সেকশনে আপনি একটি Next.js app **manually** deploy করবেন একটি real Linux server-এ। কোনো automation নেই, কোনো Docker নেই — প্রতিটি step নিজে হাতে করবেন। এটাই সঠিক শেখার পদ্ধতি।
 </Callout>
 
 ## Why Manual First?
@@ -24,7 +24,7 @@ Manual deployment শিখলে আপনি জানবেন:
 
 ## What You Will Build
 
-Phase 1 শেষে আপনার কাছে থাকবে:
+এই সেকশন শেষে আপনার কাছে থাকবে:
 
 <FileTree>
   <FileTree.Folder name="Your Server (Ubuntu 22.04)" defaultOpen>
@@ -41,17 +41,17 @@ Phase 1 শেষে আপনার কাছে থাকবে:
 
 এবং আপনার domain `https://yourdomain.com`-এ app live থাকবে।
 
-## What You Will NOT Do in Phase 1
+## What You Will NOT Do Here
 
 <Callout type="default">
-  Phase 1-এ ইচ্ছাকৃতভাবে কিছু জিনিস রাখা হয়নি — complexity কমাতে।
+  এখানে ইচ্ছাকৃতভাবে কিছু জিনিস রাখা হয়নি — complexity কমাতে।
 </Callout>
 
-- **Database নেই** — stateless app deploy করা হবে। Database setup Phase 2-এ আছে।
-- **Docker নেই** — manually চালাবেন। Docker overview Phase 2-এ আছে।
-- **CI/CD নেই** — manually deploy করবেন। Automation Phase 2-এ আছে।
+- **Database নেই** — stateless app deploy করা হবে। Database setup পরবর্তী Production সেকশনে আছে।
+- **Docker নেই** — manually চালাবেন। Docker overview Production সেকশনে আছে।
+- **CI/CD নেই** — manually deploy করবেন। Automation Production সেকশনে আছে।
 
-## Steps in Phase 1
+## Steps in Foundation
 
 <Steps>
 
@@ -86,7 +86,7 @@ PM2 দিয়ে app চালু করুন এবং auto-restart configu
   TryHackMe-তে "Linux Privilege Escalation" এবং "Advent of Cyber" rooms-এ দেখবেন attackers ঠিক এই misconfiguration-গুলোই exploit করে।
 </Callout>
 
-**পরবর্তী →** [Choose a Server](/docs/server-deployment/01-mvp/choose-server)
+**পরবর্তী →** [Choose a Server](/docs/server-deployment/foundation/choose-server)
 
 <span style={{ display: 'none' }}>
   mvp deployment bangla, manual server deploy, nextjs deploy linux, vps deploy tutorial bangla, nginx pm2 ssl bangla

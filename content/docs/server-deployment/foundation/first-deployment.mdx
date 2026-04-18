@@ -1,0 +1,258 @@
+---
+title: First Deployment
+description: End-to-end walkthrough — take a brand new Next.js app from your local machine, push to GitHub, and deploy it live on your server with Nginx and PM2.
+---
+
+import { Callout, Steps, FileTree } from 'nextra/components'
+
+# First Deployment
+
+<Callout type="info">
+  এটি Phase 1-এর সবচেয়ে গুরুত্বপূর্ণ walkthrough। এখানে আপনি একটি নতুন Next.js app তৈরি থেকে শুরু করে live server-এ সেটি secure-ভাবে চালু করা পর্যন্ত পুরো প্রক্রিয়াটি ধাপে ধাপে দেখবেন।
+</Callout>
+
+এই walkthrough-এর মূল লক্ষ্য হলো আপনাকে deployment-এর একটি "Big Picture" দেওয়া। আমরা এখানে deep technical details-এ না গিয়ে focus করব checklist-এর ওপর, যাতে আপনি কোনো ভুল ছাড়াই app-টি live করতে পারেন।
+
+<Steps>
+
+### Create App Locally
+
+প্রথমে আপনার **local computer-এ** একটি standard Next.js app তৈরি করুন:
+
+```bash filename="LOCAL — Terminal"
+npx create-next-app@latest myapp
+```
+
+Enter চেপে সব default settings রাখুন। এরপর folder-এ প্রবেশ করুন:
+
+```bash filename="LOCAL — Terminal"
+cd myapp
+```
+
+একবার `npm run dev` চালিয়ে `http://localhost:3000`-এ verify করুন যে app ঠিকঠাক চলছে।
+
+### Push to GitHub
+
+Server-এ code পাঠানোর সবচেয়ে professional মাধ্যম হলো GitHub। একটি নতুন repository তৈরি করুন এবং code push করুন:
+
+```bash filename="LOCAL — Terminal"
+git init
+git add .
+git commit -m "initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/myapp.git
+git push -u origin main
+```
+
+বিস্তারিত জানতে base [Git & GitHub](/docs/git-github) documentation দেখুন।
+
+### Server Setup
+
+আপনার server প্রস্তুত আছে তো? Deployment শুরু করার আগে server-কে secure এবং tool-ready করতে হবে।
+
+(বিস্তারিত জানতে [Choose a Server](/docs/server-deployment/foundation/choose-server) এবং [Secure the Server](/docs/server-deployment/foundation/secure-server) page-গুলো সম্পন্ন করুন)।
+
+আপনার server-এ Node.js install থাকতে হবে। আমরা NVM (Node Version Manager) ব্যবহার করি:
+
+```bash filename="SERVER — Terminal"
+# NVM install
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+
+# LTS version install
+nvm install --lts
+nvm use --lts
+
+# Installation verify করুন
+node -v
+npm -v
+```
+
+### Clone Repository
+
+**Learner-দের জন্য সবচেয়ে কমন প্রশ্ন:** App-টি server-এর কোথায় রাখব?
+
+আমরা app-টি আমাদের user-এর **Home Directory (`~/`)**-এ রাখব। এটি permissions error এড়ানোর সবচেয়ে সহজ এবং secure পথ।
+
+```bash filename="SERVER — Terminal"
+cd ~
+git clone https://github.com/YOUR_USERNAME/myapp.git
+cd myapp
+```
+
+বিস্তারিত জানতে [GitHub Setup](/docs/server-deployment/foundation/github-setup) দেখুন।
+
+আপনার server-এর structure সাধারণত এরকম হবে:
+
+<FileTree>
+  <FileTree.Folder name="home" defaultOpen>
+    <FileTree.Folder name="queen" defaultOpen>
+      <FileTree.Folder name="myapp" defaultOpen>
+        <FileTree.Folder name=".next" />
+        <FileTree.Folder name="public" />
+        <FileTree.File name="package.json" />
+        <FileTree.File name="next.config.js" />
+      </FileTree.Folder>
+      <FileTree.Folder name=".pm2">
+        <FileTree.Folder name="logs" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+  <FileTree.Folder name="etc">
+    <FileTree.Folder name="nginx">
+      <FileTree.Folder name="sites-available" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+এখানে `~/myapp` হলো আপনার project root। মনে রাখবেন, server-এর মূল config ফাইলগুলো থাকে `/etc/` folder-এ, আর আপনার personal files ও logs থাকে `/home/` folder-এ।
+
+### Build the App
+
+Next.js-এ build process আপনার source code-কে optimized production files-এ রূপান্তর করে।
+
+<Callout type="warning">
+  **Build করার আগে:** আপনার app-এ যদি environment variables (`.env`) প্রয়োজন হয়, তবে build করার আগেই সেটি তৈরি করে নিতে হবে। অন্যথায় build ফেইল করতে পারে বা client-side variables কাজ করবে না। বিস্তারিত জানতে [Environment Variables](/docs/server-deployment/foundation/env-variables) দেখুন।
+</Callout>
+
+```bash filename="SERVER — Terminal"
+npm install
+npm run build
+```
+
+Build সফল হলে `.next` folder তৈরি হবে। এটিই real production app।
+
+### PM2 Process Manager
+
+App-টি background-এ চালু রাখতে এবং server reboot হলে auto-start করতে PM2 ব্যবহার করুন:
+
+```bash filename="SERVER — Terminal"
+npm install -g pm2
+
+# Installation verify করুন
+pm2 -v
+```
+
+App-টি চালু করুন:
+
+```bash filename="SERVER — Terminal"
+pm2 start npm --name "myapp" -- start
+pm2 save
+pm2 startup
+```
+
+(বিস্তারিত জানতে [PM2 — Process Manager](/docs/server-deployment/foundation/pm2) দেখুন)।
+
+### Nginx Reverse Proxy
+
+Nginx আপনার app-কে port 80 (HTTP)-এ serve করবে। একটি config ফাইল তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/nginx/sites-available/myapp
+```
+
+নিচের config-টি ব্যবহার করুন:
+
+```nginx filename="/etc/nginx/sites-available/myapp"
+server {
+    listen 80;
+    server_name YOUR_DOMAIN_OR_IP;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Config enable করুন:
+
+```bash filename="SERVER — Terminal"
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+(বিস্তারিত জানতে [Nginx & Reverse Proxy](/docs/server-deployment/foundation/nginx) দেখুন)।
+
+### SSL & HTTPS
+
+Domain থাকলে অবশ্যই SSL চালু করুন। Certbot এটি খুব সহজে করে দেয়:
+
+```bash filename="SERVER — Terminal"
+sudo apt install certbot python3-certbot-nginx -y
+
+# Installation verify করুন
+certbot --version
+
+# SSL certificate নিন
+sudo certbot --nginx -d yourdomain.com
+```
+
+(বিস্তারিত জানতে [SSL & HTTPS](/docs/server-deployment/foundation/ssl-https) দেখুন)।
+
+### Test Live
+
+সবকিছু ঠিক থাকলে এখন আপনার application-টি live দেখার পালা।
+
+**কিভাবে চেক করবেন:**
+আপনার browser-এর address bar-এ যান এবং আপনার domain বা server IP লিখুন:
+- Domain থাকলে: `https://yourdomain.com`
+- IP হলে: `http://YOUR_SERVER_IP`
+
+যদি আপনার application-টি ব্রাউজারে সফলভাবে দেখতে পান এবং domain-এর ক্ষেত্রে ব্রাউজারে **তালার চিহ্ন (Padlock icon)** দেখা যায়, তবে অভিনন্দন! আপনার **First Deployment সফল**।
+
+</Steps>
+
+## Troubleshooting
+
+প্রথমবার deploy করার সময় কিছু সমস্যা হতে পারে। নিচে কমন কিছু সমস্যা ও সমাধান দেওয়া হলো:
+
+| সমস্যা | কারণ | সমাধান |
+| :--- | :--- | :--- |
+| **502 Bad Gateway** | App ঠিকমতো চালু নেই | `pm2 logs myapp` চেক করুন। |
+| **Next.js Default Page** | Nginx reload করা হয়নি | `sudo systemctl reload nginx` চালান। |
+| **Port 3000 busy** | অন্য কোনো process পোর্টটি ব্যবহার করছে | `pm2 list` চেক করুন অথবা `netstat` দিয়ে পোর্ট দেখুন। |
+| **Permission Denied** | `sudo` ছাড়া system ফাইল এডিট করা | Command-এর আগে `sudo` ব্যবহার নিশ্চিত করুন। |
+
+## Update Workflow
+
+ভবিষ্যতে code update করার জন্য এই simple workflow অনুসরণ করুন:
+
+```bash filename="LOCAL — Terminal"
+# Step 1: Push change
+git add .
+git commit -m "update message"
+git push
+```
+
+```bash filename="SERVER — Terminal"
+# Step 2: Pull and Restart
+cd ~/myapp
+git pull
+# যদি .env পরিবর্তন হয়, তবে সেটি manually update করুন
+npm run build
+pm2 restart myapp
+```
+
+## CyberSec Note
+
+<Callout type="warning">
+  Deployment-এর সময় সবচেয়ে বড় ভুল হলো `.env` file GitHub-এ push করা। আপনার project folder-এ অবশ্যই `.gitignore` verify করুন। এছাড়া, server-এর firewall (`ufw`) ঠিকঠাক কাজ করছে কিনা তা [Secure Server](/docs/server-deployment/foundation/secure-server) page থেকে পুনরায় চেক করে নিন।
+</Callout>
+
+## Quick Check
+
+- [ ] Project home directory-তে clone করা হয়েছে?
+- [ ] `npm run build` কোনো error ছাড়াই শেষ হয়েছে?
+- [ ] `pm2 list`-এ status `online` দেখাচ্ছে?
+- [ ] Nginx config test সফল হয়েছে?
+
+**পরবর্তী →** [Environment Variables](/docs/server-deployment/foundation/env-variables)
+
+<span style={{ display: 'none' }}>
+  nextjs deployment bangla, server directory layout bangla, next.js production tutorial, pm2 nginx nextjs bangla, first deployment guide bangla, web server file structure bangla
+</span>

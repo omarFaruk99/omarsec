@@ -51,43 +51,45 @@ Database বা Docker জানা **দরকার নেই**। এই sect
 
 ## What You Will Learn
 
-এই section দুটি phase-এ ভাগ করা হয়েছে।
+এই পুরো সেকশনটি এমনভাবে সাজানো হয়েছে যেন আপনি একদম শূন্য থেকে শুরু করে একজন প্রফেশনালের মতো সার্ভার ম্যানেজ করতে পারেন। শেখার সুবিধার্থে এটিকে দুটি প্রধান ভাগে ভাগ করা হয়েছে:
 
-### Phase 1 — MVP
+### Foundation
 
-Manual deployment — প্রতিটা step নিজে হাতে করবেন যাতে পুরো process বোঝা যায়।
+**লক্ষ্য:** সার্ভারের একদম বেসিক বা ভেতরের কাজগুলো হাতে-কলমে শেখা।
 
-Phase 1 শেষে আপনি পারবেন:
-- একটি VPS server তৈরি এবং secure করতে
-- Nginx দিয়ে reverse proxy configure করতে
-- HTTPS চালু করতে (free SSL certificate)
-- আপনার Next.js app live রাখতে server reboot-এর পরেও
+Foundation সেকশনটি শেষ করার পর আপনি শিখবেন:
+- **Server Creation:** একটি ফাঁকা Linux VPS কিনে সেটিতে হ্যাকারদের থেকে বাঁচার জন্য Security Hardening করা (Firewall, SSH Keys)।
+- **Traffic Routing:** Nginx ব্যবহার করে ব্যবহারকারীর রিকোয়েস্ট আপনার অ্যাপ পর্যন্ত সঠিকভাবে পৌঁছে দেওয়া।
+- **Security:** Certbot দিয়ে বিনামূল্যে SSL Certificate যুক্ত করে সাইটটিকে HTTPS করা।
+- **Process Management:** PM2 ব্যবহার করা যাতে সার্ভার রিস্টার্ট হলেও আপনার অ্যাপ নিজে নিজেই চালু হয়ে যায়।
 
-### Phase 2 — Full Production
+সংক্ষেপে, এই সেকশন শেষে আপনি যেকোনো সাধারণ ওয়েব অ্যাপ্লিকেশানকে ইন্টারনেটে লাইভ করতে পারবেন।
 
-একটি real production environment এ কী কী লাগে সেটা বোঝা এবং implement করা।
+### Full Production
 
-Phase 2 শেষে আপনি জানবেন:
-- Docker এবং CI/CD কী এবং কেন দরকার (বিস্তারিত আলাদা dedicated section-এ)
-- Database কিভাবে server-এ চালাতে হয়
-- Cloudflare দিয়ে DDoS protection এবং CDN কিভাবে সেটাপ করতে হয়
-- Monitoring, backup এবং file storage কিভাবে handle করতে হয়
+**লক্ষ্য:** একটি সাধারণ ওয়েবসাইটকে Enterprise-grade বা বিশাল স্কেলের অ্যাপ্লিকেশনে রূপান্তর করা।
+
+Full Production সেকশনটি শেষ করার পর আপনি শিখবেন:
+- **Automation & Scaling:** Docker কন্টেইনার এবং CI/CD পাইপলাইন ব্যবহার করে ডেপ্লয়মেন্ট অটোমেট করা।
+- **Data Management:** ডেটাবেস (PostgreSQL) এবং ক্লাউড ফাইল স্টোরেজ (S3) সিকিউরভাবে সার্ভারের সাথে যুক্ত করা।
+- **Advanced Security:** Cloudflare ব্যবহার করে সাইটকে DDoS অ্যাটাক থেকে বাঁচানো এবং CDN এর মাধ্যমে সারা বিশ্বে সাইট ফাস্ট করা।
+- **Reliability:** সার্ভারের যেকোনো সমস্যায় অ্যালার্ট (Monitoring) পাওয়া এবং ডেটা হারানোর ভয়ে অটোমেটিক Backup সিস্টেম তৈরি করা।
 
 ## How to Use This Section
 
 <Steps>
 
-### Phase 1 থেকে শুরু করুন
+### Foundation থেকে শুরু করুন
 
-Phase 1 skip করবেন না। Manual process বোঝা ছাড়া Phase 2-এর automation-এর কারণ বোঝা যাবে না। কোনো কিছু ভাঙলে কোথায় দেখতে হবে সেটাও বোঝা যাবে না।
+Foundation skip করবেন না। Manual process বোঝা ছাড়া Full Production-এর automation-এর কারণ বোঝা যাবে না। কোনো কিছু ভাঙলে কোথায় দেখতে হবে সেটাও বোঝা যাবে না।
 
 ### প্রতিটি command নিজে চালান
 
 শুধু পড়লে হবে না। একটি real server নিন (Hetzner-এ €4/month থেকে শুরু) এবং প্রতিটি step নিজে করুন।
 
-### Phase 1 সম্পূর্ণ করার পর Phase 2 যান
+### Foundation সম্পূর্ণ করার পর Full Production-এ যান
 
-Phase 1-এ একটি app live করার পর Phase 2 পড়লে অনেক বেশি sense করবে।
+Foundation-এ একটি app live করার পর Full Production পড়লে অনেক বেশি sense করবে।
 
 </Steps>
 

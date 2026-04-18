@@ -8,8 +8,8 @@ Teaches learners how to take a Next.js application and deploy it on a real Linux
 server — the same way professional Software Engineers do in production.
 
 Two dedicated sub-sections visible in the sidebar:
-- **Phase 1 — MVP:** Manual deployment, understand every step hands-on
-- **Phase 2 — Full Production:** Docker, CI/CD, Database, Cloudflare, File Storage, Monitoring, Backups
+- **Foundation:** Manual deployment, understand every step hands-on
+- **Full Production:** Docker, CI/CD, Database, Cloudflare, File Storage, Monitoring, Backups
 
 > Docker and CI/CD will have their own dedicated sections on omarsec.com later.
 > In this section, they are covered as overviews only — concept + why — linking to those future sections.
@@ -19,12 +19,12 @@ Two dedicated sub-sections visible in the sidebar:
 ## Current Status
 
 > **[AI CONTEXT NOTE]**
-> Phase 1 (MVP) is fully complete as of 2026-04-17.
-> Phase 2 will begin approximately 1 week later (around 2026-04-24).
+> Foundation is fully complete as of 2026-04-17.
+> Full Production will begin approximately 1 week later (around 2026-04-24).
 > When resuming work, start directly with `02-full-production/` folder creation.
-> Do NOT re-create or modify any Phase 1 files unless the user explicitly asks.
+> Do NOT re-create or modify any Foundation files unless the user explicitly asks.
 
-### Phase 1 — COMPLETE
+### Foundation — COMPLETE
 
 All 9 pages created and registered in `_meta.js`:
 
@@ -40,7 +40,7 @@ All 9 pages created and registered in `_meta.js`:
 
 **Note:** `github-setup.mdx` was added during Phase 1 (not in original roadmap) because it is essential for production workflow understanding.
 
-### Phase 2 — NOT STARTED
+### Full Production — NOT STARTED
 
 Planned to begin around **2026-04-24**. Full structure listed below.
 
@@ -54,7 +54,7 @@ When a user visits `omarsec.com/docs/server-deployment`, the sidebar shows:
 Server Deployment
 ├── Overview (index)
 │
-├── Phase 1 — MVP
+├── Foundation
 │   ├── Introduction              ✅
 │   ├── Choose a Server           ✅
 │   ├── Secure the Server         ✅
@@ -65,7 +65,7 @@ Server Deployment
 │   ├── PM2 — Process Manager     ✅
 │   └── First Deployment          ✅
 │
-└── Phase 2 — Full Production
+└── Full Production
     ├── Introduction
     ├── Docker (Overview)
     ├── CI/CD Pipeline (Overview)
@@ -86,7 +86,7 @@ content/docs/server-deployment/
 ├── _meta.js
 ├── index.mdx                              → Section overview, Vercel vs Server question, prerequisites
 │
-├── 01-mvp/                                ← COMPLETE
+├── foundation/                                ← COMPLETE
 │   ├── _meta.js
 │   ├── index.mdx
 │   ├── choose-server.mdx
@@ -115,7 +115,7 @@ content/docs/server-deployment/
 
 ---
 
-## Key Design Decisions (Phase 1)
+## Key Design Decisions (Foundation)
 
 | Decision | Choice | Reason |
 |---|---|---|
