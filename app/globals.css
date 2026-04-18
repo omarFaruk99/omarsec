@@ -55,6 +55,7 @@ h1 {
   font-size: 2rem !important;
   font-weight: 700 !important;
   letter-spacing: -0.03em !important;
+  font-style: normal !important;
 }
 
 h2 {
@@ -172,41 +173,92 @@ h3 {
 .home-content-wrapper {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  /* 64px navbar + ~120px footer padding/height */
-  min-height: calc(100dvh - 184px);
-  padding: 1rem;
+  justify-content: center;
+  min-height: calc(100dvh - 180px);
   width: 100%;
+}
+
+/* Override Nextra's default layout forcing scroll */
+body.has-home-bg article,
+body.has-home-bg main {
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
 }
 
 @media (max-width: 768px) {
   .home-content-wrapper {
-    min-height: calc(100dvh - 220px); /* More space for stacked footer elements on mobile */
-    padding-top: 4rem;
+    margin-top: 2rem;
   }
 }
 
 /* Custom Card Colors (Teal & Silver Cyber Theme) */
+/* Simplified Theme-Aware Buttons */
+.home-cards a {
+  flex: 1 1 250px;
+  padding: 1rem;
+  display: flex !important;
+  align-items: center;
+  justify-content: center !important;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: #fff !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.home-cards a:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--teal-accent) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+  color: var(--teal-accent) !important;
+}
+
+/* Primary Button (First one) */
 .home-cards a:nth-child(1) {
   border-color: rgba(0, 212, 170, 0.3) !important;
+  background: rgba(0, 212, 170, 0.05) !important;
   color: var(--teal-accent) !important;
-  background: rgba(0, 212, 170, 0.02) !important;
 }
 
 .home-cards a:nth-child(1):hover {
-  background-color: rgba(0, 212, 170, 0.1) !important;
-  border-color: var(--teal-accent) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+  background: rgba(0, 212, 170, 0.1) !important;
 }
 
-.home-cards a:nth-child(2) {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: #eee !important;
+/* Light Mode Overrides */
+html[data-theme='light'] .home-cards a,
+html:not(.dark) .home-cards a {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  color: #111 !important;
 }
 
-.home-cards a:nth-child(2):hover {
-  background-color: rgba(255, 255, 255, 0.03) !important;
+html[data-theme='light'] .home-cards a:hover,
+html:not(.dark) .home-cards a:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
   border-color: var(--teal-accent) !important;
   color: var(--teal-accent) !important;
+}
+
+html[data-theme='light'] .home-cards a:nth-child(1),
+html:not(.dark) .home-cards a:nth-child(1) {
+  background: rgba(0, 212, 170, 0.05) !important;
+  border-color: rgba(0, 212, 170, 0.2) !important;
+  color: #008f72 !important; /* Slightly darker teal for light mode accessibility */
+}
+
+/* Compact footer on homepage to fit in single viewport */
+body.has-home-bg footer {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+body.has-home-bg footer > div {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
