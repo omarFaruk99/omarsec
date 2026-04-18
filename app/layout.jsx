@@ -69,6 +69,8 @@ const footer = (
   </Footer>
 )
 
+import MouseTracker from './components/MouseTracker'
+
 export default async function RootLayout({ children }) {
   const pageMap = await getPageMap()
 
@@ -83,6 +85,7 @@ export default async function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       <body>
+        <MouseTracker />
         <Layout
           navbar={navbar}
           pageMap={pageMap}

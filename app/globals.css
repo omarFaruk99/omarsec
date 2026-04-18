@@ -1,15 +1,48 @@
-/* Force dark theme always */
-html {
-  color-scheme: dark;
-}
-
 :root {
   --font-geist: 'Geist', sans-serif;
   --font-geist-mono: 'Geist Mono', monospace;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
 }
 
 body {
   font-family: var(--font-geist), sans-serif;
+  position: relative;
+}
+
+/* Base Network Node Pattern (Dark Mode Default) */
+/* Only applied on Homepage via the .has-home-bg class */
+body.has-home-bg::before {
+  content: "";
+  position: fixed;
+  top: 64px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 64px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M10 10 L40 40 L70 10 M10 10 L10 60 L40 40 M70 10 L70 60 L40 40' stroke='%23ffffff' stroke-opacity='0.15' stroke-width='0.5' fill='none'/%3E%3Ccircle cx='10' cy='10' r='0.8' fill='%23ffffff' fill-opacity='0.4'/%3E%3Ccircle cx='40' cy='40' r='0.8' fill='%23ffffff' fill-opacity='0.4'/%3E%3Ccircle cx='70' cy='10' r='0.8' fill='%23ffffff' fill-opacity='0.4'/%3E%3C/svg%3E");
+  background-position: top left;
+  pointer-events: none;
+  z-index: -1;
+
+  /* The Reveal Mask - now with a sharper 300px spotlight */
+  -webkit-mask-image: radial-gradient(300px circle at var(--mouse-x) var(--mouse-y),
+      black 0%,
+      rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.1) 100%);
+  mask-image: radial-gradient(300px circle at var(--mouse-x) var(--mouse-y),
+      black 0%,
+      rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.1) 100%);
+
+  transition: opacity 0.5s ease;
+}
+
+/* Light Mode Override for Network Nodes */
+html:not(.dark) body.has-home-bg::before,
+[data-theme='light'] body.has-home-bg::before,
+html[style*="color-scheme: light"] body.has-home-bg::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M10 10 L40 40 L70 10 M10 10 L10 60 L40 40 M70 10 L70 60 L40 40' stroke='%23000000' stroke-opacity='0.1' stroke-width='0.5' fill='none'/%3E%3Ccircle cx='10' cy='10' r='0.8' fill='%23000000' fill-opacity='0.2'/%3E%3Ccircle cx='40' cy='40' r='0.8' fill='%23000000' fill-opacity='0.2'/%3E%3Ccircle cx='70' cy='10' r='0.8' fill='%23000000' fill-opacity='0.2'/%3E%3C/svg%3E");
+  opacity: 1 !important;
 }
 
 code,
@@ -140,6 +173,7 @@ h3 {
   border-color: rgba(34, 197, 94, 0.4) !important;
   color: #4ade80 !important;
 }
+
 .home-cards a:nth-child(1):hover {
   background-color: rgba(34, 197, 94, 0.1) !important;
   border-color: rgba(34, 197, 94, 0.8) !important;
@@ -149,6 +183,7 @@ h3 {
   border-color: rgba(59, 130, 246, 0.4) !important;
   color: #60a5fa !important;
 }
+
 .home-cards a:nth-child(2):hover {
   background-color: rgba(59, 130, 246, 0.1) !important;
   border-color: rgba(59, 130, 246, 0.8) !important;
