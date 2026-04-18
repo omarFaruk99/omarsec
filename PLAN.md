@@ -2,8 +2,8 @@
 
 ## What Is This?
 
-omarsec.com is a personal cybersecurity brand website built by **Omar (Shuvon)**.
-It starts as a personal knowledge base and evolves into a cybersecurity consultancy firm website.
+omarsec.com is a personal cybersecurity brand built by **Omar (Shuvon)**.
+It starts as an open-source engineering laboratory and knowledge base, and will evolve into a cybersecurity consultancy firm website.
 
 For tech stack details → see `TECH_STACK.md`
 For documentation writing rules → see `DOCS_RULES.md`
@@ -41,9 +41,10 @@ For documentation writing rules → see `DOCS_RULES.md`
 
 ### Completed
 - [x] Site live at omarsec.com
+- [x] Homepage & Brand Redesign (Open-Source Laboratory)
 - [x] Git & GitHub docs (7 pages)
 - [x] Custom 404 page
-- [x] SWR-style dark theme
+- [x] SWR-style minimalist theme
 - [x] Vercel deployment with GitHub CD
 
 ### Planned (not in MVP)
