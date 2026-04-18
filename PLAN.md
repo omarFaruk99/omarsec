@@ -12,7 +12,7 @@ For documentation writing rules → see `DOCS_RULES.md`
 
 ## Owner Background
 
-- CSE/IT graduate, Software Documentation Engineer at a B2B travel solutions company (Bangladesh)
+- CSE/IT graduate, Offensive Security / Software Engineer at a B2B travel solutions company (Bangladesh)
 - Web dev: HTML, JavaScript, React, Express.js, basic Node.js
 - Server: AWS EC2, Nginx, PM2, basic Linux
 - Currently learning cybersecurity: TryHackMe → eJPT → PNPT → OSCP
