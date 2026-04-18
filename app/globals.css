@@ -169,22 +169,44 @@ h3 {
 
 /* Custom Card Colors (Green & Blue) */
 /* Nextra Cards usually export an 'a' tag wrapping the content. We target its internal border/hover. */
+.home-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* 64px navbar + ~120px footer padding/height */
+  min-height: calc(100dvh - 184px);
+  padding: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .home-content-wrapper {
+    min-height: calc(100dvh - 220px); /* More space for stacked footer elements on mobile */
+    padding-top: 4rem;
+  }
+}
+
+/* Custom Card Colors (Teal & Silver Cyber Theme) */
 .home-cards a:nth-child(1) {
-  border-color: rgba(34, 197, 94, 0.4) !important;
-  color: #4ade80 !important;
+  border-color: rgba(0, 212, 170, 0.3) !important;
+  color: var(--teal-accent) !important;
+  background: rgba(0, 212, 170, 0.02) !important;
 }
 
 .home-cards a:nth-child(1):hover {
-  background-color: rgba(34, 197, 94, 0.1) !important;
-  border-color: rgba(34, 197, 94, 0.8) !important;
+  background-color: rgba(0, 212, 170, 0.1) !important;
+  border-color: var(--teal-accent) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
 }
 
 .home-cards a:nth-child(2) {
-  border-color: rgba(59, 130, 246, 0.4) !important;
-  color: #60a5fa !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #eee !important;
 }
 
 .home-cards a:nth-child(2):hover {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  border-color: rgba(59, 130, 246, 0.8) !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--teal-accent) !important;
+  color: var(--teal-accent) !important;
 }
