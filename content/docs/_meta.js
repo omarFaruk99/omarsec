@@ -29,5 +29,11 @@ export default {
       collapsed: true
     }
   },
+  'claude-code': {
+    title: 'Claude Code',
+    theme: {
+      collapsed: true
+    }
+  },
   'contributors': 'Contributors'
 }

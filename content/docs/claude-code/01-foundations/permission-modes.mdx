@@ -1,0 +1,47 @@
+---
+title: Permission Modes
+description: Understand Claude Code's permission modes — default, plan, accept edits, and auto — and how to switch between them.
+---
+
+import { Callout } from 'nextra/components'
+
+# Permission Modes
+
+<Callout type="info">
+Permission modes control how much Claude Code asks before it acts.
+</Callout>
+
+## The Modes
+
+| Mode | What happens | Use it when |
+|------|---------------|-------------|
+| **Default** | Asks before every edit and command | You are new, or the task is sensitive |
+| **Plan** | Read-only. Writes a plan, you approve the plan, not each step | The task is large — a refactor or new feature |
+| **Accept Edits** | Edits apply automatically. Risky commands still ask | Doing several small, low-risk changes |
+| **Auto** | Claude decides what's safe on its own | Routine work, least friction |
+
+<Callout type="warning">
+Auto mode still blocks risky actions like committing secrets — it isn't "no protection." Fully unattended modes (`dontAsk`, `bypassPermissions`) come later in this guide, for CI and containers only.
+</Callout>
+
+## Switching Modes
+
+- Press `Shift+Tab` to cycle modes inside a session
+- Or start in one directly:
+
+```bash filename="Terminal"
+claude --permission-mode plan
+```
+
+## A Daily Pattern
+
+1. **Plan** for a new task — see the approach first
+2. **Accept Edits** while it implements
+3. Review with `git diff` before committing
+4. Back to **Default** for anything unfamiliar
+
+**Next →** [Context Basics](/docs/claude-code/01-foundations/context-basics)
+
+<span style={{ display: 'none' }}>
+  claude code permission modes, claude code plan mode, claude code auto mode, claude code accept edits, claude code shift tab
+</span>

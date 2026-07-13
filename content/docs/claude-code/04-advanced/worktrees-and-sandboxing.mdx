@@ -1,0 +1,48 @@
+---
+title: Worktrees and Sandboxing
+description: Run parallel Claude Code sessions on different branches, and understand how sandboxing limits what commands can access.
+---
+
+import { Callout } from 'nextra/components'
+
+# Worktrees and Sandboxing
+
+<Callout type="info">
+Two separate features about keeping work isolated: worktrees keep different tasks from interfering with each other, and sandboxing keeps commands from reaching things they should not.
+</Callout>
+
+## Worktrees
+
+Normally, a git repository has one working folder, checked out to one branch at a time. If you are deep into a feature on one branch, and an urgent bug needs fixing on `main`, switching branches means either committing unfinished work or stashing it.
+
+A **git worktree** solves this by giving you a second folder, linked to the same repository, checked out to a different branch. You can have two Claude Code sessions running at once — one in each folder — without either one interfering with the other:
+
+```bash filename="Terminal"
+claude --worktree fix-urgent-bug
+```
+
+This starts a new session in its own worktree, on its own branch, while your original session and its branch stay exactly as they were. When the bug fix is done and merged, the worktree can be cleaned up.
+
+## Why This Matters Day to Day
+
+| Without worktrees | With worktrees |
+|---------------------|------------------|
+| Switching branches risks losing uncommitted work | Each task keeps its own folder and branch |
+| Only one task in progress at a time | Two genuinely parallel tasks, side by side |
+| Stash and unstash to juggle tasks | No stashing needed |
+
+## Sandboxing
+
+Sandboxing is a different kind of isolation: it limits what a command Claude Code runs can actually reach, separate from the permission prompts you have already seen.
+
+For example, network sandboxing means a Bash command Claude Code runs does not get free access to the internet by default — only to domains you have explicitly trusted. This matters because a command could otherwise reach out to somewhere unexpected, even if the command itself looked harmless when you approved it.
+
+<Callout type="default">
+Worktrees are about **not colliding with your own other work** — two tasks side by side. Sandboxing is about **limiting what a command can reach**, even one you already approved. They solve different problems, but both exist to make working with Claude Code safer as your usage gets more advanced.
+</Callout>
+
+**Next →** [Agent Teams](/docs/claude-code/04-advanced/agent-teams)
+
+<span style={{ display: 'none' }}>
+  claude code worktrees, claude code git worktree, claude code sandboxing, claude code network sandbox, claude code parallel sessions
+</span>

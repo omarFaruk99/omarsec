@@ -1,0 +1,54 @@
+---
+title: Git and PR Workflow
+description: Using Claude Code to commit, branch, and open pull requests through plain conversation.
+---
+
+import { Callout } from 'nextra/components'
+
+# Git and PR Workflow
+
+<Callout type="info">
+You can ask Claude Code to handle git steps in plain English — it runs the real git commands for you.
+</Callout>
+
+## Everyday Requests
+
+```
+commit my changes with a clear message
+```
+
+```
+create a new branch for this feature
+```
+
+```
+open a pull request for this change
+```
+
+Claude Code stages the right files, writes the commit message, and runs the actual `git` and `gh` (GitHub CLI) commands. You still see and approve each command first, unless you are in a more permissive mode.
+
+## A Safer Pattern
+
+Ask it to pause before the risky step:
+
+```
+create a PR for this feature, but ask me to review the diff before you push
+```
+
+<Callout type="warning">
+Claude Code will not force-push, delete branches, or skip commit hooks unless you clearly ask for it. Treat those the same way you would treat them yourself — confirm before doing anything hard to undo.
+</Callout>
+
+## Reviewing Before You Commit
+
+```
+/diff
+```
+
+Shows your uncommitted changes so you can look them over yourself, separate from asking Claude to explain them.
+
+**Next →** [Subagents](/docs/claude-code/03-intermediate/subagents)
+
+<span style={{ display: 'none' }}>
+  claude code git workflow, claude code commit, claude code pull request, claude code github, claude code branch
+</span>

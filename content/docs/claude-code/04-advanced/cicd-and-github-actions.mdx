@@ -1,0 +1,63 @@
+---
+title: CI/CD and GitHub Actions
+description: Run Claude Code automatically inside your CI pipeline, using the same headless mode from the previous page.
+---
+
+import { Callout } from 'nextra/components'
+
+# CI/CD and GitHub Actions
+
+<Callout type="info">
+This page is [Headless Mode](/docs/claude-code/04-advanced/headless-mode-and-scripting) applied to a specific, very common place: your CI pipeline.
+</Callout>
+
+## Why This Matters
+
+CI/CD (continuous integration and deployment) is where your code gets automatically tested and checked every time someone pushes or opens a pull request — with no person watching it happen in real time. That is exactly the situation headless mode was built for: no one is present to approve anything, so Claude Code needs to run non-interactively, with permissions already decided in advance.
+
+## A Basic GitHub Actions Example
+
+Anthropic publishes an official GitHub Action, so you do not have to wire up the headless command by hand:
+
+```yaml filename=".github/workflows/claude-review.yml"
+name: Claude Code Review
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropic/claude-code-action@v1
+        with:
+          prompt: "review this pull request for bugs and security issues"
+```
+
+Here is what happens: every time someone opens a pull request, GitHub automatically runs this job. It checks out the code, then runs Claude Code with your review prompt — no one has to remember to run a review by hand, and no one has to be present when it happens.
+
+## Common Uses in a Pipeline
+
+| Use case | What it does |
+|----------|----------------|
+| Automatic PR review | Runs on every pull request, posts findings as comments |
+| Fixing a failing check | Reads the failure log, proposes a fix automatically |
+| Responding to a mention | Someone comments `@claude fix this`, and a job picks it up |
+| Scheduled maintenance | Runs on a timer — for example, a weekly dependency check |
+
+## What Changes Compared to Your Own Terminal
+
+When you run Claude Code yourself, you are there to approve edits and catch anything that looks wrong. In a pipeline, that safety net is gone, so a few things matter more:
+
+- Set permissions explicitly in the workflow file — do not leave it fully open
+- Have it comment on a PR rather than push directly to your main branch, so a human still reviews the actual change
+- Test a new automated workflow on a low-risk repository first, before trusting it with your main project
+
+<Callout type="warning">
+An automated pipeline runs unattended, on every matching event, potentially many times a day. Treat any pipeline step that can change code or push commits with the same caution you would give a new team member's very first week — review its output closely until you trust it.
+</Callout>
+
+**Next →** [Worktrees and Sandboxing](/docs/claude-code/04-advanced/worktrees-and-sandboxing)
+
+<span style={{ display: 'none' }}>
+  claude code github actions, claude code ci cd, claude code automated pr review, claude code pipeline
+</span>

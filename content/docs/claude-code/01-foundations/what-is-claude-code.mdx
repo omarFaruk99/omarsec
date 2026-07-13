@@ -1,0 +1,51 @@
+---
+title: What is Claude Code
+description: What Claude Code is, how it is different from chat-based AI tools, and what it can actually do in your terminal.
+---
+
+import { Callout } from 'nextra/components'
+
+# What is Claude Code
+
+<Callout type="info">
+An AI coding agent that runs in your terminal, inside your real project.
+</Callout>
+
+## The Chat Tool Problem
+
+A normal AI chat tool never sees your project. You paste code in, get an answer, then copy it back yourself. It cannot open your files or run your tests.
+
+## What Claude Code Does
+
+It works directly inside your project folder. It can:
+
+- **Read** your files — the real code, not a pasted snippet
+- **Edit** files — you review each change before it is saved
+- **Run commands** — tests, linters, builds — and read the real output
+- **Search** your codebase — find where something is used, across many files
+
+## Example
+
+You say:
+
+> "The login page hangs on a wrong password. Fix it."
+
+Claude Code finds the login code, reads it, finds the cause, shows you a diff, and runs your tests to check the fix. You approve each step.
+
+## Where It Runs
+
+- Terminal: type `claude` in any project folder
+- VS Code extension
+- JetBrains plugin (IntelliJ, PyCharm, WebStorm)
+
+All three use the same tool underneath.
+
+<Callout type="default">
+Made by Anthropic. Default model in 2026 is Sonnet 5, with Opus and Haiku also available — more on model choice later in this guide.
+</Callout>
+
+**Next →** [Installation](/docs/claude-code/01-foundations/installation)
+
+<span style={{ display: 'none' }}>
+  what is claude code, claude code introduction, claude code vs chatgpt, ai coding agent, anthropic claude code
+</span>

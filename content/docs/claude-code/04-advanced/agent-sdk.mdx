@@ -1,0 +1,56 @@
+---
+title: Claude Agent SDK
+description: Build your own custom agent on top of the same engine that powers Claude Code, hosted on your own infrastructure.
+---
+
+import { Callout } from 'nextra/components'
+
+# Claude Agent SDK
+
+<Callout type="info">
+Everything before this page has been about using Claude Code as a finished tool. The Agent SDK is different: it lets you build your *own* tool using the same underlying engine.
+</Callout>
+
+## What Makes This Different
+
+Claude Code, the CLI you have been using, is one finished product built by Anthropic: it has its own commands, its own settings, its own interface. The Agent Loop underneath it — read files, propose edits, run commands, ask for approval — is the actual engine that makes all of that work.
+
+The Agent SDK exposes that same engine directly to you, as a library in your own code (available for Python and TypeScript). Instead of running `claude` in a terminal, you write a program that starts and controls an agent yourself, hosted on your own servers.
+
+## Why You Would Reach for This
+
+You do not need the SDK to use Claude Code well — most developers never touch it. It becomes useful when you want to build something Claude Code itself does not offer, such as:
+
+- A support tool for your own company that reads customer tickets and drafts responses, running as part of your own product
+- An internal script that reviews every pull request automatically and posts comments, without a person opening a terminal
+- A custom chat interface for your team, with your own UI, built on the same reasoning engine
+
+## A Small Example
+
+```python filename="agent.py"
+from claude_agent_sdk import ClaudeAgent
+
+agent = ClaudeAgent()
+result = agent.run("Summarize the open issues in this repository")
+print(result)
+```
+
+This looks simple, but the same built-in tools from Claude Code are available underneath — reading files, running commands, searching code — because it is the same engine, just called from your own program instead of a terminal.
+
+## How It Relates to What You Already Know
+
+| Concept | Where you saw it before | In the Agent SDK |
+|---------|--------------------------|--------------------|
+| Reading files, running commands | The Core Loop, in Your First Session | Still there, available as tools your program can use |
+| Hooks | Automating steps in a session | Same hook events, now configurable in your own code |
+| Permissions | Approving edits and commands | You decide the rules, since there is no human sitting at a terminal |
+
+<Callout type="default">
+If you are only using Claude Code to help with your own coding work, you likely never need the Agent SDK. It matters once you are building a product or internal tool that itself needs to *act* like Claude Code, rather than a person simply using it.
+</Callout>
+
+**Next →** [Workflows](/docs/claude-code/04-advanced/workflows)
+
+<span style={{ display: 'none' }}>
+  claude agent sdk, claude code sdk, build custom ai agent, anthropic agent sdk python typescript
+</span>

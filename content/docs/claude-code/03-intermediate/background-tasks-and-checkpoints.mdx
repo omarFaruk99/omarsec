@@ -1,0 +1,52 @@
+---
+title: Background Tasks and Checkpoints
+description: Run long tasks without blocking your session, and roll back to an earlier point if something goes wrong.
+---
+
+import { Callout } from 'nextra/components'
+
+# Background Tasks and Checkpoints
+
+<Callout type="info">
+Two separate features that both make longer sessions safer: running big jobs in the background, and undoing a change that did not work out.
+</Callout>
+
+## Background Tasks
+
+Some jobs take a long time — a full test suite, a large file migration. Normally, you would have to sit and wait for a job like that to finish before you could do anything else in the session.
+
+A background task removes that wait. You send the job to run in the background, and keep working on something else at the same time:
+
+```
+/background run the full test suite and report back when it's done
+```
+
+Claude Code starts the job separately and lets you know once it is done, instead of freezing your session until it finishes. If you want to check what is currently running, at any point, use:
+
+```
+/tasks
+```
+
+This lists every background job you currently have running, so you never lose track of something you started earlier and forgot about.
+
+## Checkpoints and Rewind
+
+As you work, Claude Code automatically saves a checkpoint — a snapshot of your code — at each step along the way. This happens without you asking for it.
+
+Why this matters: if a change turns out to be the wrong direction, you do not have to manually undo it yourself, file by file. Instead, run:
+
+```
+/rewind
+```
+
+This lets you jump back to an earlier checkpoint, from before a specific change was made. Your conversation history is kept — you are only rolling back the code itself, not losing the whole session. From there, you can describe a different approach and try again.
+
+<Callout type="default">
+Use `/tasks` whenever you are unsure if something you started earlier is still running. Use `/rewind` whenever a change did not work out the way you expected, instead of trying to manually revert the files yourself.
+</Callout>
+
+**Next →** [Claude Agent SDK](/docs/claude-code/04-advanced/agent-sdk)
+
+<span style={{ display: 'none' }}>
+  claude code background tasks, claude code rewind, claude code checkpoints, claude code undo changes
+</span>

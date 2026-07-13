@@ -1,0 +1,67 @@
+---
+title: Headless Mode and Scripting
+description: Run Claude Code non-interactively, so it can be called from scripts, pipes, and automated tools.
+---
+
+import { Callout } from 'nextra/components'
+
+# Headless Mode and Scripting
+
+<Callout type="info">
+Every session so far has been interactive — you type, it responds, you approve. Headless mode removes the interactive part entirely, so Claude Code can be called from a script instead of a person.
+</Callout>
+
+## What "Headless" Means Here
+
+Normally, running `claude` opens a live session: you see it think, you approve each step, you can ask follow-up questions. That works well when a person is sitting at the terminal.
+
+But sometimes you want Claude Code to run as one step inside something else entirely — a build script, a monitoring tool, a small utility you wrote. In that case, there is no person to approve anything, and you just want a single answer back. That is what the `-p` flag does:
+
+```bash filename="Terminal"
+claude -p "explain what this error means: TypeError: cannot read property 'map' of undefined"
+```
+
+This runs once, prints the answer, and exits — no interactive session, no waiting for you to respond.
+
+## Piping Real Data In
+
+The real value of headless mode is combining it with other commands, using your shell's pipe (`|`) to feed real output straight into Claude Code:
+
+```bash filename="Terminal"
+git diff | claude -p "review this diff for bugs"
+```
+
+```bash filename="Terminal"
+cat build.log | claude -p "why did this build fail, and how do I fix it?"
+```
+
+In both examples, real output from another command — your actual diff, your actual build log — is passed directly in. Claude Code never has to ask you to copy and paste anything, because the pipe already handed it the real data.
+
+## Getting Structured Output
+
+By default, headless mode prints a plain text answer. If you are calling it from another program and need to read the result programmatically, ask for JSON instead:
+
+```bash filename="Terminal"
+claude -p "list the TODO comments in this file" --output-format json
+```
+
+This returns a structured result your own script can parse, instead of a paragraph meant for a human to read.
+
+## A Note on Permissions
+
+Since there is no person present to approve anything in headless mode, you also need to decide upfront how permissive it should be:
+
+| Flag | What it does |
+|------|----------------|
+| `--permission-mode dontAsk` | Pre-approves actions instead of pausing to ask (still respects your deny rules) |
+| `--allowedTools` | Limits which tools it is allowed to use at all |
+
+<Callout type="warning">
+Only run headless mode with pre-approved permissions in an environment you trust, like your own CI pipeline or a disposable container — never in a shared environment where an unattended action could cause real harm.
+</Callout>
+
+**Next →** [CI/CD and GitHub Actions](/docs/claude-code/04-advanced/cicd-and-github-actions)
+
+<span style={{ display: 'none' }}>
+  claude code headless mode, claude code -p flag, claude code scripting, claude code pipe, claude code json output
+</span>

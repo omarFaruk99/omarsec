@@ -1,0 +1,63 @@
+---
+title: Hooks
+description: Run your own scripts automatically at specific points in a Claude Code session, like after every file edit.
+---
+
+import { Callout } from 'nextra/components'
+
+# Hooks
+
+<Callout type="info">
+A hook is a shell command you set up once, that Claude Code then runs automatically at a fixed point in every session — for example, right after it edits a file.
+</Callout>
+
+## Why Hooks, Not Just Instructions
+
+You could write a rule in `CLAUDE.md` like "always run the linter after editing a file." Claude Code will usually follow this, since it reads `CLAUDE.md` at the start of every session. But this is still just a written request — it depends on Claude Code remembering and choosing to follow it every time.
+
+A hook is different. It is not a request, it is a fixed rule enforced by your own setup. It runs the same way every single time, no matter what Claude Code is doing or which mode it is in. Think of the difference this way: `CLAUDE.md` is advice you give it, a hook is a rule your system enforces on its own.
+
+## A Simple Example
+
+Say you want your code formatter to run automatically, every time a file is edited — without ever having to ask for it. You can set up a hook like this:
+
+```json filename=".claude/settings.json"
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [{ "type": "command", "command": "npx prettier --write $CLAUDE_FILE_PATH" }]
+      }
+    ]
+  }
+}
+```
+
+Here is what each part means:
+
+- `"PostToolUse"` — this hook runs *after* a tool finishes, not before
+- `"matcher": "Edit"` — it only runs after the `Edit` tool specifically, not after every possible tool
+- `"command"` — the actual shell command to run, here your Prettier formatter
+- `$CLAUDE_FILE_PATH` — a variable Claude Code fills in automatically, with the path of the file that was just edited
+
+Once this is saved, every time Claude Code edits any file, Prettier runs on it right afterward, automatically, with no extra prompting from you.
+
+## Common Trigger Points
+
+| Event | Runs when |
+|-------|-----------|
+| `PreToolUse` | Right before a tool runs — it can even block the tool from running at all |
+| `PostToolUse` | Right after a tool finishes running |
+| `SessionStart` | A new session begins |
+| `SessionEnd` | A session ends |
+
+<Callout type="warning">
+A `PreToolUse` hook can block an action completely — this is useful for protecting files you never want touched, like a `.env` file holding secrets. But be careful: a hook that is too strict can also block work you actually wanted done, with no warning why. Test any new hook on a small, low-stakes task first, before relying on it for real work.
+</Callout>
+
+**Next →** [MCP Servers](/docs/claude-code/03-intermediate/mcp-servers)
+
+<span style={{ display: 'none' }}>
+  claude code hooks, claude code posttooluse, claude code automation, claude code settings.json hooks
+</span>

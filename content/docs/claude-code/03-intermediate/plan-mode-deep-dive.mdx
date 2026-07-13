@@ -1,0 +1,72 @@
+---
+title: Plan Mode Deep Dive
+description: How to use plan mode for larger tasks — reviewing the full approach before any code changes happen.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Plan Mode Deep Dive
+
+<Callout type="info">
+Plan mode was introduced briefly on the [Permission Modes](/docs/claude-code/01-foundations/permission-modes) page. This page goes deeper into using it well on real, larger tasks.
+</Callout>
+
+## Why Plan Mode Exists
+
+For a small fix — one function, one file — seeing a single diff and approving it is enough. You can hold the whole change in your head at once.
+
+But for a large task, like a refactor that touches ten files, approving file by file has a real downside: you only see the full shape of the change once it is already mostly done. If the second file reveals that the overall approach was wrong, you have already committed to editing the first one.
+
+Plan mode flips this order. Instead of approving each file as it happens, you see the **whole approach first**, written out in plain language, before a single file actually changes. If the approach is wrong, you find out immediately — not after several files are already edited.
+
+## The Workflow
+
+<Steps>
+### Turn it on
+
+```
+/plan
+```
+
+### Describe the task
+
+```
+refactor the auth module from callbacks to async/await, keeping
+all existing tests passing
+```
+
+### Claude Code explores, read-only
+
+While in plan mode, Claude Code can read files and research your codebase, but it cannot edit anything or run commands that change state. This restriction is intentional — it forces the "thinking" step to fully finish before any "doing" step begins.
+
+### It writes a plan
+
+You receive a written plan: which files it intends to touch, in what order, and what the change looks like at a high level — all before any code is written.
+
+### You approve, reject, or ask for changes
+
+This works the same way reviewing a diff does, just at a bigger scale — you are approving the whole approach, not one file.
+
+### It implements
+
+Once you approve, Claude Code exits plan mode and starts making the actual changes. It usually switches to Accept Edits mode at this point, so it can move through many files in a row without stopping to re-ask for each individual one.
+</Steps>
+
+## When to Reach for It
+
+| Task size | Better approach |
+|-----------|-------------------|
+| One function, one file | Default mode is enough |
+| A few closely related files | Default or Accept Edits |
+| A refactor spanning many files | Plan mode |
+| A new feature you have not fully scoped yet | Plan mode |
+
+<Callout type="default">
+Plan mode costs a small amount of extra time upfront, since you have to read the plan before anything happens. In exchange, it saves you from discovering a wrong approach halfway through a large change, after several files have already been edited.
+</Callout>
+
+**Next →** [Background Tasks and Checkpoints](/docs/claude-code/03-intermediate/background-tasks-and-checkpoints)
+
+<span style={{ display: 'none' }}>
+  claude code plan mode, claude code plan command, claude code refactor workflow, claude code large tasks
+</span>

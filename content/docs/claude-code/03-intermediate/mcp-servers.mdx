@@ -1,0 +1,63 @@
+---
+title: MCP Servers
+description: Connect Claude Code to real external tools like GitHub, Slack, and your database using MCP.
+---
+
+import { Callout } from 'nextra/components'
+
+# MCP Servers
+
+<Callout type="info">
+MCP stands for Model Context Protocol. It is a standard way for Claude Code to connect to real external systems — not just the files sitting in your project folder.
+</Callout>
+
+## What Problem This Solves
+
+By default, Claude Code only knows about your local project. If you ask it about a GitHub issue, it can only guess based on whatever title or text you typed in — it has no way to actually open GitHub and read the real issue.
+
+An MCP server is a small connector that gives Claude Code a real, live link to an outside system. Once connected, Claude Code is no longer guessing from what you typed — it can go check the real, current data itself: a real GitHub issue, a real row in your database, a real message in a Slack channel.
+
+## Adding a Server
+
+Here is how you connect the official GitHub MCP server:
+
+```bash filename="Terminal"
+claude mcp add --transport http github https://api.githubcopilot.com/mcp
+```
+
+Once this is added, you can ask something like:
+
+```
+check GitHub issue #482 and summarize what the reporter is asking for
+```
+
+Without MCP connected, Claude Code has no way to answer this — it does not know what issue #482 even says. With the GitHub server connected, it actually opens that real issue through the connection and reads it, the same way you would if you opened the link yourself.
+
+## Popular Servers
+
+| Server | What it connects to |
+|--------|----------------------|
+| GitHub | Issues, pull requests, and repositories |
+| Slack | Channels and messages |
+| PostgreSQL | Your own database, so you can ask questions about real data |
+| Sentry | Error reports and stack traces from production |
+
+## Where the Connection Gets Saved
+
+When you add an MCP server, the connection details are saved to a file. Which file depends on who should have access to it:
+
+| Scope | File |
+|-------|------|
+| Just this project, just you | `.mcp.json` (local only, not shared) |
+| This project, shared with your team | `.claude/.mcp.json` |
+| All of your projects | `~/.claude/.mcp.json` |
+
+<Callout type="warning">
+Only connect servers you actually trust. An MCP server can read real data, and sometimes take real actions, in whatever system it connects to — a database, a GitHub repo, a Slack workspace. Treat adding a new MCP server with the same caution you would use when installing a new software dependency.
+</Callout>
+
+**Next →** [Plan Mode Deep Dive](/docs/claude-code/03-intermediate/plan-mode-deep-dive)
+
+<span style={{ display: 'none' }}>
+  claude code mcp, model context protocol, claude code github integration, claude code slack integration, claude code database
+</span>

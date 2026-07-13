@@ -1,0 +1,72 @@
+---
+title: Custom Commands and Skills
+description: Turn a prompt you type often into a reusable slash command.
+---
+
+import { Callout } from 'nextra/components'
+
+# Custom Commands and Skills
+
+<Callout type="info">
+If you find yourself typing the same long instruction over and over, save it once as a command — then run it with a short name instead.
+</Callout>
+
+## The Problem This Solves
+
+Imagine every time you finish a feature, you type something like this:
+
+```
+review this diff for security issues, check test coverage, and check
+for any leftover console.log statements
+```
+
+This works fine the first time. But typing it every single time is slow, and you might word it slightly differently each time — sometimes forgetting to mention test coverage, sometimes forgetting console.log statements. A custom command solves this: you write the instruction once, save it under a short name, and reuse the exact same instruction every time after that.
+
+## Creating a Custom Command
+
+Save a markdown file under `.claude/commands/` in your project folder:
+
+```md filename=".claude/commands/pre-merge.md"
+Review the current diff for:
+- security issues
+- missing test coverage
+- leftover console.log or debug statements
+
+Report findings as a checklist.
+```
+
+The file name becomes the command name. Now, instead of typing the whole instruction again, you just run:
+
+```
+/pre-merge
+```
+
+Claude Code reads the saved file and follows those exact instructions — same wording, same checklist, every single time you use it.
+
+## Skills: The Same Idea, With More Power
+
+A **Skill** does the same job as a custom command, but with a few extra abilities:
+
+- It can carry more instructions and even load extra reference files
+- It can restrict which tools it is allowed to use — for example, a review skill that can only read files, never edit them
+- Claude Code can sometimes trigger it automatically when the task fits, even if you never typed its name
+
+Skills live in a slightly different location: `.claude/skills/NAME/SKILL.md` (a folder per skill, not just a single file).
+
+## Choosing Between Them
+
+| | Custom Command | Skill |
+|---|---|---|
+| How you trigger it | Type `/name` | Type `/name`, or sometimes Claude Code triggers it on its own |
+| Best for | A short, personal shortcut | A polished, reusable workflow shared across a team |
+| Where it lives | `.claude/commands/` | `.claude/skills/NAME/SKILL.md` |
+
+<Callout type="default">
+Start with a plain custom command — it takes one file and a minute to set up. Move to a Skill only once you need it to restrict tools, load extra files, or be shared as a more complete, team-wide workflow.
+</Callout>
+
+**Next →** [Hooks](/docs/claude-code/03-intermediate/hooks)
+
+<span style={{ display: 'none' }}>
+  claude code custom commands, claude code skills, claude code SKILL.md, claude code slash command tutorial
+</span>

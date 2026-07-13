@@ -1,0 +1,83 @@
+---
+title: Subagents
+description: Delegate research, review, and exploration work to helper agents so your main session stays clean.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Subagents
+
+<Callout type="info">
+A subagent is a helper that Claude Code creates to do one specific job, in its own separate memory space, and then reports back to you with just the result.
+</Callout>
+
+## The Problem Subagents Solve
+
+Think back to the [Context Basics](/docs/claude-code/01-foundations/context-basics) page. Every file Claude Code reads and every search it runs gets added to your session's context, and that context has a limit.
+
+Now imagine you ask it to search a large codebase for every place an old function is used. That search might mean reading twenty files. All twenty of those files get added to your main session — even though you only actually cared about the short list of file names at the end.
+
+A subagent fixes this. It does the messy searching in its **own separate context window**, completely apart from your main session. When it finishes, it only sends back the answer you actually asked for — not every file it had to open to find that answer. Your main conversation stays short and clean, as if the search never happened there at all.
+
+## An Example
+
+```
+Use a subagent to find every place in the codebase that calls the
+old `formatDate` function, then report the file names back to me.
+```
+
+Here is what happens step by step:
+
+<Steps>
+### Claude Code creates a subagent
+
+A separate helper starts, with its own empty context — it does not see your earlier conversation.
+
+### The subagent searches
+
+It reads through your project, opening whatever files it needs to check.
+
+### The subagent finishes and reports back
+
+It sends back only the final list of file names to your main session.
+
+### Your main session stays clean
+
+None of the twenty files the subagent opened along the way ever entered your context. Only the short list did.
+</Steps>
+
+## When Subagents Help Most
+
+| Situation | Why a subagent fits |
+|-----------|----------------------|
+| Researching a large codebase | The search results do not clutter your main chat |
+| Reviewing a large diff | You can use one subagent per concern — one for security, one for tests, one for style |
+| A side question in the middle of a task | It does not derail the task you were already working on |
+| Debugging with more than one theory | You can run one subagent per theory, checking several ideas at once |
+
+## Built-in Subagents vs. Your Own
+
+Claude Code already comes with some general-purpose subagents. For example, `Explore` is a subagent built for fast, read-only searching — Claude Code picks it automatically when a task is a good fit for it, without you asking by name.
+
+You can also define your own subagent, for a job you do often. Save a file like this:
+
+```md filename=".claude/agents/reviewer.md"
+---
+name: reviewer
+description: Reviews a diff for security issues
+---
+
+Focus only on security: injection, auth, secrets. Ignore style.
+```
+
+Place this file under `.claude/agents/` if you want your whole team to share it, or under `~/.claude/agents/` if it is just for you. Once saved, Claude Code can call this subagent by name whenever it fits the task, the same way it already does with `Explore`.
+
+<Callout type="default">
+A subagent only reports back to whoever asked it to run — it does not talk to other subagents, and other subagents cannot talk to it. If you need several agents that actively coordinate and message each other, that is a different, more advanced feature called Agent Teams, covered later in this guide.
+</Callout>
+
+**Next →** [Custom Commands and Skills](/docs/claude-code/03-intermediate/custom-commands-and-skills)
+
+<span style={{ display: 'none' }}>
+  claude code subagents, claude code agent tool, claude code delegate task, claude code explore agent, claude code custom agent
+</span>

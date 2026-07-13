@@ -1,0 +1,46 @@
+---
+title: IDE Integration and Shortcuts
+description: Using Claude Code inside VS Code or JetBrains, plus the keyboard shortcuts worth learning.
+---
+
+import { Callout } from 'nextra/components'
+
+# IDE Integration and Shortcuts
+
+<Callout type="info">
+Claude Code works the same in a plain terminal or inside your editor. The editor just adds a visual panel.
+</Callout>
+
+## VS Code
+
+Install the Claude Code extension from the marketplace, then sign in once. You get:
+
+- A chat panel next to your code
+- Inline diffs — see changes right in the editor
+- `@file` mentions by clicking, instead of typing the path
+
+Open it with the Spark icon in the top right, or `Cmd/Ctrl+Shift+P` → "Claude Code".
+
+## JetBrains (IntelliJ, PyCharm, WebStorm)
+
+Install the Claude Code plugin from the plugin marketplace. It needs the standalone `claude` CLI installed too (see [Installation](/docs/claude-code/01-foundations/installation)).
+
+## Keyboard Shortcuts
+
+| Shortcut | What it does |
+|----------|---------------|
+| `Shift+Tab` | Cycle permission modes |
+| `Ctrl+C` | Interrupt the current response |
+| `Ctrl+D` | Quit the session |
+| `↑` / `↓` | Move through your message history |
+| `Tab` | Auto-complete a command or file path |
+
+<Callout type="default">
+Want your own custom key bindings? Edit `~/.claude/keybindings.json` — useful if a default shortcut clashes with your terminal or OS.
+</Callout>
+
+**Next →** [Git and PR Workflow](/docs/claude-code/02-daily-workflow/git-and-pr-workflow)
+
+<span style={{ display: 'none' }}>
+  claude code vs code extension, claude code jetbrains plugin, claude code keyboard shortcuts, claude code shift tab
+</span>

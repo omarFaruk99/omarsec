@@ -1,0 +1,52 @@
+---
+title: Workflows
+description: Orchestrate many subagents at once, with a script that decides what runs in parallel and what runs in sequence.
+---
+
+import { Callout } from 'nextra/components'
+
+# Workflows
+
+<Callout type="info">
+A workflow is a script that runs many subagents at once, in a pattern you (or Claude Code) design — instead of one subagent at a time.
+</Callout>
+
+## Building on Subagents
+
+Recall [Subagents](/docs/claude-code/03-intermediate/subagents): one helper agent, doing one job, reporting back. That works well for a single task. But what if you need the same kind of review done across fifty files, or you want three different reviewers checking the same pull request from three different angles, all at once?
+
+Asking for one subagent at a time for fifty files would be slow, and you would be the one coordinating all of it by hand. A workflow removes that manual coordination — it is a small script, written in JavaScript, that spawns many subagents, decides which ones run at the same time and which ones wait for another to finish, and collects all their results at the end.
+
+## A Simple Example
+
+Say you want to review a pull request from three separate angles — security, performance, and test coverage — all at the same time, instead of one after another:
+
+```
+Spawn three subagents to review this PR in parallel:
+one focused on security, one on performance, one on test coverage.
+Combine their findings into one report.
+```
+
+Behind this request, Claude Code can write and run a workflow: it starts all three reviewer subagents at once, waits for all three to finish, and then combines what each one found into a single report for you — rather than you asking for three separate reviews yourself and merging them by hand.
+
+## Why Not Just Ask for Three Subagents Separately
+
+You could do that, and for a one-off task, it is often simpler. Workflows earn their place when the task is large or repeated: reviewing every file in a big migration, running the same check across dozens of services, or any job where the coordination itself (what runs together, what waits, what happens if one part fails) is complex enough that you do not want to manage it by hand each time.
+
+## When to Reach for a Workflow
+
+| Situation | Why a workflow fits |
+|-----------|-----------------------|
+| Reviewing a PR from several angles at once | Each reviewer runs in parallel, results combined automatically |
+| A large migration across many files | Each file (or group of files) handled by its own subagent |
+| A repeated, large-scale check | The same coordination pattern reused without you rebuilding it each time |
+
+<Callout type="default">
+Workflows use significantly more resources than a single subagent, since many agents run at once. They are worth it for genuinely large or repeated work — not for a quick, one-off task that a single subagent or a normal prompt already handles well.
+</Callout>
+
+**Next →** [Headless Mode and Scripting](/docs/claude-code/04-advanced/headless-mode-and-scripting)
+
+<span style={{ display: 'none' }}>
+  claude code workflows, claude code multi-agent, claude code parallel subagents, claude code orchestration
+</span>

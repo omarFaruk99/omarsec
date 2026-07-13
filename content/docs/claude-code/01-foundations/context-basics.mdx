@@ -1,0 +1,57 @@
+---
+title: Context Basics
+description: What Claude Code's context window is, why long sessions slow down, and how to manage it with /context and /compact.
+---
+
+import { Callout } from 'nextra/components'
+
+# Context Basics
+
+<Callout type="info">
+The context window is what a session can "remember" right now. It has a limit.
+</Callout>
+
+## What Fills It Up
+
+Every message you send, every file it reads, and every command output — all get added. The default model can hold a lot, but a long session with many files can still fill it up over time.
+
+## What Happens When It Fills Up
+
+Claude Code automatically **compacts**: it shortens older parts of the chat to make room, but keeps your project instructions and recent messages. This is normal. It is not an error. You just lose some small detail from far back in the chat.
+
+## Check Usage
+
+```
+/context
+```
+
+Shows how full it is, and what is using the space — project instructions, files read, chat history.
+
+## Compact Manually
+
+```
+/compact
+```
+
+Shortens the chat right now, instead of waiting. Good to run before you start a new task in the same session.
+
+## Start Fresh
+
+```
+/clear
+```
+
+Clears the chat but keeps your project memory (`CLAUDE.md` and Auto Memory — next part of this guide). Use this when you switch to something new.
+
+## Practical Habits
+
+- `/context` — when a session feels slow, or before a big task
+- `/compact` — between two different tasks in one long session
+- `/clear` — starting something new in the same project
+- For very large tasks, **subagents** (later in this guide) send work to a helper agent, so it does not fill your main session at all
+
+**Next →** [Slash Commands](/docs/claude-code/02-daily-workflow/slash-commands)
+
+<span style={{ display: 'none' }}>
+  claude code context window, claude code compact, claude code clear session, claude code token limit, manage claude code context
+</span>

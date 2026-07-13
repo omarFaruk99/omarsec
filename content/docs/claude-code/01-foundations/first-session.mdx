@@ -1,0 +1,84 @@
+---
+title: Your First Session
+description: Start your first Claude Code session, learn the basic prompt-and-approve workflow, and make your first file edit.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Your First Session
+
+<Callout type="info">
+The core loop you'll repeat every day: prompt, explore, approve.
+</Callout>
+
+## Start a Session
+
+```bash filename="Terminal"
+claude
+```
+
+This opens an interactive session inside your project. Type in plain English — no special syntax needed.
+
+## Ask Before You Change Anything
+
+Try a question first:
+
+```
+what does this project do, and what is the main entry file?
+```
+
+Claude Code reads your actual files to answer — it doesn't guess.
+
+## The Core Loop
+
+<Steps>
+### You describe the task
+
+Be specific about the result you want:
+
+```
+add a loading spinner to the submit button while the form is saving
+```
+
+### It explores your code
+
+Reads the relevant files first, before changing anything.
+
+### It proposes an edit
+
+Shown as a diff — old lines removed, new lines added, like `git diff`.
+
+### You approve, reject, or ask more
+
+Nothing is saved until you approve it (unless you're in a more permissive mode — next page).
+
+### It applies the change
+</Steps>
+
+## A Good Example
+
+```
+Fix the bug where the login page hangs after entering the wrong password.
+Run the test suite afterward to confirm the fix works.
+```
+
+This works because it states the real problem and gives a way to check the fix. Compare that to just "fix the login page" — too vague to act on well.
+
+## Point to a File Directly
+
+```
+@src/components/LoginForm.tsx — the error message never disappears
+after a successful retry. Fix it.
+```
+
+`@` tells it exactly where to look first.
+
+## Ending a Session
+
+`Ctrl+D` or `/exit` to leave. Come back later with `claude -c` (continue the last session) or `claude -r` (pick from recent ones).
+
+**Next →** [Permission Modes](/docs/claude-code/01-foundations/permission-modes)
+
+<span style={{ display: 'none' }}>
+  claude code first session, claude code repl, claude code basic prompting, claude code tutorial, how to use claude code
+</span>

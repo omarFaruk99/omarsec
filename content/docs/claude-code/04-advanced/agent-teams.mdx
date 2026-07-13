@@ -1,0 +1,60 @@
+---
+title: Agent Teams
+description: Multiple independent Claude Code sessions that coordinate directly with each other, still experimental as of 2026.
+---
+
+import { Callout } from 'nextra/components'
+
+# Agent Teams
+
+<Callout type="info">
+Agent Teams are experimental. Multiple full Claude Code sessions work together as teammates, messaging each other directly — a different structure from subagents or workflows.
+</Callout>
+
+## How This Is Different From What You Already Know
+
+By now you have seen two ways of getting more than one agent working: [Subagents](/docs/claude-code/03-intermediate/subagents) (a helper that reports back to you, and only to you) and [Workflows](/docs/claude-code/04-advanced/workflows) (a script that runs many subagents in a pattern you define).
+
+Agent Teams are a third structure. Instead of helpers that only report back to you, teammates are full, independent Claude Code sessions that can message **each other** directly, not just you. They share a task list, and can hand work between themselves without you being the middle-man for every exchange.
+
+## Turning It On
+
+This feature needs to be turned on explicitly, since it is still experimental:
+
+```json filename="settings.json"
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+## An Example
+
+```
+I'm designing a CLI tool. Spawn three teammates to explore this from
+different angles: one on UX, one on technical architecture, one
+playing devil's advocate.
+```
+
+Each teammate works somewhat independently, but unlike subagents, they can message each other directly during the work — the architecture-focused teammate can ask the UX one a question, without routing that question through you first. When they finish, the lead session pulls their findings together.
+
+## Comparing the Three Structures
+
+| | Subagents | Workflows | Agent Teams |
+|---|---|---|---|
+| Who they report to | Only you | The script that spawned them | Each other, and you |
+| Best for | One focused helper task | Many similar tasks, run in a pattern | Tasks that benefit from genuine back-and-forth discussion |
+| Setup needed | None | None | An environment variable, since it is experimental |
+
+## Why "Experimental" Matters Here
+
+<Callout type="warning">
+As of 2026, Agent Teams still has real limitations: sessions cannot always be resumed cleanly if you close and reopen your terminal, and coordination between teammates can occasionally stall. Try it for exploration and research tasks first — where losing some progress is low-stakes — before relying on it for anything critical.
+</Callout>
+
+**Next →** Part 5 — Daily Practical Patterns (coming soon)
+
+<span style={{ display: 'none' }}>
+  claude code agent teams, claude code experimental features, claude code multi-agent coordination, claude code teammates
+</span>

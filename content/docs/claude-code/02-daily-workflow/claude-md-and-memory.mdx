@@ -1,0 +1,64 @@
+---
+title: CLAUDE.md and Memory
+description: How CLAUDE.md and Auto Memory give Claude Code lasting knowledge about your project.
+---
+
+import { Callout } from 'nextra/components'
+
+# CLAUDE.md and Memory
+
+<Callout type="info">
+Two ways Claude Code remembers your project across sessions, so you do not repeat yourself.
+</Callout>
+
+## CLAUDE.md
+
+A markdown file you write. Claude Code reads it at the start of every session. It holds the rules and facts you want it to always know.
+
+Create one quickly:
+
+```
+/init
+```
+
+This scans your project and writes a starting `CLAUDE.md` for you.
+
+**Example content:**
+
+```md filename="CLAUDE.md"
+# Project Rules
+
+- Run tests with `npm test`, not `npm run test:all`
+- Use 2-space indentation
+- Never edit files in /generated — they are auto-created
+```
+
+### Where It Can Live
+
+| File | Scope |
+|------|-------|
+| `~/.claude/CLAUDE.md` | All your projects |
+| `./CLAUDE.md` | This project, shared with your team (commit it to git) |
+| `./CLAUDE.local.md` | This project, just for you (add to `.gitignore`) |
+
+<Callout type="default">
+Keep it short and specific. "Use 2-space indentation" is useful. "Write good code" is not — Claude Code cannot act on advice that vague.
+</Callout>
+
+## Auto Memory
+
+Claude Code also learns on its own, without you writing anything. As it works, it saves things like "this repo uses pnpm, not npm" to a memory file for that project.
+
+- It saves this automatically, as it works
+- View or edit it with `/memory`
+- It only affects this one project
+
+<Callout type="default">
+CLAUDE.md is what **you** choose to tell it. Auto Memory is what **it** picks up along the way. Both load at the start of every session.
+</Callout>
+
+**Next →** [Settings and Permissions](/docs/claude-code/02-daily-workflow/settings-and-permissions)
+
+<span style={{ display: 'none' }}>
+  claude code claude.md, claude code memory, claude code project instructions, claude code init, claude code auto memory
+</span>

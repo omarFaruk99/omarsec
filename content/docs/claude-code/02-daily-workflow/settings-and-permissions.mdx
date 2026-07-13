@@ -1,0 +1,53 @@
+---
+title: Settings and Permissions
+description: How Claude Code's settings.json files work, and how to control which tools need approval.
+---
+
+import { Callout } from 'nextra/components'
+
+# Settings and Permissions
+
+<Callout type="info">
+Settings files control Claude Code's behavior. Permissions control what it can do without asking.
+</Callout>
+
+## Settings Files
+
+| File | Scope |
+|------|-------|
+| `~/.claude/settings.json` | You, across all projects |
+| `.claude/settings.json` | This project, shared with your team |
+| `.claude/settings.local.json` | This project, just for you (not committed) |
+
+Open the settings editor with:
+
+```
+/config
+```
+
+Common things you set here: default model, default permission mode, theme, and the permission rules below.
+
+## Permission Rules
+
+You can pre-approve or block specific tools and commands, so Claude Code stops asking about the ones you already trust.
+
+```json filename=".claude/settings.json"
+{
+  "permissions": {
+    "allow": ["Read", "Edit", "Bash(npm *)"],
+    "deny": ["Bash(rm *)"]
+  }
+}
+```
+
+This example always allows reading and editing files, and any `npm` command — but always blocks `rm` commands, even in a permissive mode.
+
+<Callout type="default">
+Start small. Allow the commands you run constantly (like your test or build command), and deny anything destructive you never want run without asking.
+</Callout>
+
+**Next →** [IDE Integration and Shortcuts](/docs/claude-code/02-daily-workflow/ide-and-shortcuts)
+
+<span style={{ display: 'none' }}>
+  claude code settings.json, claude code permissions, claude code allow deny rules, claude code config command
+</span>

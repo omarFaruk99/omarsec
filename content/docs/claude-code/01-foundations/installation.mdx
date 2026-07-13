@@ -1,0 +1,78 @@
+---
+title: Installation
+description: Install Claude Code on macOS, Linux, or Windows, then log in and verify it works.
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Installation
+
+<Callout type="info">
+**Time:** 10 minutes. Install once per machine, then log in.
+</Callout>
+
+## What You Need
+
+- A terminal
+- A Claude account (Pro, Max, or a Console API key)
+
+<Tabs items={['macOS / Linux', 'Windows', 'npm (any OS)']}>
+  <Tabs.Tab>
+    ```bash filename="Terminal"
+    curl -fsSL https://claude.ai/install.sh | bash
+    ```
+
+    Restart your terminal when it finishes.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```powershell filename="PowerShell"
+    irm https://claude.ai/install.ps1 | iex
+    ```
+
+    Restart PowerShell when it finishes.
+
+    <Callout type="default">
+    Using WSL? Run the macOS/Linux command above inside your WSL terminal instead.
+    </Callout>
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Needs Node.js 18+ already installed:
+
+    ```bash filename="Terminal"
+    npm install -g @anthropic-ai/claude-code
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Log In
+
+Run this from any project folder:
+
+```bash filename="Terminal"
+claude
+```
+
+It opens a browser to log in. Pick your account type (Claude subscription or Console API key), approve, and you're in. This only happens once — credentials refresh automatically after that.
+
+## Verify It Works
+
+```bash filename="Terminal"
+claude --version
+claude doctor
+```
+
+`--version` shows a version number. `doctor` checks your setup and login, and tells you if anything is wrong.
+
+## Common Problems
+
+**`claude: command not found`** — restart your terminal. Still failing? The install folder isn't in your PATH; add it manually.
+
+**Browser doesn't open** — Claude Code prints a URL instead. Open it in any browser, even on another device.
+
+**Corporate SSO / proxy** — if your company uses Bedrock, Google Cloud, or Microsoft Foundry for AI access, ask your IT team for their setup steps instead.
+
+**Next →** [Your First Session](/docs/claude-code/01-foundations/first-session)
+
+<span style={{ display: 'none' }}>
+  install claude code, claude code setup, claude code login, claude code windows mac linux, claude code npm install
+</span>
