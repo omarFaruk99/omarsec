@@ -1,0 +1,115 @@
+---
+title: What is Docker
+description: The problem Docker solves, and how containers compare to virtual machines.
+---
+
+import { Callout } from 'nextra/components'
+
+# What is Docker
+
+<Callout type="info">
+This page explains the problem Docker solves, and introduces the idea of a container.
+</Callout>
+
+## The Problem
+
+You build a web app on your laptop. It works fine. You send it to a teammate, or you deploy it to a server, and it breaks.
+
+This happens for reasons like:
+
+- Your laptop has Node.js version 20. The server has version 16.
+- Your database is PostgreSQL 16. The server runs PostgreSQL 12.
+- A system library your app depends on is missing on the server.
+
+Developers call this **"it works on my machine"**. It is one of the most common and most frustrating problems in software development.
+
+## The Idea Behind Docker
+
+Docker solves this by packaging your app together with everything it needs to run: the code, the runtime (Node.js), the libraries, and the settings.
+
+This package is called a **container**. A container runs the same way on any machine that has Docker installed — your laptop, a teammate's laptop, or a production server.
+
+<Callout type="default">
+Think of a container like a sealed shipping box. What is inside the box does not change based on which truck, ship, or warehouse it travels through. Docker containers work the same way — the app runs identically everywhere.
+</Callout>
+
+## Containers vs Virtual Machines
+
+Before Docker, developers solved this problem with **virtual machines (VMs)**. A VM works too, but it is heavy — each VM includes a full copy of an operating system.
+
+A container is lighter. It shares the host machine's operating system kernel instead of including its own.
+
+| | Virtual Machine | Container |
+|---|---|---|
+| **Includes a full OS** | Yes | No — shares the host OS |
+| **Typical size** | Gigabytes | Megabytes |
+| **Startup time** | Minutes | Seconds |
+| **Resource use** | Heavy | Light |
+
+```mermaid
+graph TB
+    subgraph VM["Virtual Machine — three apps"]
+        direction TB
+        A1["App A"] --- AG1["Guest OS"]
+        A2["App B"] --- AG2["Guest OS"]
+        A3["App C"] --- AG3["Guest OS"]
+        AG1 --- AH["Hypervisor"]
+        AG2 --- AH
+        AG3 --- AH
+        AH --- A4["Host OS"]
+        A5["~1-2 GB per app · boots in minutes"]
+    end
+
+    subgraph CT["Container — three apps"]
+        direction TB
+        B1["App A"] --- B4a["Docker Engine"]
+        B2["App B"] --- B4a
+        B3["App C"] --- B4a
+        B4a --- B5["Host OS<br/>(shared by all three)"]
+        B6["~50-200 MB per app · boots in seconds"]
+    end
+
+    style A1 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style A2 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style A3 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style AG1 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style AG2 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style AG3 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style AH fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style A4 fill:#1a1b1e,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style A5 fill:none,stroke:none,color:#9ca3af
+
+    style B1 fill:#1a1b1e,stroke:#10b981,stroke-width:2px,color:#fff
+    style B2 fill:#1a1b1e,stroke:#10b981,stroke-width:2px,color:#fff
+    style B3 fill:#1a1b1e,stroke:#10b981,stroke-width:2px,color:#fff
+    style B4a fill:#1a1b1e,stroke:#10b981,stroke-width:2px,color:#fff
+    style B5 fill:#1a1b1e,stroke:#10b981,stroke-width:2px,color:#fff
+    style B6 fill:none,stroke:none,color:#9ca3af
+
+    style VM fill:none,stroke:#444,stroke-dasharray: 5 5
+    style CT fill:none,stroke:#444,stroke-dasharray: 5 5
+```
+
+Both sides run the same three apps, so the comparison is fair. On the virtual machine side, each app carries its own full Guest OS — that weight repeats three times. On the container side, all three apps share one Docker Engine and one Host OS underneath. This is why servers can run far more containers than virtual machines on the same hardware.
+
+Because containers are lighter, you can run many of them on one machine, and they start almost instantly.
+
+## Why This Matters for You
+
+As a developer, Docker gives you three practical wins:
+
+- **Consistency** — the app behaves the same on your machine, your teammate's machine, and the production server.
+- **Isolation** — you can run multiple projects on one laptop, each with a different Node.js or database version, without conflicts.
+- **Easy deployment** — you send the same container to any server, instead of manually installing dependencies there.
+
+## Quick Check
+
+- [ ] Can you explain "it works on my machine" in your own words?
+- [ ] Do you understand why a container is lighter than a virtual machine?
+- [ ] Can you name two practical benefits Docker gives a developer?
+
+**Next →** [Installation](/docs/docker/installation)
+
+<span style={{ display: 'none' }}>
+  what is docker, docker vs virtual machine, docker container explained, why use docker, docker for beginners
+</span>

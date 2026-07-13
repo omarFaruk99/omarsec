@@ -23,5 +23,11 @@ export default {
       collapsed: true
     }
   },
+  'docker': {
+    title: 'Docker',
+    theme: {
+      collapsed: true
+    }
+  },
   'contributors': 'Contributors'
 }
