@@ -35,6 +35,25 @@ Audience: developers who build real web apps and want to use Docker in dev, depl
    - Every page ends with a "Next →" link.
    - Code blocks use `filename="Terminal"`.
 
+7. **Folder structure: one subfolder per Part**, matching the site's existing
+   `server-deployment/foundation/` pattern. Each Part is its own folder with its
+   own `_meta.js` + `index.mdx`, nested under `content/docs/docker/`:
+   ```
+   content/docs/docker/
+     index.mdx              ← top overview, links to each Part's folder
+     _meta.js                ← lists each Part folder
+     foundation/              ← Part 1
+       index.mdx
+       _meta.js
+       <topic pages>.mdx
+     building-images/          ← Part 2 (folder name = short slug of the Part title)
+     data-networking/           ← Part 3
+     multi-container/            ← Part 4
+     production-deploy/           ← Part 5
+     real-scenarios/                ← Part 6
+   ```
+   Sidebar then shows each Part as its own collapsible group.
+
 ---
 
 ## Course Outline (Index)
@@ -99,7 +118,7 @@ Audience: developers who build real web apps and want to use Docker in dev, depl
 ---
 
 ## Progress
-- [x] Part 1 — Foundations (pages live in `content/docs/docker/`)
+- [x] Part 1 — Foundations (pages live in `content/docs/docker/foundation/`)
 - [ ] Part 2 — Building Images
 - [ ] Part 3 — Data & Networking
 - [ ] Part 4 — Multi-container
