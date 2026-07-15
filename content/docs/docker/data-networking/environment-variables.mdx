@@ -1,0 +1,109 @@
+---
+title: Environment Variables
+description: Pass configuration into a container without rebuilding the image, and avoid a common Next.js and Docker mistake.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Environment Variables
+
+<Callout type="info">
+This page covers passing configuration into a running container, and one Next.js-specific detail that surprises almost everyone the first time they hit it.
+</Callout>
+
+## Why Environment Variables
+
+A database address, an API key, a feature flag — these change between your laptop, a teammate's laptop, and a production server. You do not want to rebuild your image every time one of these values changes.
+
+Environment variables solve this: your code reads a value like `process.env.DATABASE_URL`, and you supply the actual value when you **run** the container, not when you **build** it.
+
+## Passing Variables at Runtime
+
+<Steps>
+
+### One variable at a time
+
+```bash filename="Terminal"
+docker run -e API_URL=https://api.example.com my-next-app
+```
+
+`-e NAME=value` sets one environment variable inside the container. Use it more than once for more than one variable.
+
+### Many variables from a file
+
+Listing ten `-e` flags gets unwieldy. Put them in a file instead:
+
+```filename=".env.production"
+API_URL=https://api.example.com
+FEATURE_NEW_CHECKOUT=true
+```
+
+```bash filename="Terminal"
+docker run --env-file .env.production my-next-app
+```
+
+</Steps>
+
+<Callout type="default">
+Recall from Building Images: `.env` files are already in `.dockerignore`, so they are never baked into the image itself. `--env-file` reads the file from your computer at the moment you run the container — a completely separate step from building.
+</Callout>
+
+## The Next.js Gotcha: Build Time vs Run Time
+
+This is the part that catches almost everyone the first time.
+
+Next.js has two kinds of environment variables:
+
+| | Read by | When the value gets locked in |
+|---|---|---|
+| `NEXT_PUBLIC_SOMETHING` | Browser code (client-side) | **Build time** — baked into the JavaScript bundle |
+| Everything else (no prefix) | Server-side code only (API routes, Server Components) | **Run time** — read fresh each time |
+
+<Callout type="warning">
+A `NEXT_PUBLIC_` variable passed with `-e` or `--env-file` when you **run** the container has **no effect** on the browser code. It was already compiled into the JavaScript files during `npm run build`, back when you built the image.
+</Callout>
+
+This means the workflow you just learned — pass different values at runtime — works perfectly for server-only variables, but not for `NEXT_PUBLIC_` ones.
+
+## Setting `NEXT_PUBLIC_` Variables Correctly
+
+For a value the browser needs, you must provide it **during the build**, using a Dockerfile `ARG`.
+
+```dockerfile filename="Dockerfile"
+# In the builder stage, before RUN npm run build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN npm run build
+```
+
+Then pass it in at build time, not run time:
+
+```bash filename="Terminal"
+docker build --build-arg NEXT_PUBLIC_API_URL=https://api.example.com -t my-next-app .
+```
+
+<Callout type="default">
+If you need different `NEXT_PUBLIC_` values for staging versus production, you need a separate image build for each — not just a different `--env-file` at runtime. This is a real limitation of client-side environment variables, not something specific to Docker.
+</Callout>
+
+## A Note on Secrets
+
+Never put real secrets — database passwords, API keys — directly into a Dockerfile with `ENV` or `ARG`. Both get baked into the image's build history, visible to anyone who runs `docker history` on it, even if a later instruction "overwrites" the value.
+
+Pass secrets at runtime with `-e` or `--env-file` instead, and keep that `.env` file out of version control. Docker Compose has a more structured way to handle this, covered when Compose is introduced.
+
+## Hands-on Task
+
+1. Run `my-next-app` with a server-only environment variable using `-e`, and confirm your server-side code can read it.
+2. Add a `NEXT_PUBLIC_` variable to your app, rebuild with `--build-arg`, and confirm the browser can see it.
+3. Try passing that same `NEXT_PUBLIC_` variable with `-e` at runtime instead — confirm it has no effect, to see the gotcha firsthand.
+
+## Quick Check
+
+- [ ] Can you explain the difference between a build-time and a run-time environment variable?
+- [ ] Do you know which kind of Next.js variable needs `--build-arg` instead of `-e`?
+- [ ] Can you explain why secrets should never be set with a Dockerfile `ENV` instruction?
+
+<span style={{ display: 'none' }}>
+  docker environment variables, nextjs public env docker, docker build-arg, docker secrets env file, nextjs docker env vars
+</span>
