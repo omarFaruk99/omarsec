@@ -1,0 +1,53 @@
+---
+title: Multi-container
+description: Run Next.js, Express, and PostgreSQL together with Docker Compose — the way real projects actually work.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Multi-container
+
+<Callout type="info">
+Every page so far used one container at a time. Real projects rarely look like that — a frontend, a backend, and a database usually run together. This section introduces Docker Compose, and grows your Next.js app into a real three-service stack.
+</Callout>
+
+## Why Now
+
+You already know enough to do this the hard way: create a network, then run three long `docker run` commands with matching `--network`, `-v`, `-p`, and `-e` flags in the right order. That works, but it does not scale past two containers, and no one wants to type it twice.
+
+Docker Compose describes your whole stack in one file, and starts or stops all of it with one command.
+
+## What You Will Build
+
+- A **Next.js** frontend
+- An **Express** API backend
+- A **PostgreSQL** database, with a look at MongoDB as an alternative
+
+All three connected, started together, and reachable by name — the exact idea from Container Networking in the last section, just no longer typed by hand.
+
+## Pages in This Section
+
+<Steps>
+
+### Compose Basics
+What Docker Compose is, the modern `docker compose` command, and a single-service `compose.yaml`.
+
+### The Full Stack
+Next.js, Express, and PostgreSQL, defined together and started with one command.
+
+### MongoDB Alternative
+Swapping PostgreSQL for MongoDB — what changes, and what does not.
+
+### Health Checks & Restart
+Making sure a service is actually ready before another depends on it, and recovering automatically from crashes.
+
+### Compose Secrets
+Keeping passwords out of plain text in your Compose file.
+
+</Steps>
+
+**Next →** [Compose Basics](/docs/docker/multi-container/compose-basics)
+
+<span style={{ display: 'none' }}>
+  docker compose nextjs express postgresql, docker multi-container tutorial, docker compose full stack
+</span>
