@@ -1,4 +1,5 @@
 export default {
   index: 'Introduction',
-  'foundation': 'Foundation'
+  'foundation': 'Foundation',
+  'building-images': 'Building Images'
 }

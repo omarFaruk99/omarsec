@@ -1,0 +1,76 @@
+---
+title: .dockerignore
+description: Keep unnecessary and sensitive files out of your build context and final image.
+---
+
+import { Callout } from 'nextra/components'
+
+# .dockerignore
+
+<Callout type="info">
+This page explains one small file that fixes a problem you have likely already hit without noticing: slow builds, and files that should never leave your machine.
+</Callout>
+
+## The Build Context Problem
+
+Recall from the last section: the `.` at the end of `docker build -t my-next-app .` points Docker at your project folder, and everything inside it becomes visible to `COPY`. Docker has a name for this folder: the **build context**.
+
+Without any exclusions, that includes things you do not want inside the image, or even inside the build process at all:
+
+- `node_modules` — reinstalled fresh with `npm install` anyway, so copying your local copy wastes time and bytes. Worse, native dependencies built on your machine's OS may not even work inside the Linux container.
+- `.next` — leftover build output from running `npm run dev` or `npm run build` locally.
+- `.git` — your entire commit history, irrelevant to a running app.
+- `.env` / `.env.local` — real secrets: database passwords, API keys. These should never be baked into an image, since anyone who pulls the image can extract them.
+
+## Creating a .dockerignore File
+
+The syntax matches `.gitignore` — one pattern per line. Create a file named `.dockerignore` in the same folder as your Dockerfile:
+
+```filename=".dockerignore"
+node_modules
+.next
+.git
+.env
+.env.local
+npm-debug.log
+README.md
+```
+
+<Callout type="warning">
+Excluding `.env` here does not mean your app runs without its environment variables — it means the file is not copied into the image at build time. Environment variables are passed in when you *run* the container instead, which the next section on Data & Networking covers.
+</Callout>
+
+## Confirm It Works
+
+Rebuild your image and compare build time:
+
+```bash filename="Terminal"
+docker build -t my-next-app:1.0 .
+```
+
+If `node_modules` was large, you will notice the build context uploads faster — Docker prints "Sending build context to Docker daemon" with a size, which should now be much smaller.
+
+## Foundation and Building Images, Recap
+
+You now have a full workflow, from nothing to a running, shareable container:
+
+1. Write a Dockerfile that describes how to build your app
+2. Order instructions so Docker's cache works in your favor
+3. Build, run, and push the image to Docker Hub
+4. Shrink it with a multi-stage build and Next.js's standalone output
+5. Build for multiple architectures if your team needs it
+6. Keep unnecessary and sensitive files out with `.dockerignore`
+
+<Callout type="default">
+This is also everything `docker init` generates automatically. Now that you have done it by hand, running `docker init` on a future project is a shortcut, not a mystery.
+</Callout>
+
+## Quick Check
+
+- [ ] Can you name two reasons `node_modules` should not be copied into the build context?
+- [ ] Do you understand why `.env` should never end up inside an image?
+- [ ] Can you explain the difference between "not present in the image" and "the app has no access to it at runtime"?
+
+<span style={{ display: 'none' }}>
+  dockerignore file, docker build context, exclude node_modules docker, docker env file secrets
+</span>

@@ -119,7 +119,7 @@ Audience: developers who build real web apps and want to use Docker in dev, depl
 
 ## Progress
 - [x] Part 1 — Foundations (pages live in `content/docs/docker/foundation/`)
-- [ ] Part 2 — Building Images
+- [x] Part 2 — Building Images (pages live in `content/docs/docker/building-images/`)
 - [ ] Part 3 — Data & Networking
 - [ ] Part 4 — Multi-container
 - [ ] Part 5 — Production & Deploy
