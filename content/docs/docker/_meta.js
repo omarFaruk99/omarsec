@@ -1,7 +1,6 @@
 export default {
   index: 'Introduction',
-  'foundation': 'Foundation',
-  'building-images': 'Building Images',
-  'data-networking': 'Data & Networking',
-  'multi-container': 'Multi-container'
+  'production-essentials': 'Production Essentials',
+  'full-project-setup': 'Full Project Setup',
+  'go-live': 'Go Live'
 }

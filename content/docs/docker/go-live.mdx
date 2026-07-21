@@ -1,0 +1,162 @@
+---
+title: Go Live
+description: আগের পেজের প্রজেক্ট একটা Linux সার্ভারে তুলে, Docker দিয়ে চালু করা।
+---
+
+import { Callout } from 'nextra/components'
+
+# Go Live
+
+<Callout type="info">
+আগের দুই পেজে যেই প্রজেক্ট বানানো হয়েছে, সেটা এখন একটা Linux সার্ভারে (VPS) তুলে, Docker দিয়ে লাইভ করা হবে। ধরে নিচ্ছি সার্ভারে Ubuntu চলছে, আর আপনার একটা ডোমেইন আছে।
+</Callout>
+
+## যা যা লাগবে
+
+1. সার্ভারে Docker install করা
+2. কোড সার্ভারে আনা
+3. সার্ভারে .env ফাইল বানানো
+4. Docker দিয়ে চালু করা
+5. Nginx দিয়ে ডোমেইনে যুক্ত করা
+6. SSL (HTTPS) যুক্ত করা
+7. পরে আপডেট করার নিয়ম
+
+## ১. সার্ভারে Docker install করা
+
+সার্ভারে SSH করে ঢুকুন, তারপর Docker-এর অফিসিয়াল script চালান:
+
+```bash filename="SERVER — Terminal"
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+```
+
+দ্বিতীয় লাইনটা আপনার ইউজারকে `docker` গ্রুপে যুক্ত করে, যাতে প্রতিবার `sudo` লেখা লাগে না। এই লাইনের পর একবার লগআউট করে আবার লগইন করুন, তারপর চেক করুন:
+
+```bash filename="SERVER — Terminal"
+docker --version
+docker compose version
+```
+
+দুটোই ভার্সন নাম্বার দেখানো উচিত।
+
+## ২. কোড সার্ভারে আনা
+
+আপনার প্রজেক্ট (`my-app` ফোল্ডার, GitHub-এ থাকলে) সার্ভারে ক্লোন করুন:
+
+```bash filename="SERVER — Terminal"
+git clone https://github.com/yourusername/my-app.git
+cd my-app
+```
+
+`.env` ফাইল গিট-এ নেই (ঠিকভাবে `.gitignore` করা থাকলে), তাই এটা সার্ভারে আলাদাভাবে বানাতে হবে।
+
+## ৩. সার্ভারে .env ফাইল বানানো
+
+```bash filename="SERVER — Terminal"
+nano .env
+```
+
+লোকাল কম্পিউটারের মতো একই ভ্যারিয়েবল লিখুন, কিন্তু আসল, নিরাপদ পাসওয়ার্ড দিয়ে:
+
+```filename=".env"
+POSTGRES_USER=appuser
+POSTGRES_PASSWORD=a-real-strong-password-here
+POSTGRES_DB=appdb
+DATABASE_URL=postgresql://appuser:a-real-strong-password-here@db:5432/appdb
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+```
+
+<Callout type="warning">
+`NEXT_PUBLIC_API_URL` এখানে সার্ভারের আসল ডোমেইন দিয়ে লিখতে হবে, `localhost` দিয়ে না — কারণ এই ভ্যারিয়েবল build-এর সময় frontend-এর কোডে বসে যাবে, আর build হবে এই সার্ভারেই।
+</Callout>
+
+## ৪. Docker দিয়ে চালু করা
+
+```bash filename="SERVER — Terminal"
+docker compose up -d --build
+docker compose exec backend npx prisma migrate deploy
+docker compose ps
+```
+
+তিনটা service `running` দেখানো উচিত। ভুল হলে `docker compose logs` দিয়ে দেখুন কোন service সমস্যা করছে।
+
+এই সময়ে অ্যাপ চলছে, কিন্তু এখনো `yourdomain.com`-এ যাওয়া যাবে না — সেটার জন্য Nginx লাগবে।
+
+## ৫. Nginx দিয়ে ডোমেইনে যুক্ত করা
+
+সার্ভারে Nginx install করুন:
+
+```bash filename="SERVER — Terminal"
+sudo apt update
+sudo apt install nginx -y
+```
+
+একটা কনফিগ ফাইল বানান, যা `yourdomain.com`-এ আসা request-কে frontend container-এর port 3000-এ পাঠাবে:
+
+```nginx filename="/etc/nginx/sites-available/my-app"
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+এই কনফিগ চালু করুন:
+
+```bash filename="SERVER — Terminal"
+sudo ln -s /etc/nginx/sites-available/my-app /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+`nginx -t` দিয়ে কনফিগে ভুল আছে কিনা আগে চেক করা হচ্ছে, তারপর reload। ডোমেইনের DNS ঠিকভাবে সার্ভারের IP-তে পয়েন্ট করা থাকলে, এখন `http://yourdomain.com` খুললে frontend দেখা উচিত।
+
+<Callout type="default">
+Nginx সরাসরি সার্ভারে (container-এর বাইরে) install করা হচ্ছে, কারণ এটাই port 80/443 সামলাবে আর frontend container-এর 3000 port-এ request পাঠাবে। Nginx নিয়ে আরও বিস্তারিত জানতে [Nginx & Reverse Proxy](/docs/server-deployment/foundation/nginx) পেজ দেখুন — সেখানে concept-টা আরও গভীরভাবে ব্যাখ্যা করা আছে।
+</Callout>
+
+## ৬. SSL (HTTPS) যুক্ত করা
+
+ডোমেইনের DNS সার্ভারে পয়েন্ট করা থাকলে, Certbot দিয়ে ফ্রি SSL সার্টিফিকেট নেওয়া যায়:
+
+```bash filename="SERVER — Terminal"
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+Certbot নিজেই Nginx কনফিগ আপডেট করে HTTPS চালু করে দেবে, আর সার্টিফিকেট মেয়াদ শেষের আগে অটো-রিনিউ করবে। ডোমেইন পয়েন্ট করা, DNS propagation, আর Certbot নিয়ে বিস্তারিত ধাপ [SSL & HTTPS](/docs/server-deployment/foundation/ssl-https) পেজে আছে — Docker হোক বা না হোক, এই ধাপগুলো একই।
+
+## ৭. পরে আপডেট করার নিয়ম
+
+কোডে নতুন পরিবর্তন করে সার্ভারে আপডেট দিতে হলে:
+
+```bash filename="SERVER — Terminal"
+cd my-app
+git pull
+docker compose up -d --build
+```
+
+`up -d --build` পুরনো image আবার build করে, শুধু যেগুলো পরিবর্তন হয়েছে সেগুলো — বাকিটা cache থেকে আসে, তাই সাধারণত দ্রুত হয়। নতুন migration যুক্ত হলে:
+
+```bash filename="SERVER — Terminal"
+docker compose exec backend npx prisma migrate deploy
+```
+
+<Callout type="default">
+এখন প্রজেক্ট প্রোডাকশনে লাইভ — HTTPS সহ। [Production Essentials](/docs/docker/production-essentials) পেজের backup আর ডিস্ক পরিষ্কার রাখার কমান্ডগুলো এই সার্ভারে cron-এ বসিয়ে দিন, যাতে কয়েক মাস পর ডাটা হারানো বা ডিস্ক ভরে যাওয়ার সমস্যায় না পড়েন।
+</Callout>
+
+## Quick Check
+
+- [ ] `docker compose up -d --build` কমান্ডটা কেন `git pull`-এর পরে চালাতে হবে?
+- [ ] Nginx কেন সার্ভারে সরাসরি install করা হলো, container-এর ভিতরে না?
+- [ ] সার্ভারের `.env` ফাইল কেন গিট থেকে আসে না, আলাদাভাবে বানাতে হয়?
+
+<span style={{ display: 'none' }}>
+  docker deploy vps, docker compose production server, nginx docker reverse proxy, certbot docker nextjs, docker go live
+</span>

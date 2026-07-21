@@ -1,0 +1,187 @@
+---
+title: Production Essentials
+description: প্রোডাকশনে যাওয়ার আগে Docker-এ যা যা লাগে, কোড আর কমেন্ট সহ।
+---
+
+import { Callout } from 'nextra/components'
+
+# Production Essentials
+
+<Callout type="info">
+এই পেজে কোনো একটা নির্দিষ্ট প্রজেক্ট ধরে লেখা হয়নি। এখানে Docker দিয়ে একটা অ্যাপ প্রোডাকশনে চালাতে যেই ফাইলগুলো লাগে, সেগুলোর টেমপ্লেট দেওয়া আছে — কমেন্ট সহ, যাতে প্রতিটা লাইন কেন লেখা হয়েছে বোঝা যায়। পরের পেজে এই একই জিনিসগুলো একটা বাস্তব প্রজেক্টে (Next.js + Express + PostgreSQL) বসিয়ে দেখানো হবে।
+</Callout>
+
+## ধাপগুলো
+
+Docker দিয়ে একটা অ্যাপ প্রোডাকশনে চালাতে এই ধাপগুলো লাগবে, এই ক্রমে:
+
+1. Dockerfile লেখা
+2. .dockerignore বানানো
+3. docker-compose.yml দিয়ে সব একসাথে চালানো
+4. Environment ও Secret ঠিকমতো রাখা
+5. ডাটাবেজের Backup রাখা
+6. ডিস্ক পরিষ্কার রাখা
+
+নিচে প্রতিটা ধাপ বিস্তারিত।
+
+## ১. Dockerfile লেখা
+
+প্রতিটা অ্যাপের (frontend, backend) জন্য একটা `Dockerfile` লাগে। নিচের টেমপ্লেট multi-stage build ব্যবহার করে — image ছোট রাখার জন্য, আর একটা আলাদা user দিয়ে চালায় — সিকিউরিটির জন্য।
+
+```dockerfile filename="Dockerfile"
+# Stage 1: build — এখানে সব ইন্সটল আর build হয়
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# আগে dependency ফাইল কপি করা হয়েছে, বাকি কোড আগে না —
+# তাহলে code change করলেও npm install আবার চালাতে হয় না (build cache কাজে লাগে)
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# Stage 2: runner — সম্পূর্ণ নতুন, খালি image থেকে শুরু
+# builder স্টেজ থেকে কিছুই সাথে আসে না, যতক্ষণ না সরাসরি কপি করা হয়
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# root ছাড়া আলাদা একটা user বানানো হলো —
+# container hack হলেও, এই user-এর ক্ষমতা সীমিত থাকবে
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder /app/package.json /app/package-lock.json ./
+RUN npm install --omit=dev
+COPY --from=builder /app/build ./build
+
+USER appuser
+
+EXPOSE 3000
+CMD ["node", "build/index.js"]
+```
+
+## ২. .dockerignore বানানো
+
+`Dockerfile`-এর পাশে এই ফাইল রাখলে, নিচের জিনিসগুলো image-এর ভিতরে যাবে না — গতি বাড়ে, আর secret বাইরে যাওয়া বন্ধ হয়।
+
+```filename=".dockerignore"
+# npm ইনস্টল যেভাবেও fresh হবে, তাই কপি করার দরকার নেই
+node_modules
+
+# আগের build-এর leftover ফাইল
+dist
+build
+.next
+
+# git history, অ্যাপ চালাতে লাগে না
+.git
+
+# সবচেয়ে গুরুত্বপূর্ণ — পাসওয়ার্ড, API key
+# .env কখনো image-এর ভিতরে যাবে না
+.env
+.env.local
+.env.production
+```
+
+## ৩. docker-compose.yml দিয়ে সব একসাথে চালানো
+
+Frontend, backend, database — সবগুলো একসাথে চালানোর জন্য Compose লাগে। নিচের টেমপ্লেটে তিনটা service একটা জেনেরিক প্যাটার্নে দেখানো হলো।
+
+```yaml filename="docker-compose.yml"
+services:
+  # backend আর database একে অপরকে service নাম দিয়ে খুঁজে পাবে,
+  # আলাদা করে network বানাতে হবে না — Compose নিজেই করে দেয়
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      # আসল মান .env ফাইল থেকে আসবে, এখানে লেখা নেই
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      # named volume — container ডিলিট হলেও ডাটাবেজের ডাটা থাকবে
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # লগ ফাইল সীমা ছাড়া বাড়তে থাকলে ডিস্ক ভরে সার্ভার আটকে যায় —
+    # এই সীমা না দিলে কয়েক মাস পর এটা একটা বাস্তব সমস্যা হয়ে দাঁড়ায়
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db-data:
+```
+
+`restart: unless-stopped` মানে — container crash করলে বা সার্ভার রিবুট হলে, নিজে থেকেই আবার চালু হবে। `depends_on` এর সাথে `condition: service_healthy` মানে — backend, database পুরো রেডি হওয়ার আগে চালু হবে না, শুধু container শুরু হয়েছে দেখলেই না।
+
+## ৪. Environment ও Secret ঠিকমতো রাখা
+
+`.env` ফাইলে সব password, API key, database URL রাখা হয় — কখনো কোড বা Dockerfile-এ সরাসরি লেখা হয় না।
+
+```filename=".env"
+POSTGRES_USER=appuser
+POSTGRES_PASSWORD=change-this-to-a-real-password
+POSTGRES_DB=appdb
+DATABASE_URL=postgresql://appuser:change-this-to-a-real-password@db:5432/appdb
+```
+
+এই ফাইল কখনো git-এ কমিট হবে না — `.gitignore`-এ `.env` যুক্ত করে রাখুন। সার্ভারে আলাদাভাবে এই ফাইল বানাতে হবে, সাথে আনা যাবে না।
+
+<Callout type="warning">
+Next.js ব্যবহার করলে একটা বিশেষ ব্যাপার আছে — `NEXT_PUBLIC_` দিয়ে শুরু হওয়া variable browser-এর কোডে ব্যবহার হয়, আর এগুলো `next build` চালানোর সময়েই ফাইলের ভিতরে বসে যায়। তাই container চালু করার সময় `.env` দিয়ে এগুলো বদলানো যায় না — build করার সময় `ARG` দিয়ে দিতে হয়। পরের পেজে (বাস্তব প্রজেক্টে) এটা দেখানো হবে।
+</Callout>
+
+## ৫. ডাটাবেজের Backup রাখা
+
+উপরের `db-data` volume ডাটা রাখে, কিন্তু ডিস্ক নষ্ট হলে বা ভুলে `docker volume rm` চালালে সেই ডাটাও চলে যাবে। Volume আর backup — এই দুটো আলাদা জিনিস, একটা থাকলে অন্যটা লাগবে না এমন না।
+
+```bash filename="Terminal"
+docker exec db pg_dump -U appuser appdb > backup-$(date +%F).sql
+```
+
+এই কমান্ড একটা cron job-এ প্রতিদিন চালানো উচিত, আর backup ফাইল সার্ভারের বাইরে (অন্য কোথাও) রাখা উচিত। একবার হলেও এই backup থেকে restore করে দেখে নেওয়া ভালো — backup আছে মানে না যে সেটা কাজ করবে।
+
+<Callout type="default">
+একটা container-এ PostgreSQL চালানো ছোট প্রজেক্টের জন্য ঠিক আছে। কিন্তু backup, failover, patching নিয়ে যদি চিন্তা না করতে চান, তাহলে managed database (যেমন Neon, Supabase, বা cloud provider-এর RDS) একটা ভালো পরের ধাপ।
+</Callout>
+
+## ৬. ডিস্ক পরিষ্কার রাখা
+
+সময়ের সাথে পুরনো image, ব্যবহার না হওয়া layer জমতে থাকে, ডিস্ক ভরে যায়।
+
+```bash filename="Terminal"
+# --volumes ছাড়া চালাবেন — এটা দিলে database-এর volume-ও মুছে যেতে পারে
+docker system prune -a
+```
+
+এটাও cron-এ সপ্তাহে একবার চালানো যায়, অথবা মনে করে নিয়মিত হাতে চালানো যায়।
+
+## Quick Check
+
+- [ ] `.dockerignore`-এ `.env` না থাকলে কী সমস্যা হতে পারে?
+- [ ] Named volume আর backup — এই দুটো কেন আলাদা জিনিস?
+- [ ] `docker system prune -a --volumes` কেন সাবধানে ব্যবহার করতে হবে?
+
+**Next →** [Full Project Setup](/docs/docker/full-project-setup)
+
+<span style={{ display: 'none' }}>
+  docker production essentials, dockerfile production, docker compose production, database backup docker, docker log rotation
+</span>

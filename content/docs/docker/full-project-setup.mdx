@@ -1,0 +1,291 @@
+---
+title: Full Project Setup
+description: শূন্য থেকে শুরু করে, Next.js, Express, PostgreSQL, আর Prisma দিয়ে একটা প্রজেক্ট Docker-এ চালানো — ধাপে ধাপে।
+---
+
+import { Callout } from 'nextra/components'
+
+# Full Project Setup
+
+<Callout type="info">
+এই পেজ শুরু হচ্ছে প্রজেক্ট তৈরি করা থেকে, শেষ হচ্ছে Docker দিয়ে সব চালু করে ব্রাউজারে দেখা পর্যন্ত। প্রতিটা ধাপ নিজে করে দেখা যাবে — কোনো ধাপ আগে থেকে করা আছে ধরে নেওয়া হয়নি।
+</Callout>
+
+## যা যা লাগবে
+
+1. প্রজেক্ট ফোল্ডার আর দুটো অ্যাপ তৈরি করা
+2. Backend-এ Prisma বসানো, একটা টেবিলের জন্য schema লেখা
+3. Backend Dockerfile লেখা
+4. Frontend Dockerfile লেখা
+5. docker-compose.yml লেখা
+6. .env ফাইল লেখা
+7. সব চালু করে চেক করা
+8. Database-এর ভিতরে ঢুকে দেখা
+
+## ১. প্রজেক্ট ফোল্ডার তৈরি
+
+একটা মূল ফোল্ডার বানিয়ে তার ভিতরে `frontend` আর `backend` — দুটো আলাদা অ্যাপ থাকবে।
+
+```bash filename="Terminal"
+mkdir my-app && cd my-app
+
+npx create-next-app@latest frontend
+# প্রশ্নগুলোর ডিফল্ট উত্তর দিয়ে এগিয়ে যান
+
+mkdir backend && cd backend
+npm init -y
+npm install express @prisma/client
+npm install -D prisma typescript @types/express @types/node
+cd ..
+```
+
+`backend`-এ একটা সাধারণ Express সার্ভার লিখুন, ধরে নিচ্ছি এটা `backend/src/index.ts`-এ আছে এবং `npm run build` চালালে `dist/index.js` তৈরি হয়। (TypeScript সেটআপ এই পেজের বিষয় না — যেকোনো Express + TypeScript boilerplate দিয়ে শুরু করতে পারেন।)
+
+শেষে ফোল্ডার গঠন এমন দাঁড়াবে — প্রতিটা অ্যাপের নিজের Dockerfile নিজের ফোল্ডারে থাকে, `docker-compose.yml` থাকে সবচেয়ে বাইরের `my-app` ফোল্ডারে:
+
+```filename="my-app/ (folder structure)"
+my-app/
+  frontend/
+    Dockerfile
+    next.config.mjs
+    ...
+  backend/
+    Dockerfile
+    prisma/
+      schema.prisma
+    ...
+  docker-compose.yml
+  .env
+```
+
+## ২. Prisma বসানো
+
+```bash filename="Terminal"
+cd backend
+npx prisma init
+```
+
+এই কমান্ড `backend/prisma/schema.prisma` ফাইল বানায়। এখানে একটা সহজ `User` টেবিল লিখি:
+
+```prisma filename="backend/prisma/schema.prisma"
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+  name  String?
+}
+```
+
+`datasource db`-এর `url` টা `.env` ফাইলের `DATABASE_URL` থেকে আসবে — এটা পরে লিখব। এখন একটা migration ফাইল বানাই, যা এই `User` টেবিল তৈরি করার SQL ধরে রাখে:
+
+```bash filename="Terminal"
+npx prisma migrate dev --name init --create-only
+```
+
+`--create-only` দিয়ে migration ফাইল তৈরি হয়, কিন্তু এখনো কোনো ডাটাবেজে চালানো হয় না — কারণ ডাটাবেজ এখনো Docker-এই তৈরি হয়নি। এই migration ফাইলটা (`backend/prisma/migrations/...`) গিট-এ কমিট করে রাখুন, image build-এর সময় এটা ভিতরে যাবে।
+
+## ৩. Backend Dockerfile
+
+```dockerfile filename="backend/Dockerfile"
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+COPY . .
+# schema.prisma পড়ে Prisma client কোড জেনারেট হয়, build এর আগেই লাগবে
+RUN npx prisma generate
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=builder /app/package.json /app/package-lock.json ./
+RUN npm install --omit=dev
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+USER appuser
+EXPOSE 4000
+CMD ["node", "dist/index.js"]
+```
+
+## ৪. Frontend Dockerfile
+
+```dockerfile filename="frontend/Dockerfile"
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+COPY . .
+# NEXT_PUBLIC_ ভ্যারিয়েবল build এর সময়েই বসে যায়, run এর সময় বদলানো যায় না
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+USER appuser
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+`.next/standalone` কাজ করার জন্য `frontend/next.config.mjs`-এ এই লাইন যুক্ত করুন:
+
+```javascript filename="frontend/next.config.mjs"
+const nextConfig = {
+  output: 'standalone',
+}
+export default nextConfig
+```
+
+## ৫. docker-compose.yml
+
+মূল `my-app` ফোল্ডারে, `frontend` আর `backend`-এর পাশে:
+
+```yaml filename="docker-compose.yml"
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db-data:
+```
+
+`db` service-টা `postgres:16-alpine` — Docker Hub-এর অফিসিয়াল PostgreSQL image। এই image চালু হলে নিজে থেকেই একটা ডাটাবেজ সার্ভার চালু করে, আর `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` — এই তিনটা environment variable দিয়ে প্রথমবার চালু হওয়ার সময় সেই নামে ইউজার আর ডাটাবেজ বানিয়ে নেয়। এর ভিতরে সরাসরি কোনো কোড লিখতে হয় না, এটা শুধু ডাটাবেজ সার্ভার হিসেবে চলে।
+
+এখানে PostgreSQL আপনার কম্পিউটারে আলাদা করে install করা হচ্ছে না — পুরো ডাটাবেজ সার্ভার এই `postgres:16-alpine` container-এর ভিতরে চলে। কম্পিউটারে শুধু Docker থাকলেই চলবে। `docker compose down` চালালে container বন্ধ হয়ে যায়, কিন্তু `db-data` নামের volume-এর কারণে ডাটা থেকে যায় — পরে আবার `docker compose up` করলে আগের ডাটা ফিরে পাওয়া যাবে।
+
+`frontend` সরাসরি `backend`-কে সার্ভিস নাম দিয়ে খুঁজে পাবে (`http://backend:4000`), আর `backend` ডাটাবেজকে পাবে `db` নাম দিয়ে — কোনো IP address লাগে না, Compose নিজেই এই নেটওয়ার্ক বানিয়ে দেয়।
+
+## ৬. .env ফাইল
+
+মূল ফোল্ডারে, `docker-compose.yml`-এর পাশে:
+
+```filename=".env"
+POSTGRES_USER=appuser
+POSTGRES_PASSWORD=change-this-to-a-real-password
+POSTGRES_DB=appdb
+DATABASE_URL=postgresql://appuser:change-this-to-a-real-password@db:5432/appdb
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+`DATABASE_URL`-এর `db` অংশটা লক্ষ্য করুন — এটা `docker-compose.yml`-এর `db` service-এর নাম, `localhost` না। Backend container-এর ভিতর থেকে ডাটাবেজ খুঁজতে হলে এই নামটাই লাগবে।
+
+`.gitignore`-এ `.env` যুক্ত করে রাখুন, যাতে ভুলে গিট-এ কমিট না হয়।
+
+## ৭. সব চালু করা
+
+মূল `my-app` ফোল্ডার থেকে:
+
+```bash filename="Terminal"
+docker compose up -d --build
+```
+
+এই কমান্ড তিনটা image build করে, তিনটা container চালু করে। প্রথমবার একটু সময় লাগবে (npm install, next build)। শেষ হলে দেখুন সব চলছে কিনা:
+
+```bash filename="Terminal"
+docker compose ps
+```
+
+তিনটা service-এর status `running` (বা `healthy`) দেখানো উচিত। কোনো একটা `Exit` দেখালে, লগ দেখুন কী হয়েছে:
+
+```bash filename="Terminal"
+docker compose logs backend
+```
+
+Container চলতে শুরু করলে, ডাটাবেজে টেবিল তৈরি করুন — এই migration ফাইলটা আগে থেকে বানানো ছিল, এখন সেটা আসল ডাটাবেজে চালানো হচ্ছে:
+
+```bash filename="Terminal"
+docker compose exec backend npx prisma migrate deploy
+```
+
+`migrate deploy` প্রোডাকশনের জন্য — এটা নতুন migration ফাইল বানায় না (`migrate dev` সেটা করে), শুধু আগে থেকে বানানো migration ডাটাবেজে চালায়।
+
+এখন ব্রাউজারে [http://localhost:3000](http://localhost:3000) খুললে frontend দেখা উচিত। [http://localhost:4000](http://localhost:4000)-এ backend-এর কোনো route থাকলে সেটাও কাজ করা উচিত।
+
+## ৮. Database-এর ভিতরে দেখা
+
+টেবিল আসলেই তৈরি হয়েছে কিনা, সরাসরি PostgreSQL-এ ঢুকে দেখা যায়:
+
+```bash filename="Terminal"
+docker compose exec db psql -U appuser -d appdb
+```
+
+এটা একটা `psql` prompt খুলবে। এখানে টেবিলের তালিকা দেখতে:
+
+```sql filename="psql"
+\dt
+```
+
+`User` নামে একটা টেবিল দেখা উচিত। বের হতে:
+
+```sql filename="psql"
+\q
+```
+
+<Callout type="default">
+এখন পুরো প্রজেক্ট চলছে — frontend, backend, database, সব একসাথে, migration চালানো, প্রোডাকশনের মতো non-root user আর multi-stage build সহ। Backup আর ডিস্ক পরিষ্কার রাখার কমান্ডগুলো [Production Essentials](/docs/docker/production-essentials) পেজ থেকেই এই প্রজেক্টে চলবে, `db` service-এর নাম দিয়ে।
+</Callout>
+
+## Quick Check
+
+- [ ] `DATABASE_URL`-এ `db` কেন লেখা, `localhost` কেন না?
+- [ ] `prisma migrate dev` আর `prisma migrate deploy` — এই দুটো কমান্ড কখন কোনটা চালাতে হবে?
+- [ ] `docker compose ps`-এ কোনো service `Exit` দেখালে, তার কারণ কীভাবে খুঁজবেন?
+
+**Next →** [Go Live](/docs/docker/go-live)
+
+<span style={{ display: 'none' }}>
+  docker nextjs express postgresql prisma tutorial, docker compose full stack beginner, prisma migrate docker, postgres docker exec psql
+</span>
