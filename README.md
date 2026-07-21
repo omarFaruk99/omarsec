@@ -43,17 +43,25 @@ The server only runs the live site. Never edit code here — pull from GitHub.
 
 ## Deploy (make changes live)
 
-After `git push` from local, run this from local:
+First, publish from local (see the Local section): `git push origin main`.
+Then update the server one of two ways.
+
+Log into the server and run:
 
 ```bash
-ssh aws-lab "cd /var/www/omarsec && git pull && npm install && npm run build && pm2 restart omarsec"
+ssh aws-lab                 # log into the server
+cd /var/www/omarsec         # go to the project
+git pull                    # get the latest code
+npm install                 # update packages
+npm run build               # build the site
+pm2 restart omarsec         # restart the app
 ```
 
-Check the app:
+### Check the app
 
 ```bash
-ssh aws-lab "pm2 status"      # is it running?
-ssh aws-lab "pm2 logs omarsec"  # see errors
+pm2 status          # is it running?  (run inside the server)
+pm2 logs omarsec    # see errors
 ```
 
 ---
