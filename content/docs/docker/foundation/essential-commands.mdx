@@ -1,0 +1,118 @@
+---
+title: Essential Commands
+description: The Docker commands you will use every day, grouped by what they do.
+---
+
+import { Callout } from 'nextra/components'
+
+# Essential Commands
+
+<Callout type="info">
+This page is a reference. You already learned most of these commands on the previous page — this groups them together so you can look them up quickly later.
+</Callout>
+
+## Images
+
+Commands for working with images — the blueprints you learned about in Core Concepts.
+
+```bash filename="Terminal"
+# Download an image from a registry, without running it
+docker pull nginx
+
+# List images stored on your machine
+docker images
+
+# Delete an image
+docker rmi nginx
+```
+
+<Callout type="default">
+`docker rmi` only works if no container is using that image. Remove the container first with `docker rm`.
+</Callout>
+
+## Containers
+
+Commands for the container lifecycle you practiced on the previous page.
+
+```bash filename="Terminal"
+# Create and start a container
+docker run -d -p 8080:80 --name my-app nginx
+
+# List running containers
+docker ps
+
+# List all containers, including stopped ones
+docker ps -a
+
+# Stop a running container
+docker stop my-app
+
+# Start a stopped container again (reuses the same container)
+docker start my-app
+
+# Remove a container
+docker rm my-app
+```
+
+## Looking Inside a Container
+
+Sometimes you need to check what is happening inside a running container.
+
+```bash filename="Terminal"
+# View a container's logs
+docker logs my-app
+
+# Follow the logs live, like tail -f
+docker logs -f my-app
+
+# Open a shell inside a running container
+docker exec -it my-app sh
+```
+
+<Callout type="default">
+`docker exec -it my-app sh` gives you a terminal inside the container. Type `exit` to leave it. This is useful for checking files or debugging, but it should not replace fixing the actual Dockerfile — anything you change this way disappears if the container is removed.
+</Callout>
+
+## Cleaning Up
+
+Over time, stopped containers and unused images build up on your machine. These commands clean them up.
+
+```bash filename="Terminal"
+# Remove all stopped containers
+docker container prune
+
+# Remove all unused images
+docker image prune
+
+# Remove containers, networks, and images not used by any container
+docker system prune
+```
+
+<Callout type="warning">
+`docker system prune` removes things broadly. Read the confirmation prompt before pressing yes, especially on a shared machine.
+</Callout>
+
+## Quick Reference Table
+
+| Command | What it does |
+|---------|---------------|
+| `docker run` | Create and start a container from an image |
+| `docker ps` | List running containers |
+| `docker ps -a` | List all containers |
+| `docker stop <name>` | Stop a running container |
+| `docker start <name>` | Start a stopped container |
+| `docker rm <name>` | Delete a container |
+| `docker images` | List images on your machine |
+| `docker rmi <image>` | Delete an image |
+| `docker logs <name>` | View a container's output |
+| `docker exec -it <name> sh` | Open a shell inside a container |
+
+## What's Next
+
+You now know how to run, inspect, and clean up containers using existing images. The next section teaches you how to build your **own** image — starting with your Next.js app.
+
+**Next →** [Building Images](/docs/docker/building-images)
+
+<span style={{ display: 'none' }}>
+  docker commands cheatsheet, docker ps stop rm, docker exec, docker prune, essential docker commands
+</span>

@@ -1,22 +1,59 @@
 ---
 title: Introduction
-description: Docker দিয়ে প্রোডাকশনে যাওয়ার বাস্তব গাইড — frontend, backend, database।
+description: Learn Docker for web development — from the basics to running a real Next.js, Express, and PostgreSQL stack.
 ---
 
 import { Callout } from 'nextra/components'
 
-# Docker Production Guide
+# Docker for Web Developers
 
 <Callout type="info">
-Frontend, backend, আর database — এই তিনটা নিয়ে একটা রিয়েল অ্যাপ Docker দিয়ে প্রোডাকশনে চালাতে যা লাগে, এই গাইডে তাই আছে। কোর্স না — সরাসরি কাজে লাগার মতো।
+A practical Docker guide for developers who build real web apps. You will start with one app (Next.js), then grow into a full stack (Next.js, Express, PostgreSQL) once you are comfortable.
 </Callout>
 
-## এই গাইডে কী আছে
+## Why This Guide
 
-তিনটা পেজ। প্রথমে কী কী লাগে তার টেমপ্লেট, তারপর একটা বাস্তব প্রজেক্টে সেগুলো বসানো, তারপর সার্ভারে লাইভ করা।
+Most Docker tutorials show random examples that do not connect to each other. This guide is different.
 
-**Next →** [Production Essentials](/docs/docker/production-essentials)
+- You start with **one app** and repeat the same steps until they feel natural.
+- Only after that, you add **more pieces** — a backend, a database.
+- Every command is explained before you run it. You will understand *why*, not just *what to type*.
+
+## Who This Is For
+
+- Developers who write code but have never used Docker
+- Developers who use Docker commands from memory but do not understand what happens underneath
+- Anyone who wants to deploy a Next.js / Express / PostgreSQL project confidently
+
+## What You Will Build
+
+By the end of this guide, you will run a complete stack in containers:
+
+- A **Next.js** frontend
+- An **Express** API backend
+- A **PostgreSQL** database (with a look at MongoDB as an alternative)
+
+All connected together with Docker Compose, running like a real production setup.
+
+## What's Inside
+
+This guide is organized into sections. Each one builds on the last.
+
+| Section | What it covers |
+|---------|-----------------|
+| [Foundation](/docs/docker/foundation) | What Docker is, installation, core concepts, your first container, essential commands |
+| [Building Images](/docs/docker/building-images) | Writing a Dockerfile, building, running, pushing, shrinking, and multi-arch builds |
+| [Data & Networking](/docs/docker/data-networking) | Volumes, bind mounts, container networking, and environment variables |
+| [Multi-container](/docs/docker/multi-container) | Docker Compose, running Next.js + Express + PostgreSQL together, health checks, and secrets |
+
+<Callout type="default">
+More sections will be added as this guide grows: production deployment.
+</Callout>
+
+## How to Use This Guide
+
+Read one page, then open a terminal and do it yourself. Docker is a hands-on skill — reading alone will not teach it.
 
 <span style={{ display: 'none' }}>
-  docker production guide bangla, docker nextjs express postgresql, docker deployment
+  docker tutorial for web developers, learn docker nextjs, docker for beginners, docker guide, docker express postgresql
 </span>

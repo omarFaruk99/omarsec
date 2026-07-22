@@ -1,0 +1,122 @@
+---
+title: Your First Container
+description: Run, view, stop, and remove a container using the basic Docker commands.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Your First Container
+
+<Callout type="info">
+**Estimated time:** 15 minutes
+
+You will run a real web server in a container, view it running, then stop and remove it. This is the basic lifecycle you will repeat constantly.
+</Callout>
+
+## Before You Build Your Own Image
+
+Building your own image (for your Next.js app) comes in the next section. Before that, it helps to practice the basic commands using an existing public image — so the commands feel familiar once you start building your own.
+
+We will use **nginx**, a popular web server, as this practice image.
+
+## Running a Container
+
+<Steps>
+### Start nginx
+
+```bash filename="Terminal"
+docker run -d -p 8080:80 --name my-first-container nginx
+```
+
+Here is what each part means:
+
+- `docker run` — create and start a container from an image
+- `-d` — run in the background ("detached"), so your terminal stays free
+- `-p 8080:80` — connect port `8080` on your machine to port `80` inside the container (this is how your browser reaches it)
+- `--name my-first-container` — give the container a name you can reference later
+- `nginx` — the image to use (Docker pulls it from Docker Hub automatically if you do not have it yet)
+
+### Open It in a Browser
+
+Go to [http://localhost:8080](http://localhost:8080). You should see the nginx welcome page.
+
+<Callout type="default">
+This page is being served from inside a container, not from a program installed on your machine. If you stop the container, the page disappears.
+</Callout>
+</Steps>
+
+## Viewing Running Containers
+
+To see what containers are currently running:
+
+```bash filename="Terminal"
+docker ps
+```
+
+Output looks like this:
+
+```
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS         PORTS                  NAMES
+a1b2c3d4e5f6   nginx     "/docker-entrypoint..."  2 minutes ago   Up 2 minutes   0.0.0.0:8080->80/tcp   my-first-container
+```
+
+<Callout type="default">
+The real output is wide and often wraps in a normal terminal — that is expected, not an error. The columns that matter most for now are `STATUS` (is it running?) and `NAMES` (which container is it?).
+</Callout>
+
+<Callout type="default">
+`docker ps` only shows **running** containers. To see all containers, including stopped ones, add `-a`: `docker ps -a`
+</Callout>
+
+## Stopping the Container
+
+Stopping a container ends the running process, but does not delete it.
+
+```bash filename="Terminal"
+docker stop my-first-container
+```
+
+Run `docker ps -a` again — the container is still listed, just no longer running.
+
+## Removing the Container
+
+Once you are done with a container, you can remove it completely:
+
+```bash filename="Terminal"
+docker rm my-first-container
+```
+
+<Callout type="warning">
+`docker rm` deletes the container permanently. Any data that only existed inside that container is gone. The image itself (`nginx`) is untouched — you can create a new container from it anytime.
+</Callout>
+
+## The Lifecycle So Far
+
+```
+docker run   →  container created and running
+docker ps    →  see it running
+docker stop  →  container stopped, still exists
+docker rm    →  container deleted completely
+```
+
+## Hands-on Task
+
+Do this yourself before moving on:
+
+1. Run an nginx container named `practice-container` on port `9090` instead of `8080`.
+2. Confirm it works by opening `http://localhost:9090` in your browser.
+3. Check it is listed with `docker ps`.
+4. Stop it, confirm with `docker ps -a` that it still exists but is stopped.
+5. Remove it.
+
+## Quick Check
+
+- [ ] Can you run a container and reach it in your browser?
+- [ ] Do you understand the difference between `stop` and `rm`?
+- [ ] Can you explain what `-p 8080:80` does?
+
+**Next →** [Essential Commands](/docs/docker/foundation/essential-commands)
+
+<span style={{ display: 'none' }}>
+  docker run command, docker ps, docker stop vs rm, first docker container tutorial, docker nginx example
+</span>

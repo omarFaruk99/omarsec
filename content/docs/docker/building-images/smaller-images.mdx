@@ -1,0 +1,121 @@
+---
+title: Smaller Images
+description: Shrink your Next.js image with a multi-stage build and Next.js's standalone output.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Smaller Images
+
+<Callout type="info">
+The image from the last page works, but it is much bigger than it needs to be. This page shows why, and fixes it with two changes working together.
+</Callout>
+
+## Check the Current Size
+
+```bash filename="Terminal"
+docker images my-next-app
+```
+
+You will likely see a size in the hundreds of megabytes. For comparison, the `nginx` image from Foundation is around 190 MB — and that is already a general-purpose web server, not a custom app with its own dependencies.
+
+## Why It Is So Big
+
+Your current Dockerfile copies your entire project, installs every dependency (including ones only needed during development, like linters and type checkers), and keeps all of that in the final image — even though only the compiled app is actually needed to run it.
+
+<Callout type="default">
+Recall the shipping-box analogy from Foundation. Right now, you are shipping the whole kitchen — ingredients, mixing bowls, and recipe cards — instead of just the finished cake.
+</Callout>
+
+## Fix 1: Multi-Stage Build
+
+A **multi-stage build** uses more than one `FROM` in a single Dockerfile. Earlier stages do the heavy work (installing, building), and the final stage copies over only the finished result — nothing else from the earlier stages ships in the final image.
+
+```dockerfile filename="Dockerfile"
+# Stage 1: install dependencies
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Stage 2: build the app
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# Stage 3: run the app
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+`COPY --from=builder` copies files from an earlier stage by name, instead of from your machine. The final image is built `FROM node:20-alpine` fresh — it never sees the `deps` or `builder` stage's leftover files unless explicitly copied over.
+
+## Fix 2: Next.js Standalone Output
+
+The Dockerfile above assumes Next.js produces a folder called `.next/standalone` — a self-contained server bundle with only the dependencies your app actually uses at runtime, instead of your full `node_modules`.
+
+This does not happen by default. You turn it on in your Next.js config:
+
+```js filename="next.config.mjs"
+const nextConfig = {
+  output: 'standalone'
+}
+
+export default nextConfig
+```
+
+With this enabled, `npm run build` produces `.next/standalone/server.js` — a minimal Node.js server with only what it needs bundled in. This is why the final stage above can skip copying `node_modules` entirely.
+
+<Callout type="warning">
+Add this to your existing `next.config.mjs` — do not replace the whole file if it already has other settings.
+</Callout>
+
+## Rebuild and Compare
+
+```bash filename="Terminal"
+docker build -t my-next-app:slim .
+docker images
+```
+
+Compare `my-next-app:slim` against your earlier `my-next-app:1.0`. The slim version is typically a fraction of the size — often tens of megabytes instead of hundreds.
+
+Run it to confirm it still works:
+
+```bash filename="Terminal"
+docker run -d -p 3000:3000 --name my-next-app-slim my-next-app:slim
+```
+
+Visit [http://localhost:3000](http://localhost:3000) — it should look identical to before, just from a much smaller image.
+
+## Why This Matters
+
+- **Faster deploys** — smaller images push and pull faster, especially over a slow connection to a client server.
+- **Faster startup** — less data to load before the container is ready.
+- **Smaller attack surface** — fewer files and tools inside the container means less that could go wrong or be exploited.
+
+## Hands-on Task
+
+1. Add `output: 'standalone'` to your `next.config.mjs`.
+2. Rewrite your Dockerfile using the three-stage pattern above.
+3. Build it, tagged `my-next-app:slim`.
+4. Compare its size in `docker images` against your earlier, non-optimized build.
+
+## Quick Check
+
+- [ ] Can you explain what `COPY --from=builder` does?
+- [ ] Do you understand why the final stage does not need `RUN npm install`?
+- [ ] Can you explain what `output: 'standalone'` changes about the build?
+
+**Next →** [BuildKit & Multi-Arch](/docs/docker/building-images/buildkit-and-multiarch)
+
+<span style={{ display: 'none' }}>
+  docker multi-stage build, nextjs standalone output, smaller docker image nextjs, optimize docker image
+</span>

@@ -1,0 +1,132 @@
+---
+title: Build, Run & Push
+description: Turn your Dockerfile into a real image, run it, and publish it to Docker Hub.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Build, Run & Push
+
+<Callout type="info">
+**Estimated time:** 15–20 minutes
+
+You will build the Dockerfile from the last page into a real image, run it, and publish it to Docker Hub so it can be pulled from anywhere.
+</Callout>
+
+## Building the Image
+
+<Steps>
+
+### Run the build
+
+From the folder containing your Dockerfile, run:
+
+```bash filename="Terminal"
+docker build -t my-next-app .
+```
+
+- `docker build` — build an image from a Dockerfile
+- `-t my-next-app` — tag (name) the image `my-next-app`
+- `.` — the folder you are standing in right now (your project folder). This tells Docker where to find your project's files for this build.
+
+<Callout type="default">
+The first build takes longer, since Docker has to download the `node:20-alpine` base image and install every package. Run the same command again with no code changes — it finishes almost instantly, because every layer is cached.
+</Callout>
+
+### Confirm it exists
+
+```bash filename="Terminal"
+docker images
+```
+
+You should see `my-next-app` in the list, alongside `nginx` if you still have it from Foundation.
+
+</Steps>
+
+## Running Your Image
+
+A built image is not running yet — it is just sitting on your machine, waiting. `docker run` creates a container from it and starts it, the same command pattern you already know:
+
+```bash filename="Terminal"
+docker run -d -p 3000:3000 --name my-next-app-container my-next-app
+```
+
+Open [http://localhost:3000](http://localhost:3000). Your Next.js app is running — fully packaged, with no Node.js installation required on your machine to serve it.
+
+<Callout type="warning">
+If port 3000 is already in use (for example, by `npm run dev` running outside Docker), stop that first, or map to a different host port: `-p 3001:3000`, then visit `localhost:3001` instead.
+</Callout>
+
+## Understanding Tags
+
+An image name has an optional **tag**, written as `name:tag`. If you do not specify one, Docker uses `latest`.
+
+```bash filename="Terminal"
+docker build -t my-next-app:1.0 .
+docker build -t my-next-app:latest .
+```
+
+Both commands can point at the exact same image — tags are just labels you choose. Using version tags (`1.0`, `1.1`) instead of always relying on `latest` makes it clear which exact version is running, which matters once you deploy to a server.
+
+## Pushing to Docker Hub
+
+Pushing makes your image pullable from any machine — a teammate's laptop, or a production server — exactly like `nginx` is pullable by anyone.
+
+<Steps>
+
+### Create a Docker Hub account
+
+If you do not have one, sign up at [https://hub.docker.com](https://hub.docker.com). It is free for public images.
+
+### Log in from your terminal
+
+```bash filename="Terminal"
+docker login
+```
+
+Enter your Docker Hub username and password (or an access token, which Docker Hub lets you generate under Account Settings).
+
+### Tag the image with your username
+
+A Docker Hub image name must start with your username, followed by a slash. Replace `your-username` below:
+
+```bash filename="Terminal"
+docker tag my-next-app your-username/my-next-app:1.0
+```
+
+This does not create a new image — it adds a second name to the same image, one that Docker Hub will recognize as yours.
+
+### Push it
+
+```bash filename="Terminal"
+docker push your-username/my-next-app:1.0
+```
+
+### Verify
+
+Go to [https://hub.docker.com](https://hub.docker.com), open your profile, and confirm `my-next-app` is listed. Anyone can now run it with:
+
+```bash filename="Terminal"
+docker run -p 3000:3000 your-username/my-next-app:1.0
+```
+
+</Steps>
+
+## Hands-on Task
+
+1. Build your Next.js app into an image tagged `my-next-app:1.0`.
+2. Run it and confirm it loads at `localhost:3000`.
+3. Push it to Docker Hub under your own username.
+4. Ask a friend (or use a different machine) to run `docker run -p 3000:3000 your-username/my-next-app:1.0` and confirm it works for them too.
+
+## Quick Check
+
+- [ ] Can you explain what the `.` at the end of `docker build -t my-next-app .` means?
+- [ ] Do you know why the second build was faster than the first?
+- [ ] Can you explain why an image must be tagged with your username before pushing?
+
+**Next →** [Smaller Images](/docs/docker/building-images/smaller-images)
+
+<span style={{ display: 'none' }}>
+  docker build tag push, docker hub push image, docker run nextjs, docker tag explained
+</span>
