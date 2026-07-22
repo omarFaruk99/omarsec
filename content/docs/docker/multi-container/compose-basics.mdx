@@ -47,8 +47,12 @@ services:
 ```
 
 - `services:` — the list of containers this project needs. There is one so far: `web`.
-- `build: .` — instead of a pre-built image, build one from the Dockerfile in this folder, exactly like `docker build .` from Building Images.
+- `build: .` — there is no ready-made image for `web` yet. This tells Compose to build one itself, using the `Dockerfile` in this folder (`.`) — the same action as running `docker build .` by hand, from Building Images.
 - `ports:` — the same idea as `-p 3000:3000` on the command line.
+
+<Callout type="default">
+Compose does not replace the Dockerfile — you still need both. The Dockerfile says how to *build* the image. `compose.yaml` says how to *run* it, and points `build: .` at the Dockerfile to do so.
+</Callout>
 
 ## Running It
 

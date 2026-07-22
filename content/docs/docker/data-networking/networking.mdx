@@ -8,18 +8,22 @@ import { Callout, Steps } from 'nextra/components'
 # Container Networking
 
 <Callout type="info">
-Right now, every container you have run has worked alone. This page connects two containers together — the same idea you will need in the next section, once a database joins your Next.js app.
+By default, a container works alone. It cannot see or talk to any other container, even one running on the same computer. This page shows how to connect two containers so they can talk to each other by name.
 </Callout>
 
 ## The Problem
 
 Each container is isolated by default. Two separate containers do not automatically know about each other, even if both are running on your machine at the same time.
 
-You could find a container's internal IP address and use that, but IP addresses change every time a container restarts — hardcoding one is fragile and breaks easily.
+You could find a container's internal IP address and use that instead. But an IP address changes every time a container restarts. Hardcoding one is fragile, and it breaks easily.
 
 ## The Fix: A User-Defined Network
 
 Docker lets you create your own network and attach containers to it. Containers on the same user-defined network can reach each other **by container name** — Docker handles the name-to-address lookup for you.
+
+<Callout type="default">
+All commands on this page are folder-independent. You can run them from anywhere on your computer.
+</Callout>
 
 <Steps>
 
@@ -65,7 +69,7 @@ This only works because both containers were started with `--network my-network`
 
 ## Why This Matters Soon
 
-In the next section, you will add an Express API and a PostgreSQL database. Your Next.js app will need to reach the API, and the API will need to reach the database — all by name, exactly like `next-app` just reached `web`.
+A later section adds an Express API and a PostgreSQL database to this same app. Your Next.js app will need to reach the API. The API will need to reach the database. Both will use container names, exactly like `next-app` just reached `web`.
 
 <Callout type="default">
 Once you reach Docker Compose in a later section, this network creation happens automatically — Compose builds a shared network for every service in your project without you typing `docker network create` yourself. Understanding the manual version now is what makes Compose's behavior make sense later, instead of feeling like magic.

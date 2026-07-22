@@ -8,7 +8,7 @@ import { Callout, Steps } from 'nextra/components'
 # Volumes & Bind Mounts
 
 <Callout type="info">
-Foundation mentioned this problem but did not solve it: remove a container, and anything that changed inside it is gone. This page shows the two ways Docker solves that.
+Every container gets its own temporary storage. Remove the container, and that storage — along with anything you changed inside it — is gone. This page shows the two ways Docker solves that.
 </Callout>
 
 ## Proving the Problem
@@ -47,6 +47,10 @@ You will use named volumes properly once a database enters the picture in the ne
 
 ## Bind Mount: A Live-Reloading Dev Container
 
+An image is a fixed snapshot of your code. Once you build it, the code inside it does not change. So if you edit a line of code, the running container does not see that edit — it is still running the old, baked-in copy. To see the change, you would normally have to build a new image and start a new container from it. That gets slow if you are editing code all day.
+
+A bind mount avoids this. **Mounting** means connecting a folder on your computer directly to a folder inside the container, so both point to the same files. There is no copying involved. When you save a file on your computer, the container sees that exact change immediately, because it is reading the same file — not a copy of it.
+
 Instead of rebuilding your image every time you change a line of code, you can mount your project folder straight into a container and run the Next.js dev server inside it.
 
 <Steps>
@@ -65,8 +69,9 @@ docker run -d -p 3000:3000 \
   sh -c "npm install && npm run dev"
 ```
 
+- `-p 3000:3000` — connects port 3000 on your computer to port 3000 inside the container, so you can open the app at `localhost:3000`.
 - `-v "$(pwd)":/app` — the bind mount. `$(pwd)` is your current folder on your computer; `/app` is where it appears inside the container. Changes on either side now show up on both.
-- `-v /app/node_modules` — a second, separate volume just for `node_modules`. This is explained below — do not skip it.
+- `-v /app/node_modules` — keeps `node_modules` separate from the bind mount above. Explained below.
 
 <Callout type="default">
 `$(pwd)` works in Git Bash, macOS, and Linux terminals. On Windows PowerShell, use `${PWD}` instead. On Command Prompt, use `%cd%`.
@@ -82,14 +87,12 @@ Open [http://localhost:3000](http://localhost:3000). Now edit a page in your cod
 
 ## Why `node_modules` Needs Its Own Line
 
-If you only used `-v "$(pwd)":/app` without the second line, your bind mount would also overwrite the container's `/app/node_modules` with whatever `node_modules` exists on your computer — or nothing, if you have not run `npm install` locally.
+Some npm packages contain code built for one specific operating system. A `node_modules` folder installed on Windows or macOS will not work inside the Linux container.
 
-This causes a real problem: some packages contain native code compiled specifically for your computer's operating system. A version built on Windows or macOS will not run correctly inside the Linux container.
-
-`-v /app/node_modules` creates a separate, anonymous volume just for that one folder. It "shields" `/app/node_modules` from the bind mount above it, so the container keeps its own Linux-compatible copy, installed by `npm install` running inside the container itself.
+`-v /app/node_modules` keeps `node_modules` separate. It does not use your project's `node_modules` folder. Instead, the container makes its own copy — one built for Linux. Docker calls this an **anonymous volume**.
 
 <Callout type="warning">
-This is one of the most common real-world Docker + Node.js mistakes: a bind-mounted `node_modules` that was installed on the host, silently breaking inside the container. Keep this second line even if it looks redundant.
+Skipping the second line is one of the most common Docker + Node.js mistakes. The container ends up with a `node_modules` built for the wrong operating system, and breaks. Always keep this line, even though it looks redundant.
 </Callout>
 
 ## Hands-on Task

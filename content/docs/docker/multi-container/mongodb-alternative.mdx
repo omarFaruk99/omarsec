@@ -47,7 +47,7 @@ Each official image documents its own environment variables and data folder. Whe
 
 ## What Changes: The `api` Service
 
-`api` would swap its database driver — the `pg` package used for PostgreSQL — for a MongoDB driver like `mongodb` or `mongoose`, and rewrite its queries in MongoDB's style instead of SQL. That is an application-code change, not a Docker change, so it is outside the scope of this guide.
+`api` would swap its database driver — the `pg` package used for PostgreSQL — for a MongoDB driver like `mongodb` or `mongoose`. Its queries would be rewritten in MongoDB's style instead of SQL. That is an application-code change, not a Docker change, so it is outside the scope of this guide.
 
 ## Why This Matters
 

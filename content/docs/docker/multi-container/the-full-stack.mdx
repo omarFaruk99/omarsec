@@ -15,7 +15,7 @@ This page connects three services: your Next.js frontend, a small Express API, a
 
 ## Project Layout
 
-Compose does not require your services to live in one folder. A common layout keeps each service in its own subfolder, each with its own Dockerfile, and the `compose.yaml` at the root tying them together:
+Compose does not require your services to live in one folder. A common layout keeps each service in its own subfolder, each with its own Dockerfile. One `compose.yaml` at the root ties them together.
 
 <FileTree>
   <FileTree.Folder name="my-stack" defaultOpen>
@@ -123,7 +123,7 @@ volumes:
 - **`web`** — builds from `./web`, and gets `API_URL=http://api:4000`. Notice the hostname is `api` — the *service name* from this same file, not an IP address. This is exactly what you proved by hand in Container Networking: Compose creates a shared network for every service automatically.
 - **`api`** — builds from `./api`, and connects to the database using `db` as the hostname, again the service name.
 - **`db`** — uses the official `postgres` image directly, no custom Dockerfile needed. `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` are read by that image on first startup to create a user, password, and database automatically.
-- **`db-data`** — a named volume, the concept from Data & Networking. Postgres stores its actual files at `/var/lib/postgresql/data` inside the container; mounting a named volume there means the data survives even after `docker compose down`.
+- **`db-data`** — a named volume, the concept from Data & Networking. Postgres stores its actual files at `/var/lib/postgresql/data` inside the container. Mounting a named volume there means the data survives even after `docker compose down`.
 - **`depends_on`** — controls **start order**. `api` waits for `db`'s container to start before starting itself. This is not the same as waiting for Postgres to be *ready* to accept connections — the next page fixes that gap.
 
 ## Running the Stack
