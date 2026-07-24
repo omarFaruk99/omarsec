@@ -43,10 +43,17 @@ The server only runs the live site. Never edit code here — pull from GitHub.
 
 ## Deploy (make changes live)
 
-First, publish from local (see the Local section): `git push origin main`.
-Then update the server one of two ways.
+Deploy is automatic. `git push origin main` triggers a GitHub Actions workflow
+(`.github/workflows/deploy.yml`) that builds the project, then SSHes into the
+EC2 server to `git pull`, `npm install`, `npm run build`, and `pm2 restart omarsec`.
+Check progress under the repo's **Actions** tab.
 
-Log into the server and run:
+Every push and pull request also runs `.github/workflows/ci.yml`, which just
+builds the project — this catches broken MDX or bad `_meta.js` links before merge.
+
+### Manual deploy (fallback)
+
+If Actions is down or you need to deploy without pushing, log into the server:
 
 ```bash
 ssh aws-lab                 # log into the server
