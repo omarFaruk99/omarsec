@@ -18,7 +18,6 @@ import { Callout, Steps } from 'nextra/components'
 - **Docker এবং Docker Compose** install করা
 - আপনার **app হাতে চলছে** — `docker compose up -d` দিলে site খোলে
 - একটি **non-root user** যা দিয়ে আপনি SSH করেন এবং `docker` command চালাতে পারেন
-- **Nginx** বা অন্য কিছু সামনে বসানো (থাকলে ভালো, না থাকলেও pipeline চলবে)
 
 এগুলো কীভাবে করতে হয় তা এই section-এর বিষয় নয়। এখানে শুধু এই চলমান setup-টিকে automatic করা হবে।
 
@@ -58,7 +57,7 @@ sudo chown -R $USER:$USER /opt/myapp
   `chown` লাইনটি বাদ দেবেন না। Folder-টি `root`-এর থাকলে GitHub Actions সেখানে `.env` file লিখতে পারবে না, আর deploy `Permission denied` দিয়ে fail করবে।
 </Callout>
 
-`compose.yaml` আর `.env`-এ ঠিক কী লিখবেন তা পরের page-এ আছে — সেখানে আপনার app-এর image-এর নাম জানা থাকবে। এখন শুধু folder-টি তৈরি রাখুন।
+এখন শুধু folder-টি তৈরি রাখুন। ভেতরে কী লিখবেন তা পরের page-এ আছে, কারণ তখন আপনার image-এর নাম জানা থাকবে।
 
 <Callout type="default">
   পুরোনো clone করা folder-টি এখনই মুছবেন না। নতুন pipeline কাজ করা শুরু করলে তারপর মুছবেন। ততক্ষণ সেটিই আপনার backup।
@@ -80,8 +79,10 @@ sudo chown -R $USER:$USER /opt/myapp
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/gh_actions -N ""
 ```
 
-- `-f ~/.ssh/gh_actions` — এই নামে সংরক্ষণ হবে, আপনার আসল key-র উপরে লিখবে না
-- `-N ""` — কোনো passphrase নেই। Actions passphrase টাইপ করতে পারে না, তাই খালি রাখতেই হবে
+- `-t ed25519` — key-এর ধরন। এখনকার সবচেয়ে ভালো ধরন এটি
+- `-C "github-actions"` — একটি label, পরে চিনতে সুবিধা হবে
+- `-f ~/.ssh/gh_actions` — এই নামে save হবে, আপনার আসল key-র উপরে লিখবে না
+- `-N ""` — কোনো passphrase নেই। Actions একটি machine, সে passphrase টাইপ করতে পারে না
 
 দুটি file তৈরি হলো:
 
@@ -97,59 +98,87 @@ cat ~/.ssh/gh_actions.pub | ssh USER@YOUR_SERVER_IP \
   "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
-`authorized_keys` file-এ যে public key গুলো থাকে, তাদের মালিক server-এ ঢুকতে পারে। আমরা সেখানে GitHub-এর জন্য একটি লাইন যোগ করলাম।
+`authorized_keys` একটি তালিকা। এই file-এ যার public key লেখা আছে, সে server-এ ঢুকতে পারে। আমরা সেখানে GitHub-এর জন্য একটি লাইন যোগ করলাম।
 
 <Callout type="warning">
-  ওই দুটি `chmod` বাদ দেবেন না। SSH server নিরাপত্তার জন্য permission যাচাই করে — `~/.ssh` folder বা `authorized_keys` file অন্যদের জন্য লেখার অনুমতিসহ থাকলে সে key-টি **চুপচাপ অগ্রাহ্য করে**।
+  ওই দুটি `chmod` বাদ দেবেন না।
 
-  তখন আপনি শুধু `Permission denied (publickey)` দেখবেন, আর ভাববেন key ভুল হয়েছে। আসলে key ঠিকই আছে, শুধু permission ঢিলা।
+  **কী করে**
+
+  - `chmod 700 ~/.ssh` — এই folder-এ শুধু আপনি ঢুকতে পারবেন
+  - `chmod 600 authorized_keys` — এই file শুধু আপনি পড়তে ও লিখতে পারবেন
+
+  **কেন দরকার**
+
+  এই file-এ অন্য কেউ লিখতে পারলে সে নিজের key যোগ করে দিতে পারবে। তারপর সে-ও আপনার server-এ ঢুকে যাবে।
+
+  **SSH কী করে**
+
+  SSH server এই ঝুঁকিটা জানে। তাই key ব্যবহারের আগে সে permission দেখে নেয়। অন্য কেউ ওখানে লিখতে পারে দেখলে সে key-টি ব্যবহার করে না।
+
+  **আপনি কী দেখবেন**
+
+  ```
+  Permission denied (publickey)
+  ```
+
+  SSH কারণ বলে না। আপনি ভাববেন key ভুল হয়েছে। আসলে key ঠিক আছে, permission ভুল।
 </Callout>
 
 ### Test the Key
 
-এখানে key-টি ঠিক সেভাবে পরীক্ষা করবেন যেভাবে GitHub Actions ব্যবহার করবে। ধাপটি ছোট দেখাচ্ছে, কিন্তু **সবচেয়ে বেশি pipeline এখানেই fail করে**। তাই মন দিয়ে করুন।
+তিনটি ছোট পরীক্ষা। তিনটিই **আপনার নিজের computer থেকে** চালাবেন।
 
-প্রথমে সাধারণভাবে ঢুকে দেখুন:
+এখানে পাশ করা মানে pipeline-ও পাশ করবে। তাই এই ধাপটি বাদ দেবেন না।
+
+**১. Key দিয়ে ঢোকা যায়?**
 
 ```bash filename="LOCAL — Terminal"
 ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP
 ```
 
-ঢুকতে পারলে key ঠিক আছে। বেরিয়ে আসুন।
+ঢুকতে পারলে ঠিক আছে। `exit` লিখে বেরিয়ে আসুন।
 
-এবার আসল test। GitHub Actions যখন SSH করে, তখন সে **কোনো shell খোলে না** — সরাসরি command পাঠিয়ে দেয়। এই দুটি জিনিস এক নয়:
-
-```bash filename="LOCAL — Terminal"
-# আপনি যেভাবে করেন — shell খোলে, ~/.bashrc চলে
-ssh USER@SERVER
-
-# Actions যেভাবে করে — shell খোলে না, ~/.bashrc চলে না
-ssh USER@SERVER "docker compose version"
-```
-
-`~/.bashrc` না চললে সেখানে যা কিছু setup করা আছে তার কিছুই পাওয়া যায় না। Docker সাধারণত `/usr/bin`-এ থাকে বলে সমস্যা হয় না, কিন্তু নিশ্চিত হয়ে নিন:
+**২. Docker চলে?**
 
 ```bash filename="LOCAL — Terminal"
 ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP "docker compose version"
 ```
 
-Version দেখালে সব ঠিক। `command not found` এলে সম্পূর্ণ path বের করে রাখুন:
+Version দেখালে ঠিক আছে।
 
-```bash filename="SERVER — Terminal"
-which docker
-```
-
-Folder-এ লেখার অনুমতি আছে কিনা সেটিও একইভাবে দেখে নিন:
+**৩. Folder-এ লেখা যায়?**
 
 ```bash filename="LOCAL — Terminal"
-ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP "touch /opt/myapp/test && rm /opt/myapp/test && echo ok"
+ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP "touch /opt/myapp/ok && rm /opt/myapp/ok && echo done"
 ```
 
-`ok` দেখালে GitHub সেখানে লিখতে পারবে।
+`done` দেখালে ঠিক আছে।
+
+<Callout type="info">
+  ২ আর ৩ নম্বরে command-টি quote-এর ভেতরে লেখা। এভাবে চালালে server আপনাকে কোনো terminal দেয় না — শুধু ওই command চালিয়ে ফল ফেরত দেয়। GitHub Actions ঠিক এভাবেই কাজ করে।
+
+  এই পার্থক্যটা গুরুত্বপূর্ণ। Terminal না খুললে `~/.bashrc` file-টি চলে না, আর সেখানে সাজিয়ে রাখা command গুলো পাওয়া যায় না। `command not found` এলে এটাই কারণ।
+
+  তখন server-এ `which docker` চালিয়ে সম্পূর্ণ path বের করুন, আর workflow-এ সেই path ব্যবহার করুন।
+</Callout>
 
 ### Add Three GitHub Secrets
 
-Secret হলো GitHub-এর ভেতরে লুকানো তথ্য। একবার save করলে আপনি নিজেও আর সেটি পড়তে পারবেন না — শুধু workflow ব্যবহার করতে পারে। Log-এ ভুলে ছাপা হলে GitHub সেটিকে `***` দিয়ে ঢেকে দেয়।
+Secret হলো GitHub-এর ভেতরে লুকিয়ে রাখা তথ্য — password, key, এই ধরনের জিনিস।
+
+দুটি সুরক্ষা পাবেন।
+
+**এক — কেউ পড়তে পারে না।** একবার save করার পরে আপনি নিজেও আর value-টি দেখতে পাবেন না। শুধু workflow সেটি ব্যবহার করতে পারে।
+
+**দুই — log-এ লুকিয়ে যায়।** Workflow যদি ভুল করে secret-টি log-এ লিখে ফেলে, GitHub আসল লেখাটি সরিয়ে তারকা চিহ্ন বসিয়ে দেয়:
+
+```
+আপনার secret     →   ghp_a1b2c3d4e5f6
+Log-এ দেখাবে     →   ***
+```
+
+তাই কেউ Actions-এর log পড়লেও আসল value জানতে পারবে না।
 
 GitHub-এ যান:
 
@@ -173,8 +202,6 @@ cat ~/.ssh/gh_actions
 
 <Callout type="warning">
   `-----BEGIN OPENSSH PRIVATE KEY-----` থেকে `-----END OPENSSH PRIVATE KEY-----` পর্যন্ত **সবটুকু** copy করুন। শেষ লাইনের পরের খালি লাইনটিও রাখুন। একটি অক্ষর বাদ পড়লে `error in libcrypto` নামের একটি বিভ্রান্তিকর error আসবে।
-
-  `.pub` file-টি নয় — passphrase ছাড়া private key file-টি।
 </Callout>
 
 <Callout type="default">
@@ -183,9 +210,9 @@ cat ~/.ssh/gh_actions
 
 ### Let the Server Pull From the Registry
 
-Runner image পাঠাবে, কিন্তু server সেটি টেনে আনতে পারবে কিনা? আপনার package private হলে server-কে login করতে হবে।
+Runner image পাঠাবে registry-তে। কিন্তু server সেটি টেনে আনতে পারবে তখনই, যখন তার কাছে অনুমতি থাকবে।
 
-প্রথমে GitHub-এ একটি token তৈরি করুন:
+Package private হলে একটি token লাগবে। GitHub-এ গিয়ে বানান:
 
 ```
 GitHub → Settings (আপনার profile-এর) → Developer settings
@@ -198,31 +225,37 @@ GitHub → Settings (আপনার profile-এর) → Developer settings
   `write:packages` বা `repo` টিক দেবেন না। Server-এর কাজ শুধু image পড়া। এই token যদি কোনোদিন ফাঁস হয়, তাহলে সে দিয়ে শুধু image পড়া যাবে — কিছু মুছে দেওয়া বা code বদলে দেওয়া যাবে না।
 </Callout>
 
-Server-এ login করুন:
+এবার server-কে GHCR-এ login করাতে হবে। Server-এ SSH করে এই command চালান:
 
 ```bash filename="SERVER — Terminal"
 echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 ```
 
-`Login Succeeded` দেখালে হয়ে গেল। এটি একবারই করতে হয় — Docker credential মনে রাখে।
+`Login Succeeded` দেখালে হয়ে গেল। একবারই করতে হয় — Docker credential মনে রাখে।
 
 <Callout type="default">
-  Package-টি public করে দিলে এই login-এর দরকার নেই। কিন্তু public মানে যে কেউ আপনার image টেনে নিতে পারবে, আর image-এর ভেতরে আপনার compiled code আছে। Client project বা private app হলে private রাখুন।
+  এখানে আপনি server-এ login করছেন না — সেখানে তো আগে থেকেই আছেন। এই command server-এর Docker-কে **GitHub-এর registry-তে** login করায়।
+
+  Package-টি public করে দিলে এই ধাপটির দরকারই নেই। কিন্তু public মানে যে কেউ আপনার image টেনে নিতে পারবে, আর image-এর ভেতরে আপনার compiled code আছে। Client project হলে private রাখুন।
 </Callout>
 
 </Steps>
 
 ## Common Blockers
 
-দুটি সমস্যা খুব সাধারণ, কিন্তু কোথাও লেখা থাকে না। দুটোই চুপচাপ pipeline ভেঙে দেয় এবং error message কিছুই বোঝায় না।
+দুটি সমস্যা খুব সাধারণ। দুটোই চুপচাপ pipeline ভেঙে দেয়, আর error message পড়ে কারণ বোঝা যায় না।
 
 **Firewall দিয়ে SSH আটকানো থাকলে**
 
-অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। GitHub runner-এর IP প্রতিবার বদলায় এবং সেটি হাজার হাজার IP-র একটি বিশাল তালিকা — তাই আগে থেকে allow করা যায় না।
+অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। কিন্তু GitHub runner-এর IP প্রতিবার বদলায়, আর সেটি হাজার হাজার IP-র একটি বিশাল তালিকা। আগে থেকে allow করে রাখার উপায় নেই।
 
-সঠিক সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password login পুরোপুরি বন্ধ করে দিন।
+সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password দিয়ে login পুরোপুরি বন্ধ করে দিন।
 
-Ubuntu-তে সরাসরি `/etc/ssh/sshd_config` file-এ লিখবেন না। ওই file-এর শুরুতে `Include /etc/ssh/sshd_config.d/*.conf` লেখা থাকে, আর SSH একই setting দুইবার পেলে **প্রথমটি** মানে। Cloud provider-এর রাখা file আগে পড়া হয়, তাই আপনার লেখা setting চুপচাপ অগ্রাহ্য হয়ে যায়।
+<Callout type="warning">
+  Ubuntu-তে সরাসরি `/etc/ssh/sshd_config` file-এ লিখবেন না।
+
+  ওই file-এর শুরুতে `Include /etc/ssh/sshd_config.d/*.conf` লেখা থাকে। SSH একই setting দুইবার পেলে **প্রথমটি** মানে, আর cloud provider-এর রাখা file আগে পড়া হয়। তাই আপনার লেখা setting চুপচাপ অগ্রাহ্য হয়ে যাবে।
+</Callout>
 
 তার বদলে ওই folder-এ নিজের একটি file বানান:
 

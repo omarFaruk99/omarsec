@@ -76,19 +76,16 @@ Basic pipeline না বুঝে থাকলে আগে ওই page-টি 
 দুটি folder, দুটি `Dockerfile`, দুটি image। Server-এ এখনো সেই **দুটি file-ই** থাকবে — `compose.yaml` আর `.env`।
 
 <Callout type="warning">
-  প্রতিটি app-এর নিজের `package.json` **এবং নিজের `package-lock.json`** থাকতে হবে। Repository-র root-এ কোনো `package.json` নেই।
+  Repository-র root-এ কোনো file নেই — সব কিছু app folder-এর ভেতরে। এর কারণ Docker।
 
-  কারণটি Docker-এর। নিচের workflow-এ প্রতিটি image-এর build context হলো `./apps/web` বা `./apps/api`। Docker সেই folder-এর বাইরের কোনো file দেখতে পায় না। তাই lock file root-এ থাকলে `npm ci` সেটি খুঁজেই পাবে না এবং build fail করবে।
+  নিচের workflow-এ প্রতিটি image-এর build context হলো `./apps/web` বা `./apps/api`। **Docker ওই folder-এর বাইরের কিছুই দেখতে পায় না।** তাই দুটি জিনিস প্রতিটি app-এর ভেতরে থাকতে হবে:
 
-  npm workspaces ব্যবহার করলে lock file একটিই হয় এবং সেটি root-এ থাকে। তখন build context root করতে হয় আর Dockerfile-এর প্রতিটি path বদলাতে হয়। এই guide-এ সেই জটিলতায় যাচ্ছি না — দুটি app আলাদা রাখলে এখানে কম ভুল হয়।
-</Callout>
+  - **নিজের `package-lock.json`** — root-এ রাখলে `npm ci` সেটি খুঁজে পাবে না, build fail করবে
+  - **নিজের `.dockerignore`** — root-এ রাখলে Docker সেটি পড়বেই না, আর আপনার local `.env` image-এর ভেতরে ঢুকে registry-তে চলে যাবে
 
-<Callout type="warning">
-  একই কারণে **প্রতিটি app folder-এ নিজের `.dockerignore` লাগবে**। Docker `.dockerignore` খোঁজে শুধু build context-এর root-এ। Context যেহেতু `apps/web` আর `apps/api`, repository-র root-এ রাখা `.dockerignore` এখানে কোনো কাজেই আসবে না।
+  দুটি app-এর `.dockerignore`-এ একই content:
 
-  দুটি file-এই একই content:
-
-  ```bash filename="apps/web/.dockerignore এবং apps/api/.dockerignore"
+  ```bash filename="apps/web/.dockerignore"
   node_modules
   .next
   dist
@@ -99,7 +96,7 @@ Basic pipeline না বুঝে থাকলে আগে ওই page-টি 
   .dockerignore
   ```
 
-  এটি না থাকলে আপনার local `.env` file image-এর ভেতরে ঢুকে registry-তে চলে যাবে।
+  npm workspaces ব্যবহার করলে lock file একটিই হয়, root-এ। তখন build context root করতে হয় আর Dockerfile-এর প্রতিটি path বদলাতে হয়। এই guide-এ সেই জটিলতায় যাচ্ছি না।
 </Callout>
 
 <Callout type="default">
@@ -164,7 +161,7 @@ Server-এ এখনো মাত্র দুটি file। শুধু ভে
 ```yaml filename="/opt/myapp/compose.yaml"
 services:
   web:
-    image: ghcr.io/your_username/myapp-web:${TAG}
+    image: ghcr.io/your-username/myapp-web:${TAG}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -174,7 +171,7 @@ services:
       - api
 
   api:
-    image: ghcr.io/your_username/myapp-api:${TAG}
+    image: ghcr.io/your-username/myapp-api:${TAG}
     restart: unless-stopped
     ports:
       - "127.0.0.1:4000:4000"
@@ -202,7 +199,7 @@ volumes:
   db-data:
 ```
 
-তিনটি জিনিস খেয়াল করুন।
+চারটি জিনিস খেয়াল করুন।
 
 **`condition: service_healthy`**
 সাধারণ `depends_on` শুধু container চালু হওয়া পর্যন্ত অপেক্ষা করে। কিন্তু PostgreSQL container চালু হওয়ার পরেও কয়েক সেকেন্ড connection নিতে পারে না। এই লাইনটি API-কে অপেক্ষা করায় যতক্ষণ না database সত্যিই প্রস্তুত।
@@ -229,35 +226,6 @@ DATABASE_URL=postgresql://myapp:a-long-random-password@db:5432/myapp
 ```
 
 <Callout type="warning">
-  `NEXT_PUBLIC_` দিয়ে শুরু হওয়া কোনো variable এই file-এ রাখবেন না — রাখলেও কাজ হবে না।
-
-  Next.js এই variable গুলো **build-এর সময়** JavaScript bundle-এর ভেতরে বসিয়ে দেয়। অর্থাৎ image বানানোর মুহূর্তেই value-টি স্থায়ীভাবে ঢুকে যায়। Server-এর `.env`-এ পরে লিখলে তখন আর কিছু বদলায় না।
-
-  এগুলো দিতে হয় build-এর সময়, workflow file-এ:
-
-  ```yaml
-  - name: Build and push web
-    uses: docker/build-push-action@v6
-    with:
-      context: ./apps/web
-      build-args: |
-        NEXT_PUBLIC_API_URL=https://yourdomain.com/api
-  ```
-
-  আর `apps/web/Dockerfile`-এ builder stage-এ সেটি গ্রহণ করতে হয়:
-
-  ```dockerfile
-  ARG NEXT_PUBLIC_API_URL
-  ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-  RUN npm run build
-  ```
-
-  এই কারণেই `NEXT_PUBLIC_`-এ কখনো secret দেবেন না। এটি image-এর ভেতরে বসে যায়, আর browser-এ পাঠানো হয় — যে কেউ page source-এ দেখতে পারে।
-</Callout>
-
-`DATABASE_URL` এবং `POSTGRES_*` build-এর সময় লাগে না, তাই সেগুলো এখানেই ঠিক আছে। এগুলো container চালু হওয়ার সময় পড়া হয়।
-
-<Callout type="warning">
   `DATABASE_URL`-এ `localhost` নয়, **`db`** লেখা আছে। এটি compose file-এ দেওয়া service-এর নাম।
 
   Container-এর ভেতর থেকে `localhost` মানে ওই container নিজে — database নয়। এই এক জায়গায় প্রায় সবাই একবার আটকায়।
@@ -268,6 +236,37 @@ DATABASE_URL=postgresql://myapp:a-long-random-password@db:5432/myapp
 ```bash filename="SERVER — Terminal"
 chmod 600 /opt/myapp/.env
 ```
+
+### What Does Not Belong Here
+
+`NEXT_PUBLIC_` দিয়ে শুরু হওয়া কোনো variable এই file-এ রাখবেন না। রাখলেও কাজ হবে না।
+
+Next.js এই variable গুলো **build-এর সময়** JavaScript bundle-এর ভেতরে বসিয়ে দেয়। অর্থাৎ image বানানোর মুহূর্তেই value স্থায়ীভাবে ঢুকে যায়। Server-এর `.env`-এ পরে লিখলে আর কিছু বদলায় না।
+
+এগুলো দিতে হয় build-এর সময়। Workflow-এ:
+
+```yaml filename=".github/workflows/deploy.yml"
+- name: Build and push web
+  uses: docker/build-push-action@v6
+  with:
+    context: ./apps/web
+    build-args: |
+      NEXT_PUBLIC_API_URL=https://yourdomain.com/api
+```
+
+আর `apps/web/Dockerfile`-এর builder stage-এ সেটি গ্রহণ করতে হয়:
+
+```dockerfile filename="apps/web/Dockerfile"
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN npm run build
+```
+
+<Callout type="warning">
+  এই কারণেই `NEXT_PUBLIC_`-এ কখনো secret দেবেন না। Value-টি image-এর ভেতরে বসে যায় এবং browser-এ চলে যায় — যে কেউ page source খুলে দেখতে পারে।
+</Callout>
+
+`DATABASE_URL` আর `POSTGRES_*` build-এর সময় লাগে না। ওগুলো container চালু হওয়ার সময় পড়া হয়, তাই `.env`-এই ঠিক আছে।
 
 ## Migration Order
 
@@ -402,8 +401,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_WEB: ghcr.io/your_username/myapp-web
-  IMAGE_API: ghcr.io/your_username/myapp-api
+  IMAGE_WEB: ghcr.io/your-username/myapp-web
+  IMAGE_API: ghcr.io/your-username/myapp-api
 
 jobs:
   # Job 1: দুটি image বানিয়ে registry-তে পাঠানো
@@ -528,10 +527,10 @@ jobs:
 ```
 
 <Callout type="warning">
-  `your_username` দুই জায়গায় আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। Registry বড় হাতের অক্ষর নেয় না।
+  `your-username` দুই জায়গায় আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। Registry বড় হাতের অক্ষর নেয় না।
 </Callout>
 
-Script-এর কয়েকটি অংশ ব্যাখ্যা দরকার।
+Script-এর তিনটি অংশের ব্যাখ্যা দরকার।
 
 **`trap rollback ERR`**
 `.env`-এ নতুন TAG বসানো হয় একদম শুরুতে। এরপর যেকোনো ধাপ fail করতে পারে — `pull`, backup, migration। `trap` না থাকলে `set -e` সেখানেই script থামিয়ে দিত, আর `.env`-এ এমন একটি version লেখা থেকে যেত যা কখনো চালুই হয়নি। `trap` নিশ্চিত করে যে কোথায় fail করল তা নির্বিশেষে `.env` আগের অবস্থায় ফেরে।
@@ -562,11 +561,7 @@ app.get('/health', (req, res) => {
 })
 ```
 
-`curl` flag গুলোর মানে:
-
-- `-f` — HTTP error (৪০০, ৫০০) পেলে fail করবে। এটি ছাড়া error page-ও "সফল" গণ্য হয়
-- `-s` — progress bar লুকায়
-- `-S` — তবু error message দেখায়
+Database query রাখবেন না — তাহলে database একটু ধীর হলেই health check fail করবে আর pipeline অকারণে rollback করে বসবে।
 
 ## Rollback Limits
 
@@ -581,11 +576,19 @@ Rollback করে না:  migration যা বদলেছে তা বদল
 
 Migration যদি destructive হয় — column drop করা, table মুছে ফেলা — তখন rollback করেও লাভ নেই। সেই অবস্থায় `~/backups`-এ রাখা file-ই একমাত্র ভরসা:
 
+প্রথমে দেখুন কোন backup ফেরাবেন:
+
+```bash filename="SERVER — Terminal"
+ls -1t ~/backups
+```
+
+তারপর সেই file-টির নাম বসিয়ে চালান:
+
 ```bash filename="SERVER — Terminal"
 cd /opt/myapp
 POSTGRES_USER=$(grep '^POSTGRES_USER=' .env | cut -d= -f2-)
 POSTGRES_DB=$(grep '^POSTGRES_DB=' .env | cut -d= -f2-)
-cat ~/backups/pre-<সেই tag>.sql | docker compose exec -T db psql -U "$POSTGRES_USER" "$POSTGRES_DB"
+cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 ```
 
 <Callout type="warning">
@@ -653,7 +656,7 @@ Log পড়ার নিয়ম: প্রথম লাল X-টিতে cl
   - **`main` branch protect করুন।** Settings → Branches → সরাসরি push বন্ধ, review বাধ্যতামূলক। এটি একটিমাত্র সবচেয়ে কার্যকর পদক্ষেপ।
   - **Backup file গুলো server থেকে সরান।** `~/backups` server-এই আছে। Server hack হলে backup-ও গেল। প্রতিদিন সেগুলো অন্য জায়গায় copy করুন, আর যেহেতু এতে সব user-এর data আছে, encrypt করে রাখুন।
   - **Database container-এর port বাইরে খুলবেন না।** উপরের compose file-এ `db`-র কোনো `ports` নেই — এটি ইচ্ছাকৃত। Debug করার জন্য একবার খুলে বন্ধ করতে ভুলে যাওয়া একটি খুব সাধারণ ভুল, আর automated scanner খোলা 5432 port কয়েক ঘণ্টার মধ্যে খুঁজে পায়।
-  - **Deploy log-এ কী যাচ্ছে দেখুন।** `echo $DATABASE_URL` জাতীয় debug লাইন ভুলে থেকে গেলে password log-এ ছাপা হয়ে যাবে, আর Actions log মুছে ফেলা যায় না।
+  - **Deploy log-এ কী যাচ্ছে দেখুন।** `echo $DATABASE_URL` জাতীয় debug লাইন ভুলে থেকে গেলে password log-এ চলে আসবে, আর Actions log মুছে ফেলা যায় না।
 
   একটি দ্রুত পরীক্ষা: repository-র Settings → Collaborators খুলুন। ওই list-এর প্রত্যেকের হাতে এখন আপনার production database আছে।
 </Callout>

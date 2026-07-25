@@ -56,6 +56,8 @@ Next.js-এর একটি setting আছে যা image-কে অনেক �
 
 `output: 'standalone'` দিলে Next.js build-এর সময় হিসাব করে দেখে ঠিক কোন file গুলো চালাতে লাগবে, আর শুধু সেগুলো একটি folder-এ জড়ো করে। বাকি সব বাদ।
 
+ফল হাতেনাতে — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ১৫০ MB-র কাছাকাছি নেমে আসে। প্রতিবার deploy-এ server-কে এই image টানতে হয়, তাই ছোট image মানে দ্রুত deploy আর কম bandwidth।
+
 ```js filename="next.config.mjs"
 const nextConfig = {
   output: 'standalone',
@@ -68,12 +70,6 @@ export default nextConfig
   File-এর extension `.mjs`, `.js` নয়। `.js` file-এ `export default` লিখলে Node সেটি পড়তে পারে না — `package.json`-এ `"type": "module"` না থাকলে build fail করবে। `.mjs` দিলে এই ঝামেলা থাকে না।
 
   আপনার project-এ যদি আগে থেকেই `next.config.js` থাকে এবং সেটি `module.exports` ব্যবহার করে, তাহলে নাম না বদলে শুধু ভেতরে `output: 'standalone'` লাইনটি যোগ করুন।
-</Callout>
-
-ফলাফল হাতেনাতে পাওয়া যায় — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ১৫০ MB-র কাছাকাছি নেমে আসে।
-
-<Callout type="default">
-  Image ছোট রাখা শুধু জায়গা বাঁচানোর ব্যাপার নয়। প্রতিবার deploy-এ server-কে এই image টানতে হয়। ছোট image মানে দ্রুত deploy আর কম bandwidth খরচ।
 </Callout>
 
 ### Write the Dockerfile
@@ -113,18 +109,20 @@ ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
 ```
 
-কেন তিনটি stage:
-
-শেষ stage-এ শুধু `public`, `.next/standalone` আর `.next/static` copy করা হয়েছে। `node_modules`, source code, build tool — কিছুই যায়নি। ওগুলো আগের stage-এ ছিল, আর সেই stage গুলো final image-এ থাকে না।
+তিনটি stage কেন — শেষ stage-এ শুধু `public`, `.next/standalone` আর `.next/static` copy করা হয়েছে। `node_modules`, source code, build tool — কিছুই যায়নি। ওগুলো আগের stage-এ ছিল, আর সেই stage গুলো final image-এ থাকে না।
 
 <Callout type="warning">
-  `ENV HOSTNAME=0.0.0.0` লাইনটিও জরুরি। Docker প্রতিটি container-এ `HOSTNAME` নামে একটি variable বসিয়ে দেয় যার value হলো container-এর নিজের id। Next.js-এর তৈরি করা `server.js` ওই variable দেখে ঠিক করে কোন ঠিকানায় শুনবে। ফলে সে ভুল জায়গায় bind করে বসে, আর বাইরে থেকে connection আসে না।
+  শেষের দুটি লাইন বাদ দেবেন না।
 
-  `0.0.0.0` মানে "সব ঠিকানায় শোনো"। Next.js-এর official Dockerfile-এও ঠিক এই দুটি লাইন আছে।
-</Callout>
+  **`ENV HOSTNAME=0.0.0.0`**
 
-<Callout type="warning">
-  `USER nextjs` লাইনটি বাদ দেবেন না। এটি না থাকলে আপনার app container-এর ভেতরে `root` হিসেবে চলবে। কেউ যদি app-এর কোনো দুর্বলতা কাজে লাগিয়ে ভেতরে ঢুকে পড়ে, তখন তার হাতে container-এর সব ক্ষমতা থাকবে।
+  Docker প্রতিটি container-এ `HOSTNAME` নামে একটি variable বসিয়ে দেয়, যার value হলো container-এর নিজের id। Next.js-এর তৈরি `server.js` ওই variable দেখেই ঠিক করে কোন ঠিকানায় সে সাড়া দেবে।
+
+  এই লাইনটি না দিলে সে ভুল ঠিকানায় বসে থাকে, আর বাইরে থেকে কোনো connection পৌঁছায় না। `0.0.0.0` মানে "সব ঠিকানায় সাড়া দাও"। Next.js-এর official Dockerfile-এও এই লাইনটি আছে।
+
+  **`USER nextjs`**
+
+  এটি না থাকলে আপনার app container-এর ভেতরে `root` হিসেবে চলবে। কেউ app-এর কোনো দুর্বলতা কাজে লাগিয়ে ভেতরে ঢুকে পড়লে তার হাতে container-এর সব ক্ষমতা চলে যাবে।
 </Callout>
 
 ### Add a `.dockerignore`
@@ -191,7 +189,7 @@ nano /opt/myapp/compose.yaml
 ```yaml filename="/opt/myapp/compose.yaml"
 services:
   web:
-    image: ghcr.io/YOUR_USERNAME/myapp-web:${TAG}
+    image: ghcr.io/your-username/myapp-web:${TAG}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -199,14 +197,14 @@ services:
 ```
 
 <Callout type="warning">
-  `YOUR_USERNAME` আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। আপনার username-এ বড় হাতের অক্ষর থাকলেও registry-তে নাম ছোট হাতের হতেই হবে। এই এক জায়গায় অনেকে আটকে যান।
+  `your-username` আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। আপনার username-এ বড় হাতের অক্ষর থাকলেও registry নাম ছোট হাতের ছাড়া নেয় না। এই এক জায়গায় অনেকে আটকে যান।
 </Callout>
 
-তিনটি লাইনের কারণ:
+তিনটি জরুরি লাইন:
 
 - **`${TAG}`** — কোন version চলবে তা `.env` file থেকে আসবে। এটিই rollback-এর চাবি
 - **`restart: unless-stopped`** — container crash করলে বা server reboot হলে Docker নিজে থেকে আবার চালু করবে
-- **`127.0.0.1:3000:3000`** — port শুধু server-এর ভেতরে খোলা, internet থেকে সরাসরি ঢোকা যাবে না। বাইরের traffic Nginx হয়ে আসবে
+- **`127.0.0.1:3000:3000`** — port শুধু server-এর ভেতরে খোলা, internet থেকে সরাসরি ঢোকা যাবে না। বাইরের traffic যা সামনে বসানো আছে (যেমন Nginx) তার মধ্য দিয়ে আসবে
 
 এবার `.env`:
 
@@ -243,7 +241,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/your_username/myapp-web
+  IMAGE: ghcr.io/your-username/myapp-web
 
 jobs:
   # Job 1: image বানিয়ে registry-তে পাঠানো
@@ -332,7 +330,7 @@ jobs:
 
 </Steps>
 
-## How the TAG Trick Works
+## How TAG Works
 
 এই pipeline-এর পুরো বুদ্ধিটা `.env` file-এর ওই একটি লাইনে।
 
@@ -360,7 +358,7 @@ Deploy-এর শেষে ওই `for` loop-টি বাদ দেবেন �
 
 App উঠে গিয়ে তিন সেকেন্ড পরে মরে যেতে পারে — `.env`-এ একটি variable missing থাকলে, port দখল হয়ে থাকলে, বা code-এ কোনো ভুল থাকলে। Docker তখনো "started" বলবে, GitHub সবুজ দেখাবে, আর আপনার site down থাকবে।
 
-`curl` সেই মিথ্যাটি ধরে ফেলে।
+`curl` তাই সরাসরি site-এ গিয়ে দেখে সত্যিই সাড়া আসছে কিনা।
 
 `curl` flag গুলোর মানে:
 
@@ -380,7 +378,7 @@ trap rollback ERR
 
 `trap` shell-কে বলে — "নিচের যেকোনো command fail করলে আগে `rollback` চালিয়ে নিও"।
 
-এটি কেন দরকার, একটু ভেবে দেখুন। Script-এর তৃতীয় লাইনেই `.env`-এ নতুন TAG বসিয়ে দেওয়া হয়। এরপর যদি `docker compose pull` fail করে (registry-তে ঢুকতে না পারলে, বা image না পেলে), তাহলে `set -e`-র কারণে script সাথে সাথে থেমে যাবে।
+কেন দরকার — script-এর শুরুতেই `.env`-এ নতুন TAG বসিয়ে দেওয়া হয়। এরপর যদি `docker compose pull` fail করে (registry-তে ঢুকতে না পারলে, বা image না পেলে), তাহলে `set -e`-র কারণে script সাথে সাথে থেমে যাবে।
 
 `trap` না থাকলে তখন যা হতো: `.env`-এ এমন একটি version লেখা আছে যা কখনো চালুই হয়নি। পরের বার কেউ `docker compose up -d` দিলে বা server reboot হলে সেই ভুল version উঠতে চাইবে।
 
@@ -398,7 +396,7 @@ Health check পাশ করলে `trap - ERR` দিয়ে trap-টি স
   দ্বিতীয় deploy থেকে rollback পুরোপুরি কাজ করবে, কারণ তখন `.env`-এ প্রথম deploy-এর commit sha লেখা থাকবে।
 </Callout>
 
-## Understand `concurrency`
+## Concurrency
 
 ```yaml
 concurrency:
@@ -430,8 +428,9 @@ GitHub-এ **Actions** tab খুলুন। সাথে সাথেই এ�
 Server-এ গিয়ে মিলিয়ে দেখুন:
 
 ```bash filename="SERVER — Terminal"
-cat /opt/myapp/.env
-docker compose -f /opt/myapp/compose.yaml ps
+cd /opt/myapp
+cat .env
+docker compose ps
 ```
 
 `.env`-এ `TAG=latest`-এর বদলে একটি লম্বা commit sha দেখা যাবে। `ps`-এ container `Up` অবস্থায় থাকবে।
@@ -481,7 +480,7 @@ git push origin main
 
 - [ ] Pull request খুললে `ci.yml` নিজে থেকে চলছে?
 - [ ] `main`-এ push করলে site নিজে থেকে update হচ্ছে?
-- [ ] Server-এ এখন কয়টি file আছে বলতে পারবেন?
+- [ ] Server-এ এখন কোন দুটি file আছে?
 - [ ] `.env`-এর `TAG` লাইনটি কী কাজ করে?
 - [ ] Health check না থাকলে কোন সমস্যাটি ধরা পড়বে না?
 

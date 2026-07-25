@@ -18,7 +18,19 @@ npm run start      # serve the production build
 
 There is **no test suite and no linter**. `npm run build` is the de-facto validation step:
 Nextra fails the build on `_meta.js` keys pointing to missing files, broken MDX, and unused
-imports (warnings). Always run `npm run build` after adding pages or editing `_meta.js`.
+imports (warnings).
+
+**Do not run `npm run build` after every edit.** The user keeps `npm run dev` running and checks
+changes there. Running a production build also overwrites `.next`, which then breaks the running
+dev server with `Cannot find module './undefined'` errors.
+
+Run `npm run build` only when it is genuinely needed:
+
+- a new page or folder was added, or `_meta.js` was edited (Nextra validates these at build time
+  and the dev server does not)
+- right before a release, if the user asks to verify
+
+Otherwise make the edit and stop. The user runs the build manually when they want it.
 
 ## Architecture
 
@@ -53,11 +65,3 @@ Key points that are easy to get wrong:
   prefixes, no underscores.
 - **Platform assumption:** commands target Ubuntu 24.04 LTS (`apt`) unless stated otherwise.
 - Only import Nextra components you actually use on the page (unused imports warn on build).
-
-## Deployment
-
-The public site (omarsec.com) auto-deploys from `main` via Vercel — a `git push` is enough.
-
-A second manual deploy also exists on an AWS EC2 server (Nginx + PM2), documented in `README.md`:
-project lives at `/var/www/omarsec`, PM2 app name `omarsec`, port 3000. See `README.md` for the
-deploy steps and the `pm2` PATH gotcha over SSH.
