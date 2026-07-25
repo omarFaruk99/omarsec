@@ -1,0 +1,114 @@
+---
+title: Introduction
+description: Learn CI/CD with GitHub Actions and Docker — push your code, let GitHub build the image, and let your server just pull and run it.
+---
+
+import { Callout } from 'nextra/components'
+
+# CI/CD with GitHub Actions
+
+<Callout type="info">
+  এই section-এ শিখবেন কীভাবে `git push` করলেই আপনার app নিজে থেকে server-এ live হয়ে যাবে — কোনো manual SSH, কোনো manual build, কোনো manual restart ছাড়া।
+</Callout>
+
+## You Need Docker First
+
+<Callout type="warning">
+  এই পুরো section Docker-এর উপর দাঁড়িয়ে আছে। আপনার জানা থাকতে হবে Dockerfile কী, image আর container-এর পার্থক্য, এবং `docker compose` দিয়ে কীভাবে app চালাতে হয়।
+
+  এগুলো না জানলে আগে [Docker](/docs/docker) section শেষ করে আসুন। এখানে Docker শেখানো হবে না — এখানে Docker-কে automate করা শেখানো হবে।
+</Callout>
+
+## The Problem
+
+আপনি code লিখলেন। এখন সেটি live করতে হবে। বেশিরভাগ developer এই কাজটি হাতে করেন:
+
+```bash filename="LOCAL — Terminal"
+ssh user@your-server
+cd /opt/myapp
+git pull
+docker compose up -d --build
+```
+
+প্রতিবার। দিনে পাঁচবার হলে পাঁচবার।
+
+এই পদ্ধতিতে চারটি সমস্যা:
+
+**সমস্যা ১ — Server-এ build করা**
+`--build` মানে আপনার server তখন image বানাচ্ছে। এতে RAM আর CPU দুটোই লাগে। ছোট VPS-এ Next.js build প্রায়ই fail করে, আর build চলার সময় আপনার live site ধীর হয়ে যায়।
+
+**সমস্যা ২ — যা test করলেন তা live যায় না**
+আপনার laptop-এ যে image বানালেন আর server-এ যে image বানাল — দুটো এক নয়। মাঝের সময়ে কোনো npm package update হয়ে থাকলে server অন্য জিনিস পাবে।
+
+**সমস্যা ৩ — Rollback ধীর**
+Site ভেঙে গেলে ফিরে যেতে হলে পুরোনো commit checkout করে আবার পুরো build করতে হয়। তিন থেকে পাঁচ মিনিট, আর এই পুরো সময় site down।
+
+**সমস্যা ৪ — ভুল হয়**
+একটা step ভুলে গেলেন, বা ভুল folder-এ command চালালেন। কেউ ধরিয়ে দেওয়ার নেই।
+
+## The Solution
+
+CI/CD মানে এই পুরো কাজটি একটি machine-কে দিয়ে দেওয়া। কিন্তু শুধু automate করা নয় — কাজটি **অন্য জায়গায় সরিয়ে** নেওয়া।
+
+```
+আপনি: git push
+         ↓
+GitHub: image build করে
+         ↓
+GitHub: image একটি registry-তে রাখে
+         ↓
+Server: শুধু সেই image টেনে চালায়
+         ↓
+Site live — ৬০ সেকেন্ডে
+```
+
+মূল পরিবর্তনটি হলো — **আপনার server আর কিছু build করে না।** সে শুধু একটি তৈরি জিনিস চালায়।
+
+এতে server-এ কোনো source code থাকে না, build-এর জন্য RAM লাগে না, আর rollback করতে হলে শুধু পুরোনো image-টি আবার চালিয়ে দিলেই হয় — দশ সেকেন্ড।
+
+## What You Need
+
+এই section শুরু করতে যা লাগবে:
+
+- একটি **Linux server** যেখানে **Docker আর Docker Compose install করা আছে**
+- SSH দিয়ে সেই server-এ ঢোকার সুযোগ
+- একটি **GitHub repository** যেখানে আপনার code আছে
+- আপনার app-এ একটি **Dockerfile** আছে এবং হাতে চালালে সেটি কাজ করে
+
+<Callout type="default">
+  Server কীভাবে তৈরি করতে হয়, Docker কীভাবে install করতে হয় — এসব এই section-এ নেই। ধরে নেওয়া হয়েছে আপনার app ইতিমধ্যে server-এ হাতে চলছে। এখন শুধু সেই হাতের কাজটি automatic করা হবে।
+</Callout>
+
+## What You Will Build
+
+শেষে আপনার হাতে একটি pipeline থাকবে যা:
+
+- প্রতিটি pull request-এ image build করে দেখে — ভাঙা code merge হতে দেয় না
+- `main`-এ push করলেই image বানিয়ে registry-তে পাঠায়
+- Server-এ গিয়ে নতুন image টেনে চালায়
+- Database migration সঠিক order-এ চালায়
+- Deploy-এর পরে site সত্যিই চলছে কিনা check করে
+- না চললে নিজে থেকে **আগের image-এ ফিরে যায়**
+
+## What's Inside
+
+| Page | কী শিখবেন |
+|---|---|
+| [How It Works](/docs/ci-cd/how-it-works) | CI আর CD, runner কী, build কোথায় হওয়া উচিত, registry কী |
+| [Setup](/docs/ci-cd/setup) | SSH key, GitHub Secrets, server-এ যে দুটি file লাগবে |
+| [First Pipeline](/docs/ci-cd/pipeline) | একটি Next.js app — push করলেই deploy |
+| [Production Pipeline](/docs/ci-cd/production) | Next.js + Express + PostgreSQL, migration, rollback |
+
+## How to Use This Section
+
+<Callout type="warning">
+  শুধু পড়লে কাজ হবে না। একটি সত্যিকারের server নিন এবং প্রতিটি command নিজে চালান। Pipeline প্রথমবার fail করবেই — সেই fail থেকেই আসল শেখা হয়।
+</Callout>
+
+পেজগুলো ক্রমানুসারে সাজানো। তবে প্রতিটি পেজের শুরুতে "কী কী লাগবে" লেখা আছে, তাই সরাসরি [Production Pipeline](/docs/ci-cd/production) পেজেও যেতে পারেন।
+
+**পরবর্তী →** [How It Works](/docs/ci-cd/how-it-works)
+
+<span style={{ display: 'none' }}>
+  ci cd bangla tutorial, github actions bangla, docker deploy bangla, ghcr bangla, auto deploy docker compose, ci cd pipeline bangla, devops bangla, continuous deployment bangla, docker image registry bangla
+</span>

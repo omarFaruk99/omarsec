@@ -1,0 +1,295 @@
+---
+title: How It Works
+description: Understand CI vs CD, what a runner is, why the build belongs on the runner instead of your server, and how a container registry fits in.
+---
+
+import { Callout } from 'nextra/components'
+
+# How It Works
+
+<Callout type="info">
+  এই page-এ কোনো setup নেই। এখানে শুধু বুঝবেন pipeline-টি ভেতরে কীভাবে কাজ করে — যাতে পরের page-এ YAML লেখার সময় প্রতিটি লাইনের মানে জানা থাকে।
+</Callout>
+
+## CI and CD
+
+দুটি আলাদা কাজ, একসাথে লেখা হয় বলে অনেকে গুলিয়ে ফেলেন।
+
+**CI — Continuous Integration**
+প্রতিটি code change build করে দেখা হয় ঠিক আছে কিনা। কিছু ভাঙলে সেখানেই ধরা পড়ে। Server-এ কিছু হয় না।
+
+**CD — Continuous Deployment**
+Build পাশ করলে সেই জিনিস নিজে থেকে server-এ চলে যায়।
+
+| | CI | CD |
+|---|---|---|
+| কখন চলে | প্রতিটি pull request-এ | শুধু `main`-এ push হলে |
+| কী করে | build করে check করে | server-এ deploy করে |
+| Server ছোঁয় | না | হ্যাঁ |
+| Fail করলে | merge আটকে যায় | deploy আটকে যায় |
+
+## Where Should the Build Happen
+
+এটিই এই page-এর সবচেয়ে গুরুত্বপূর্ণ প্রশ্ন। উত্তরটি পুরো pipeline-এর আকার ঠিক করে দেয়।
+
+দুটি পথ আছে।
+
+**পথ ১ — Server নিজে build করে**
+
+```
+push → server → git pull → docker compose up -d --build
+```
+
+অনেকেই এভাবে করেন। কাজ করে, কিন্তু production-এ তিনটি সমস্যা:
+
+- Build-এ RAM আর CPU লাগে। ছোট VPS-এ Next.js build প্রায়ই `Killed` হয়ে যায়, আর build চলার সময় live site ধীর হয়ে থাকে
+- Server প্রতিবার নতুন করে package টানে। একই commit থেকে দুইবার build করলে দুটি আলাদা জিনিস তৈরি হতে পারে
+- Source code server-এ পড়ে থাকে। Server-এ কেউ ঢুকে পড়লে আপনার পুরো codebase আর git history তার হাতে
+
+**পথ ২ — Runner build করে, server শুধু চালায়**
+
+```
+push → runner build করে image বানায় → registry-তে রাখে → server টেনে চালায়
+```
+
+এখানে server আর কিছু বানায় না। সে একটি তৈরি image টেনে এনে চালায়, ব্যস।
+
+| | Server build করে | Runner build করে |
+|---|---|---|
+| Build-এর খরচ | আপনার server-এর | GitHub-এর, বিনামূল্যে |
+| Server-এ code | আছে | নেই |
+| একই commit, একই ফল | নিশ্চিত নয় | নিশ্চিত |
+| Deploy-এ যা যায় | code | তৈরি image |
+| Rollback | আবার build, ৩-৫ মিনিট | পুরোনো image, ১০ সেকেন্ড |
+| Server-এ যা লাগে | Docker, Node, git, RAM | শুধু Docker |
+
+এই section-এ **পথ ২** শেখানো হবে। VPS-এ Docker দিয়ে deploy করার standard পদ্ধতি এটিই।
+
+## What Is a Runner
+
+Runner হলো একটি **অস্থায়ী Ubuntu machine** যা GitHub আপনাকে প্রতিবার নতুন করে দেয়।
+
+মনে রাখার মতো তিনটি কথা:
+
+- প্রতিবার সম্পূর্ণ নতুন — আগের run-এর কিছুই থাকে না
+- কাজ শেষ হলে মুছে যায়
+- আপনার server-এর সাথে এর কোনো সম্পর্ক নেই
+
+শেষ পয়েন্টটি জরুরি। Runner আপনার server চেনে না, তার কাছে কোনো password বা key নেই। আপনি না দিলে সে ঢুকতে পারবে না। এই কারণেই পরের page-এ SSH key আর GitHub Secrets নিয়ে কাজ করতে হবে।
+
+## What Is a Registry
+
+Runner image বানাল। কিন্তু runner তো কিছুক্ষণ পরে মুছে যাবে। তাহলে image-টি রাখব কোথায়?
+
+Registry হলো image রাখার গুদাম। GitHub-এর নিজের registry-র নাম **GHCR** — GitHub Container Registry। আপনার repository-র সাথেই আসে, আলাদা account লাগে না।
+
+```
+Runner image বানায়
+      ↓  docker push
+GHCR  (ghcr.io/omar/myapp-web:a3f9c21)
+      ↓  docker pull
+Server image টেনে চালায়
+```
+
+<Callout type="default">
+  Docker Hub-ও ব্যবহার করা যায়। কিন্তু GHCR-এ একটি সুবিধা আছে — আপনার repository-র সাথে যুক্ত থাকায় GitHub Actions নিজে থেকেই login করে নিতে পারে, আলাদা কোনো password বা secret তৈরি করতে হয় না।
+</Callout>
+
+## Image Tags
+
+একটি image-এর নামের শেষে একটি tag থাকে। এই tag দিয়েই কোন version চলছে তা বোঝা যায়।
+
+```
+ghcr.io/omar/myapp-web:latest      ← কোনটা? বলা যাচ্ছে না
+ghcr.io/omar/myapp-web:a3f9c21     ← এই commit-এর, নিশ্চিত
+```
+
+আমরা প্রতিটি image-কে তার **commit-এর নাম দিয়ে** tag করব। GitHub Actions-এ এটি `github.sha` নামে পাওয়া যায়।
+
+কেন এটি এত কাজের:
+
+- Production-এ ঠিক কোন code চলছে তা এক নজরে বলা যায়
+- পুরোনো প্রতিটি version registry-তে জমা থাকে
+- Rollback মানে শুধু পুরোনো tag-টি আবার চালানো
+
+<Callout type="warning">
+  শুধু `latest` tag ব্যবহার করবেন না। `latest` আজ একটা জিনিস, কাল আরেকটা — কোনো নির্দিষ্ট version-কে সে বোঝায় না। তখন rollback করার কিছুই থাকে না, কারণ পুরোনো image-টির আর কোনো নাম নেই।
+
+  আমরা দুটি tag একসাথে দেব — `a3f9c21` (নির্দিষ্ট) আর `latest` (সুবিধার জন্য)। Deploy-এ সবসময় নির্দিষ্টটি ব্যবহার হবে।
+</Callout>
+
+## The Full Flow
+
+সব মিলিয়ে push করার পর যা ঘটে:
+
+```
+আপনার Computer
+      │  git push origin main
+      ▼
+GitHub Repository
+      │  workflow file দেখে trigger হয়
+      ▼
+GitHub Runner  (নতুন খালি Ubuntu machine)
+      │  ১. code clone করে
+      │  ২. docker build            ← fail করলে এখানেই থেমে যায়
+      │  ৩. docker push → GHCR
+      ▼
+GHCR Registry
+      │  image জমা হলো, নাম: commit-এর sha
+      ▼
+আপনার Server  (SSH দিয়ে ঢোকে)
+      │  ৪. .env-এ নতুন TAG লিখে দেয়
+      │  ৫. docker compose pull
+      │  ৬. docker compose up -d
+      │  ৭. curl দিয়ে check করে
+      ▼
+Site Live      (fail করলে পুরোনো TAG ফিরিয়ে আনে)
+```
+
+## Where the File Lives
+
+Workflow file আপনার project-এর ভেতরে থাকে, একটি নির্দিষ্ট folder-এ:
+
+```
+myapp/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml         ← pull request-এ build check
+│       └── deploy.yml     ← main-এ push হলে deploy
+├── Dockerfile
+├── compose.yaml
+└── package.json
+```
+
+Folder-এর নাম হুবহু `.github/workflows` হতে হবে। ভুল হলে GitHub file-টি খুঁজেই পাবে না, আর কোনো error ও দেখাবে না।
+
+## Anatomy of a Workflow
+
+একটি ছোট workflow দেখে প্রতিটি অংশ বুঝে নিই:
+
+```yaml filename=".github/workflows/ci.yml"
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t myapp-test .
+```
+
+প্রতিটি key-এর মানে:
+
+| Key | মানে |
+|---|---|
+| `name` | Actions tab-এ যে নাম দেখাবে |
+| `on` | কখন চলবে — এখানে `main`-এ আসা pull request-এ |
+| `jobs` | কাজের group। এক workflow-এ একাধিক job থাকতে পারে |
+| `build` | job-এর নাম, আপনি নিজে দেন |
+| `runs-on` | কোন OS-এর runner লাগবে |
+| `steps` | job-এর ভেতরে ধাপগুলো, উপর থেকে নিচে চলে |
+
+### `uses` and `run`
+
+Step দুই ধরনের হয়, এই পার্থক্যটা জানা দরকার।
+
+**`uses`** — অন্যের লেখা তৈরি action চালায়:
+
+```yaml
+- uses: actions/checkout@v4
+```
+
+`actions/checkout` হলো GitHub-এর নিজের লেখা একটি action যা repo-র code runner-এ clone করে। নিজে লিখতে গেলে ২০ লাইন লাগত।
+
+**`run`** — সরাসরি shell command চালায়:
+
+```yaml
+- run: docker build -t myapp-test .
+```
+
+### `with`
+
+কোনো action-কে extra তথ্য দিতে `with` ব্যবহার হয়:
+
+```yaml
+- uses: docker/login-action@v3
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Why Two Separate Jobs
+
+Deploy workflow-এ দুটি job থাকবে, একটি নয়।
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # image build করে registry-তে পাঠায়
+
+  deploy:
+    needs: build          # ← মূল লাইন
+    runs-on: ubuntu-latest
+    steps:
+      # server-এ SSH করে
+```
+
+`needs: build` লাইনটি বলছে — **`build` job পাশ না করলে `deploy` job শুরুই হবে না।**
+
+এর মানে আপনার server তখনই ছোঁয়া হবে যখন image ইতিমধ্যে তৈরি হয়ে registry-তে পৌঁছে গেছে। Build fail করলে server আগের image নিয়েই চলতে থাকবে, কেউ টেরও পাবে না।
+
+<Callout type="warning">
+  `needs` ছাড়া লিখলে দুটি job একসাথে চলে। তখন server এমন একটি image টানতে যাবে যা এখনো তৈরিই হয়নি — deploy fail করবে, আর কেন করল তা log দেখে বোঝা কঠিন।
+</Callout>
+
+## Reading a Failed Run
+
+Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন। সেখানে:
+
+- লাল X মানে কোনো job fail করেছে
+- Job-এ click করলে step-গুলো দেখাবে
+- যে step-এ লাল X, সেটিতে click করলে পুরো log খুলবে
+- Log-এর **শেষ ২০ লাইন** পড়ুন — আসল error প্রায় সবসময় সেখানেই
+
+একটি step fail করলে নিচের step-গুলো আর চলে না। তাই প্রথম লাল X-টিই আসল সমস্যা।
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Third-party action মানে অন্যের code আপনার pipeline-এ চলছে।**
+
+  `uses: someone/some-action@main` লিখলে আপনি একজন অচেনা মানুষের code-কে আপনার secrets-এর কাছে যাওয়ার অনুমতি দিচ্ছেন। `@main` মানে "সবসময় সর্বশেষ version" — অর্থাৎ সে যখন খুশি code বদলাতে পারে, আর আপনার pipeline সেই বদলানো code চালাবে।
+
+  এটি একটি সত্যিকারের attack path। ২০২৫ সালে `tj-actions/changed-files` নামের একটি জনপ্রিয় action-এ ঠিক এই ঘটনা ঘটে — attacker action-টির tag বদলে দেয়, আর হাজার হাজার repository-র secrets build log-এ ফাঁস হয়ে যায়।
+
+  তিনটি নিয়ম:
+
+  - সবসময় version pin করুন — `@v4`, কখনো `@main` নয়
+  - সবচেয়ে নিরাপদ হলো commit SHA দিয়ে pin করা — `uses: actions/checkout@8f4b7f8`
+  - অচেনা action ব্যবহারের আগে তার source code একবার পড়ুন
+
+  `actions/` এবং `docker/` দিয়ে শুরু হওয়া action-গুলো যথাক্রমে GitHub আর Docker-এর নিজের — এগুলো তুলনামূলক নিরাপদ।
+</Callout>
+
+## Quick Check
+
+- [ ] Build কেন server-এ না করে runner-এ করা উচিত?
+- [ ] Registry কী এবং কেন লাগে?
+- [ ] Image-এ শুধু `latest` tag দিলে কী হারাবেন?
+- [ ] `uses` আর `run`-এর পার্থক্য জানেন?
+- [ ] `needs: build` না থাকলে কী সমস্যা হয়?
+
+**পরবর্তী →** [Setup](/docs/ci-cd/setup)
+
+<span style={{ display: 'none' }}>
+  github actions workflow bangla, ci cd kake bole, github runner bangla, container registry bangla, ghcr bangla, docker image tag bangla, workflow yml bangla, ci vs cd bangla
+</span>

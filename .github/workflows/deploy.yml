@@ -1,34 +1,42 @@
+# This workflow only handles DEPLOY (put changes live on the EC2 server).
+# The separate ci.yml file handles the build check on PRs.
 name: Deploy
 
+# Runs only when code is pushed to main (not on pull requests).
 on:
   push:
     branches: [main]
 
 jobs:
+  # Job 1: build and check on a temporary GitHub machine, just to verify
+  # nothing is broken before we touch the real server.
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # download (clone) the repo code onto this temp machine
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4 # install Node.js on this temp machine
         with:
           node-version: 20
           cache: npm
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci # install dependencies (like npm install, but exact/locked versions)
+      - run: npm run build # try building the site; fails the job if something's broken
 
+  # Job 2: only runs if "build" above succeeds. This is the real deploy —
+  # it logs into the actual EC2 server and updates the live site.
   deploy:
-    needs: build
+    needs: build # wait for the build job to pass first
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.0 # a ready-made action that SSHes into a server and runs commands
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
+          host: ${{ secrets.EC2_HOST }} # server IP, stored in GitHub Settings > Secrets
+          username: ${{ secrets.EC2_USER }} # SSH username, stored as a secret
+          key: ${{ secrets.EC2_SSH_KEY }} # SSH private key (.pem content), stored as a secret
+          port: 22 # default SSH port
+          # shell commands that run on the EC2 server
           script: |
             cd /var/www/omarsec
             git pull

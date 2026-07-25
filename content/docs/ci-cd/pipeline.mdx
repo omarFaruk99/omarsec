@@ -1,0 +1,446 @@
+---
+title: First Pipeline
+description: Build your first Docker CI/CD pipeline — GitHub builds the image, pushes it to GHCR, and your server pulls and runs it.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# First Pipeline
+
+<Callout type="info">
+  এই page-এ একটি Next.js app-এর জন্য সম্পূর্ণ pipeline লিখবেন। শেষে `git push` করলেই GitHub image বানাবে, registry-তে পাঠাবে, আর আপনার server সেটি টেনে চালু করবে।
+</Callout>
+
+## Before You Start
+
+এই page সরাসরি পড়তে এলে নিচের জিনিসগুলো তৈরি থাকতে হবে:
+
+- Server-এ Docker আছে, `/opt/myapp` folder আছে এবং আপনার user-এর মালিকানায়
+- GitHub-এ তিনটি secret আছে — `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`
+- Server-এ `docker login ghcr.io` করা আছে
+
+কোনোটি না থাকলে [Setup](/docs/ci-cd/setup) page-এ সব দেওয়া আছে।
+
+## What Goes Where
+
+শুরুতেই পরিষ্কার করে নিই কোন file কোথায় থাকবে। এই ছবিটি মাথায় থাকলে বাকিটা সহজ।
+
+**GitHub repository-তে (আপনি যা লেখেন):**
+
+```
+myapp/
+├── .github/workflows/
+│   ├── ci.yml
+│   └── deploy.yml
+├── Dockerfile
+├── .dockerignore
+├── next.config.js
+└── package.json
+```
+
+**Server-এ (মাত্র দুটি file):**
+
+```
+/opt/myapp/
+├── compose.yaml
+└── .env
+```
+
+Server-এ কোনো code নেই। কোনো `Dockerfile` নেই। কোনো `node_modules` নেই।
+
+<Steps>
+
+### Turn On Standalone Output
+
+Next.js-এর একটি setting আছে যা image-কে অনেক ছোট করে দেয়। এটি চালু না করলে আপনার image-এ পুরো `node_modules` folder ঢুকে যাবে।
+
+`output: 'standalone'` দিলে Next.js build-এর সময় হিসাব করে দেখে ঠিক কোন file গুলো চালাতে লাগবে, আর শুধু সেগুলো একটি folder-এ জড়ো করে। বাকি সব বাদ।
+
+```js filename="next.config.js"
+const nextConfig = {
+  output: 'standalone',
+}
+
+export default nextConfig
+```
+
+ফলাফল হাতেনাতে পাওয়া যায় — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ১৫০ MB-র কাছাকাছি নেমে আসে।
+
+<Callout type="default">
+  Image ছোট রাখা শুধু জায়গা বাঁচানোর ব্যাপার নয়। প্রতিবার deploy-এ server-কে এই image টানতে হয়। ছোট image মানে দ্রুত deploy আর কম bandwidth খরচ।
+</Callout>
+
+### Write the Dockerfile
+
+এই Dockerfile-এ তিনটি stage আছে। Stage মানে ধাপ — প্রতিটি ধাপ আগের ধাপ থেকে শুধু দরকারি জিনিসটুকু নিয়ে আসে, বাকি সব ফেলে দেয়।
+
+```dockerfile filename="Dockerfile"
+# ধাপ ১: শুধু dependency install
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ধাপ ২: build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# ধাপ ৩: শুধু চালানোর জন্য যা লাগে
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# root হিসেবে না চালানোর জন্য একটি সাধারণ user
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+কেন তিনটি stage:
+
+শেষ stage-এ শুধু `public`, `.next/standalone` আর `.next/static` copy করা হয়েছে। `node_modules`, source code, build tool — কিছুই যায়নি। ওগুলো আগের stage-এ ছিল, আর সেই stage গুলো final image-এ থাকে না।
+
+<Callout type="warning">
+  `USER nextjs` লাইনটি বাদ দেবেন না। এটি না থাকলে আপনার app container-এর ভেতরে `root` হিসেবে চলবে। কেউ যদি app-এর কোনো দুর্বলতা কাজে লাগিয়ে ভেতরে ঢুকে পড়ে, তখন তার হাতে container-এর সব ক্ষমতা থাকবে।
+</Callout>
+
+### Add a `.dockerignore`
+
+`COPY . .` লাইনটি পুরো folder copy করে। `.dockerignore` না থাকলে সেখানে `.git`, `node_modules`, এমনকি আপনার local `.env` file-ও ঢুকে যাবে।
+
+```bash filename=".dockerignore"
+node_modules
+.next
+.git
+.env
+.env.*
+README.md
+Dockerfile
+.dockerignore
+```
+
+<Callout type="warning">
+  `.env` লাইনটি সবচেয়ে গুরুত্বপূর্ণ। এটি না থাকলে আপনার সব secret image-এর ভেতরে ঢুকে যাবে, আর সেই image registry-তে চলে যাবে। Image-এর layer খুলে যে কেউ সেগুলো পড়তে পারে।
+</Callout>
+
+### Create the CI File
+
+এই file আপনার প্রথম রক্ষাকবচ। কেউ pull request খুললে GitHub image build করে দেখবে। Build fail করলে pull request-এ লাল X দেখাবে এবং merge করার আগেই সমস্যা ধরা পড়বে।
+
+Registry-তে কিছু পাঠানো হবে না — শুধু build করে দেখা।
+
+```yaml filename=".github/workflows/ci.yml"
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+`cache-from` আর `cache-to` দুটি লাইন Docker-এর layer গুলো জমা রাখে। প্রথম build-এ কিছু হবে না, কিন্তু পরের বার থেকে যে layer গুলো বদলায়নি সেগুলো আর নতুন করে বানাতে হবে না। Build-এর সময় প্রায় অর্ধেক নেমে আসে।
+
+### Create the Server Files
+
+এবার server-এ যান এবং দুটি file তৈরি করুন।
+
+প্রথমে `compose.yaml`:
+
+```bash filename="SERVER — Terminal"
+nano /opt/myapp/compose.yaml
+```
+
+```yaml filename="/opt/myapp/compose.yaml"
+services:
+  web:
+    image: ghcr.io/YOUR_USERNAME/myapp-web:${TAG}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+```
+
+<Callout type="warning">
+  `YOUR_USERNAME` আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। আপনার username-এ বড় হাতের অক্ষর থাকলেও registry-তে নাম ছোট হাতের হতেই হবে। এই এক জায়গায় অনেকে আটকে যান।
+</Callout>
+
+তিনটি লাইনের কারণ:
+
+- **`${TAG}`** — কোন version চলবে তা `.env` file থেকে আসবে। এটিই rollback-এর চাবি
+- **`restart: unless-stopped`** — container crash করলে বা server reboot হলে Docker নিজে থেকে আবার চালু করবে
+- **`127.0.0.1:3000:3000`** — port শুধু server-এর ভেতরে খোলা, internet থেকে সরাসরি ঢোকা যাবে না। বাইরের traffic Nginx হয়ে আসবে
+
+এবার `.env`:
+
+```bash filename="SERVER — Terminal"
+nano /opt/myapp/.env
+```
+
+```bash filename="/opt/myapp/.env"
+TAG=latest
+```
+
+এখন `latest` লিখে রাখুন। প্রথম deploy-এর পরে pipeline নিজেই এই লাইনটি commit-এর নাম দিয়ে বদলে দেবে।
+
+File-টি শক্ত করে দিন:
+
+```bash filename="SERVER — Terminal"
+chmod 600 /opt/myapp/.env
+```
+
+### Create the Deploy File
+
+এবার আসল কাজ।
+
+```yaml filename=".github/workflows/deploy.yml"
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# একসাথে দুইটি deploy চলতে দেবে না
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/your_username/myapp-web
+
+jobs:
+  # Job 1: image বানিয়ে registry-তে পাঠানো
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 2: image তৈরি হলে তবেই server-এ deploy
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/myapp
+
+            # এখন কোন version চলছে, মনে রাখি — ফিরে আসার জন্য
+            OLD_TAG=$(grep '^TAG=' .env | cut -d= -f2)
+            NEW_TAG=${{ github.sha }}
+            echo "old: $OLD_TAG"
+            echo "new: $NEW_TAG"
+
+            # নতুন version বসাই
+            sed -i "s|^TAG=.*|TAG=$NEW_TAG|" .env
+            docker compose pull
+            docker compose up -d
+
+            # সত্যিই চলছে কিনা দেখি, ৩০ সেকেন্ড পর্যন্ত অপেক্ষা
+            for i in $(seq 1 10); do
+              if curl -fsS http://localhost:3000 > /dev/null; then
+                echo "deploy ok"
+                docker image prune -f
+                exit 0
+              fi
+              sleep 3
+            done
+
+            # এখানে পৌঁছানো মানে app উঠল না — ফিরে যাই
+            echo "health check failed, rolling back to $OLD_TAG"
+            sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
+            docker compose up -d
+            exit 1
+```
+
+</Steps>
+
+## How the TAG Trick Works
+
+এই pipeline-এর পুরো বুদ্ধিটা `.env` file-এর ওই একটি লাইনে।
+
+```bash filename="/opt/myapp/.env"
+TAG=a3f9c21
+```
+
+Docker Compose নিজে থেকেই একই folder-এর `.env` file পড়ে নেয়। তাই `compose.yaml`-এ লেখা `${TAG}` জায়গায় সে `a3f9c21` বসিয়ে দেয়:
+
+```
+image: ghcr.io/omar/myapp-web:${TAG}
+                                 ↓
+image: ghcr.io/omar/myapp-web:a3f9c21
+```
+
+Deploy করার মানে দাঁড়ায় শুধু ওই এক লাইন বদলে `docker compose up -d` চালানো।
+
+আর rollback করার মানে দাঁড়ায় ওই এক লাইনে পুরোনো নামটি ফিরিয়ে আনা। Image আগে থেকেই server-এ নামানো আছে, তাই কিছু টানতেও হয় না — **প্রায় সাথে সাথেই** পুরোনো version ফিরে আসে।
+
+## The Health Check
+
+Deploy-এর শেষে ওই `for` loop-টি বাদ দেবেন না।
+
+কারণটি সহজ: GitHub-এর সবুজ checkmark-এর মানে শুধু "সব command exit code 0 দিয়েছে"। `docker compose up -d` container চালু করেই ফিরে আসে — container-টি ভেতরে গিয়ে crash করল কিনা সে জানে না।
+
+App উঠে গিয়ে তিন সেকেন্ড পরে মরে যেতে পারে — `.env`-এ একটি variable missing থাকলে, port দখল হয়ে থাকলে, বা code-এ কোনো ভুল থাকলে। Docker তখনো "started" বলবে, GitHub সবুজ দেখাবে, আর আপনার site down থাকবে।
+
+`curl` সেই মিথ্যাটি ধরে ফেলে।
+
+`curl` flag গুলোর মানে:
+
+- `-f` — HTTP error (৪০০, ৫০০) পেলে fail করবে। এটি ছাড়া error page-ও "সফল" গণ্য হয়
+- `-s` — progress bar লুকায়
+- `-S` — তবু error message দেখায়
+
+Loop-টি ১০ বার চেষ্টা করে, প্রতিবার ৩ সেকেন্ড অপেক্ষা করে। Next.js উঠতে সাধারণত ৩-৫ সেকেন্ড লাগে, তাই ৩০ সেকেন্ড যথেষ্ট।
+
+## Understand `concurrency`
+
+```yaml
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+```
+
+ধরুন আপনি push করলেন, তারপর ৩০ সেকেন্ড পরে একটি ছোট typo ঠিক করে আবার push করলেন। `concurrency` না থাকলে দুটি deploy একসাথে চলবে।
+
+তখন দুটি script একই `.env` file-এ একই সময়ে লিখতে যাবে। ফলাফল অনুমান করা যায় না — কোন version শেষ পর্যন্ত চলবে কেউ জানে না।
+
+`concurrency` দ্বিতীয় deploy-কে লাইনে দাঁড় করিয়ে রাখে। `cancel-in-progress: false` লেখা আছে কারণ deploy মাঝপথে বাতিল করা বিপজ্জনক।
+
+## Push and Watch
+
+সব file commit করে push করুন:
+
+```bash filename="LOCAL — Terminal"
+git add .
+git commit -m "add docker ci cd pipeline"
+git push origin main
+```
+
+GitHub-এ **Actions** tab খুলুন। সাথে সাথেই একটি run শুরু হবে।
+
+- `build` job চলবে — প্রথমবার ৩-৫ মিনিট (cache খালি), পরের বার থেকে ১-২ মিনিট
+- সবুজ হলে `deploy` job শুরু হবে — প্রায় ৩০ সেকেন্ড
+
+Server-এ গিয়ে মিলিয়ে দেখুন:
+
+```bash filename="SERVER — Terminal"
+cat /opt/myapp/.env
+docker compose -f /opt/myapp/compose.yaml ps
+```
+
+`.env`-এ `TAG=latest`-এর বদলে একটি লম্বা commit sha দেখা যাবে। `ps`-এ container `Up` অবস্থায় থাকবে।
+
+## Test It for Real
+
+Pipeline সত্যিই কাজ করছে কিনা জানার একটিই উপায় — একটি পরিবর্তন করে দেখা।
+
+Homepage-এর কোনো লেখা বদলান, তারপর:
+
+```bash filename="LOCAL — Terminal"
+git add .
+git commit -m "update homepage text"
+git push origin main
+```
+
+এখন কিছুই করবেন না। শুধু ২ মিনিট অপেক্ষা করে browser refresh দিন। নতুন লেখা দেখা যাবে।
+
+আপনি আর কখনো হাতে deploy করবেন না।
+
+<Callout type="default">
+  এবার server-এর পুরোনো clone করা project folder-টি মুছে ফেলতে পারেন। সেটির আর কোনো কাজ নেই। Server-এ এখন শুধু ওই দুটি file আর Docker।
+</Callout>
+
+## CyberSec Note
+
+<Callout type="warning">
+  **Image-এর ভেতরে যা রাখেন তা সবাই পড়তে পারে।**
+
+  একটি Docker image হলো layer-এর একটি stack। যে কেউ আপনার image টেনে নিয়ে প্রতিটি layer খুলে দেখতে পারে — কোন file ছিল, কোন file মুছে ফেলা হয়েছে, সব।
+
+  এর মানে দুটি জিনিস:
+
+  - **কখনো `.env` বা key file image-এ ঢোকাবেন না।** `.dockerignore` ঠিক আছে কিনা নিশ্চিত হয়ে নিন। Build-এর সময় secret লাগলে Docker-এর `--mount=type=secret` ব্যবহার করুন, `COPY` নয়।
+  - **মুছে ফেললেও থেকে যায়।** একটি layer-এ file যোগ করে পরের layer-এ `RUN rm` দিয়ে মুছলে সেটি আসলে মুছে যায় না — আগের layer-এ পড়ে থাকে। শুধু দেখা যায় না।
+
+  নিজের image-এ কী আছে দেখতে চাইলে:
+
+  ```bash
+  docker history ghcr.io/omar/myapp-web:latest --no-trunc
+  ```
+
+  আরেকটি জিনিস মনে রাখুন। `NEXT_PUBLIC_` দিয়ে শুরু হওয়া প্রতিটি environment variable Next.js **build-এর সময় JavaScript bundle-এর ভেতরে বসিয়ে দেয়** এবং browser-এ পাঠায়। কেউ `Ctrl+U` চেপেই দেখতে পারে। কখনো database password বা API secret key-তে `NEXT_PUBLIC_` prefix দেবেন না।
+</Callout>
+
+## Quick Check
+
+- [ ] Pull request খুললে `ci.yml` নিজে থেকে চলছে?
+- [ ] `main`-এ push করলে site নিজে থেকে update হচ্ছে?
+- [ ] Server-এ এখন কয়টি file আছে বলতে পারবেন?
+- [ ] `.env`-এর `TAG` লাইনটি কী কাজ করে?
+- [ ] Health check না থাকলে কোন সমস্যাটি ধরা পড়বে না?
+
+## What's Next
+
+আপনার Next.js app এখন নিজে থেকে deploy হচ্ছে, আর deploy fail করলে নিজে থেকে ফিরেও যাচ্ছে।
+
+কিন্তু আসল production project-এ সাধারণত একটির বেশি জিনিস চলে — একটি আলাদা API server, একটি database, database-এর schema migration। Migration ভুল সময়ে চললে site ভেঙে যায়, আর তখন শুধু image ফিরিয়ে আনলেই সমস্যা মেটে না।
+
+পরের page-এ এই pipeline-কে বাড়িয়ে সম্পূর্ণ production stack চালাব।
+
+**পরবর্তী →** [Production Pipeline](/docs/ci-cd/production)
+
+<span style={{ display: 'none' }}>
+  docker github actions deploy bangla, ghcr push image bangla, nextjs standalone docker bangla, docker compose deploy bangla, build push action bangla, docker multi stage build bangla, auto deploy docker bangla
+</span>

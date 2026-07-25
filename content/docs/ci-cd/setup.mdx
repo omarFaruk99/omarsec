@@ -1,0 +1,275 @@
+---
+title: Setup
+description: One-time setup for CI/CD — restructure the server folder, create an SSH key only for GitHub Actions, add secrets, and give the server access to the registry.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Setup
+
+<Callout type="info">
+  এই page-এর কাজ একবারই করতে হয়। এরপর আর কখনো এখানে ফিরে আসতে হবে না। শেষে GitHub-এর কাছে আপনার server-এ ঢোকার অনুমতি থাকবে, আর server registry থেকে image টানতে পারবে।
+</Callout>
+
+## What Your Server Already Has
+
+এই page ধরে নিচ্ছে নিচের জিনিসগুলো আপনার server-এ আগে থেকেই আছে:
+
+- **Docker এবং Docker Compose** install করা
+- আপনার **app হাতে চলছে** — `docker compose up -d` দিলে site খোলে
+- একটি **non-root user** যা দিয়ে আপনি SSH করেন এবং `docker` command চালাতে পারেন
+- **Nginx** বা অন্য কিছু সামনে বসানো (থাকলে ভালো, না থাকলেও pipeline চলবে)
+
+এগুলো কীভাবে করতে হয় তা এই section-এর বিষয় নয়। এখানে শুধু এই চলমান setup-টিকে automatic করা হবে।
+
+## What CI/CD Needs From Your Server
+
+মাত্র চারটি জিনিস:
+
+| # | কী | কেন |
+|---|---|---|
+| 1 | দুটি file রাখার একটি folder | Server-এ আর code থাকবে না, শুধু `compose.yaml` আর `.env` |
+| 2 | শুধু Actions-এর জন্য একটি SSH key | নিজের key বা `.pem` দেওয়া বিপজ্জনক |
+| 3 | তিনটি GitHub Secret | GitHub এগুলো দিয়ে server-এ ঢুকবে |
+| 4 | Registry থেকে image টানার অনুমতি | না থাকলে `docker compose pull` fail করবে |
+
+<Steps>
+
+### Restructure the Server Folder
+
+এখন আপনার server-এ সম্ভবত পুরো project clone করা আছে — code, `Dockerfile`, সব। নতুন পদ্ধতিতে এর কিছুই লাগবে না।
+
+Server-এ শুধু **দুটি file** থাকবে:
+
+```
+/opt/myapp/
+├── compose.yaml     ← image টানে, build করে না
+└── .env             ← secret এবং কোন version চলবে
+```
+
+Folder তৈরি করে নিজের user-কে মালিকানা দিন:
+
+```bash filename="SERVER — Terminal"
+sudo mkdir -p /opt/myapp
+sudo chown -R $USER:$USER /opt/myapp
+```
+
+<Callout type="warning">
+  `chown` লাইনটি বাদ দেবেন না। Folder-টি `root`-এর থাকলে GitHub Actions সেখানে `.env` file লিখতে পারবে না, আর deploy `Permission denied` দিয়ে fail করবে।
+</Callout>
+
+`compose.yaml` আর `.env`-এ ঠিক কী লিখবেন তা পরের page-এ আছে — সেখানে আপনার app-এর image-এর নাম জানা থাকবে। এখন শুধু folder-টি তৈরি রাখুন।
+
+<Callout type="default">
+  পুরোনো clone করা folder-টি এখনই মুছবেন না। নতুন pipeline কাজ করা শুরু করলে তারপর মুছবেন। ততক্ষণ সেটিই আপনার backup।
+</Callout>
+
+### Create a Key for GitHub Actions
+
+এখন GitHub-কে server-এ ঢোকার অনুমতি দিতে হবে। এর জন্য একটি **নতুন SSH key** তৈরি করব — শুধু এই কাজের জন্য।
+
+<Callout type="warning">
+  আপনার ব্যক্তিগত SSH key বা cloud provider-এর দেওয়া `.pem` file কখনো GitHub-এ দেবেন না। ওই key দিয়ে আপনি নিজে সব server-এ ঢোকেন। একবার ফাঁস হলে সব হারাবেন।
+
+  আলাদা key-র সুবিধা: সন্দেহ হলে শুধু `authorized_keys` থেকে ওই এক লাইন মুছে দিলেই GitHub-এর access বন্ধ, আপনার নিজের কিছুই ভাঙে না।
+</Callout>
+
+**আপনার নিজের computer-এ** key তৈরি করুন:
+
+```bash filename="LOCAL — Terminal"
+ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/gh_actions -N ""
+```
+
+- `-f ~/.ssh/gh_actions` — এই নামে সংরক্ষণ হবে, আপনার আসল key-র উপরে লিখবে না
+- `-N ""` — কোনো passphrase নেই। Actions passphrase টাইপ করতে পারে না, তাই খালি রাখতেই হবে
+
+দুটি file তৈরি হলো:
+
+| File | কী | কোথায় যাবে |
+|---|---|---|
+| `gh_actions` | Private key | GitHub Secrets-এ |
+| `gh_actions.pub` | Public key | Server-এ |
+
+Public key server-এ পাঠান:
+
+```bash filename="LOCAL — Terminal"
+cat ~/.ssh/gh_actions.pub | ssh USER@YOUR_SERVER_IP "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+```
+
+`authorized_keys` file-এ যে public key গুলো থাকে, তাদের মালিক server-এ ঢুকতে পারে। আমরা সেখানে GitHub-এর জন্য একটি লাইন যোগ করলাম।
+
+### Test the Key the Way Actions Will Use It
+
+এই ধাপটি ছোট দেখাচ্ছে, কিন্তু **সবচেয়ে বেশি pipeline এখানেই fail করে**। তাই এটি মন দিয়ে করুন।
+
+প্রথমে সাধারণভাবে ঢুকে দেখুন:
+
+```bash filename="LOCAL — Terminal"
+ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP
+```
+
+ঢুকতে পারলে key ঠিক আছে। বেরিয়ে আসুন।
+
+এবার আসল test। GitHub Actions যখন SSH করে, তখন সে **কোনো shell খোলে না** — সরাসরি command পাঠিয়ে দেয়। এই দুটি জিনিস এক নয়:
+
+```bash filename="LOCAL — Terminal"
+# আপনি যেভাবে করেন — shell খোলে, ~/.bashrc চলে
+ssh USER@SERVER
+
+# Actions যেভাবে করে — shell খোলে না, ~/.bashrc চলে না
+ssh USER@SERVER "docker compose version"
+```
+
+`~/.bashrc` না চললে সেখানে যা কিছু setup করা আছে তার কিছুই পাওয়া যায় না। Docker সাধারণত `/usr/bin`-এ থাকে বলে সমস্যা হয় না, কিন্তু নিশ্চিত হয়ে নিন:
+
+```bash filename="LOCAL — Terminal"
+ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP "docker compose version"
+```
+
+Version দেখালে সব ঠিক। `command not found` এলে সম্পূর্ণ path বের করে রাখুন:
+
+```bash filename="SERVER — Terminal"
+which docker
+```
+
+Folder-এ লেখার অনুমতি আছে কিনা সেটিও একইভাবে দেখে নিন:
+
+```bash filename="LOCAL — Terminal"
+ssh -i ~/.ssh/gh_actions USER@YOUR_SERVER_IP "touch /opt/myapp/test && rm /opt/myapp/test && echo ok"
+```
+
+`ok` দেখালে GitHub সেখানে লিখতে পারবে।
+
+### Add Three GitHub Secrets
+
+Secret হলো GitHub-এর ভেতরে লুকানো তথ্য। একবার save করলে আপনি নিজেও আর সেটি পড়তে পারবেন না — শুধু workflow ব্যবহার করতে পারে। Log-এ ভুলে ছাপা হলে GitHub সেটিকে `***` দিয়ে ঢেকে দেয়।
+
+GitHub-এ যান:
+
+```
+Your Repository → Settings → Secrets and variables → Actions → New repository secret
+```
+
+তিনটি secret তৈরি করুন:
+
+| Name | Value |
+|---|---|
+| `SERVER_HOST` | Server-এর IP address, যেমন `13.234.56.78` |
+| `SERVER_USER` | SSH username, যেমন `ubuntu` |
+| `SSH_PRIVATE_KEY` | `gh_actions` file-এর সম্পূর্ণ content |
+
+Private key-র content দেখতে:
+
+```bash filename="LOCAL — Terminal"
+cat ~/.ssh/gh_actions
+```
+
+<Callout type="warning">
+  `-----BEGIN OPENSSH PRIVATE KEY-----` থেকে `-----END OPENSSH PRIVATE KEY-----` পর্যন্ত **সবটুকু** copy করুন। শেষ লাইনের পরের খালি লাইনটিও রাখুন। একটি অক্ষর বাদ পড়লে `error in libcrypto` নামের একটি বিভ্রান্তিকর error আসবে।
+
+  `.pub` file-টি নয় — passphrase ছাড়া private key file-টি।
+</Callout>
+
+<Callout type="default">
+  Registry-র জন্য কোনো secret লাগবে না। GitHub Actions নিজে থেকেই একটি অস্থায়ী token পায় (`GITHUB_TOKEN`) যা দিয়ে সে GHCR-এ image পাঠাতে পারে। এটি প্রতিটি run-এর শেষে মুছে যায়।
+</Callout>
+
+### Let the Server Pull From the Registry
+
+Runner image পাঠাবে, কিন্তু server সেটি টেনে আনতে পারবে কিনা? আপনার package private হলে server-কে login করতে হবে।
+
+প্রথমে GitHub-এ একটি token তৈরি করুন:
+
+```
+GitHub → Settings (আপনার profile-এর) → Developer settings
+→ Personal access tokens → Tokens (classic) → Generate new token
+```
+
+শুধু একটি অনুমতি টিক দিন — **`read:packages`**। আর কিছু নয়।
+
+<Callout type="warning">
+  `write:packages` বা `repo` টিক দেবেন না। Server-এর কাজ শুধু image পড়া। এই token যদি কোনোদিন ফাঁস হয়, তাহলে সে দিয়ে শুধু image পড়া যাবে — কিছু মুছে দেওয়া বা code বদলে দেওয়া যাবে না।
+</Callout>
+
+Server-এ login করুন:
+
+```bash filename="SERVER — Terminal"
+echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+`Login Succeeded` দেখালে হয়ে গেল। এটি একবারই করতে হয় — Docker credential মনে রাখে।
+
+<Callout type="default">
+  Package-টি public করে দিলে এই login-এর দরকার নেই। কিন্তু public মানে যে কেউ আপনার image টেনে নিতে পারবে, আর image-এর ভেতরে আপনার compiled code আছে। Client project বা private app হলে private রাখুন।
+</Callout>
+
+</Steps>
+
+## Two Things That Silently Break Pipelines
+
+দুটি সমস্যা খুব সাধারণ কিন্তু কোথাও লেখা থাকে না।
+
+**Firewall দিয়ে SSH আটকানো থাকলে**
+
+অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। GitHub runner-এর IP প্রতিবার বদলায় এবং সেটি হাজার হাজার IP-র একটি বিশাল তালিকা — তাই আগে থেকে allow করা যায় না।
+
+সঠিক সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password login পুরোপুরি বন্ধ করে দিন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config
+```
+
+```
+PasswordAuthentication no
+PermitRootLogin no
+```
+
+```bash filename="SERVER — Terminal"
+sudo systemctl restart ssh
+```
+
+এখন port 22 সবার জন্য খোলা থাকলেও key ছাড়া কেউ ঢুকতে পারবে না।
+
+**fail2ban runner-কে ban করে দিলে**
+
+Deploy বারবার fail করলে fail2ban সেই IP ব্যান করতে পারে। তখন পরের deploy টাইমআউট হবে আর error message কিছুই বোঝাবে না। সন্দেহ হলে দেখুন:
+
+```bash filename="SERVER — Terminal"
+sudo fail2ban-client status sshd
+```
+
+## Setup Checklist
+
+পরের page-এ যাওয়ার আগে সব মিলিয়ে নিন:
+
+- [ ] `/opt/myapp` folder আছে এবং আপনার user-এর মালিকানায়
+- [ ] `ssh -i ~/.ssh/gh_actions USER@IP` দিয়ে ঢোকা যাচ্ছে
+- [ ] `ssh -i ~/.ssh/gh_actions USER@IP "docker compose version"` কাজ করছে
+- [ ] `/opt/myapp`-এ file লেখার test পাশ করেছে
+- [ ] GitHub-এ তিনটি secret যোগ করা হয়েছে
+- [ ] Server-এ `docker login ghcr.io` সফল হয়েছে
+
+## CyberSec Note
+
+<Callout type="warning">
+  **আপনার pipeline এখন server-এর একটি চাবি ধরে আছে।**
+
+  এর মানে GitHub repository-তে যার push করার ক্ষমতা আছে, সে workflow file বদলে server-এ যেকোনো command চালাতে পারে। Repository-র access এখন আর শুধু code-এর access নয় — এটি server-এর access।
+
+  চারটি নিয়ম মানুন:
+
+  - **`root` কখনো নয়।** `SERVER_USER` সবসময় সাধারণ user হবে।
+  - **Branch protection চালু করুন।** `main`-এ সরাসরি push বন্ধ করুন, review ছাড়া merge বন্ধ করুন। Settings → Branches → Add rule। এটি একটিমাত্র সবচেয়ে কার্যকর পদক্ষেপ।
+  - **Fork থেকে আসা pull request-এ secrets দেবেন না।** GitHub এটি default-ই বন্ধ রাখে — চালু করার লোভ সামলান।
+  - **Key rotate করুন।** কেউ team ছাড়লে `~/.ssh/authorized_keys` থেকে পুরোনো লাইন মুছে নতুন key বানান।
+
+  আরেকটি কথা জেনে রাখুন। `docker login` করার পরে আপনার token `~/.docker/config.json` file-এ জমা থাকে — সেটি **encrypt করা নয়, শুধু base64 করা**। যে কেউ ওই file পড়তে পারলেই token পেয়ে যাবে। এই কারণেই token-এ শুধু `read:packages` অনুমতি রাখা এত জরুরি।
+
+  একটি সহজ test: আপনার repository-তে যাদের write access আছে তাদের list দেখুন। ওই সবার হাতেই এখন আপনার production server আছে।
+</Callout>
+
+**পরবর্তী →** [First Pipeline](/docs/ci-cd/pipeline)
+
+<span style={{ display: 'none' }}>
+  github secrets bangla, ssh key github actions bangla, ghcr login bangla, docker login ghcr, read packages token, non interactive ssh bangla, deploy key setup bangla
+</span>

@@ -23,6 +23,12 @@ export default {
       collapsed: true
     }
   },
+  'ci-cd': {
+    title: 'CI/CD',
+    theme: {
+      collapsed: true
+    }
+  },
   'docker': {
     title: 'Docker',
     theme: {
