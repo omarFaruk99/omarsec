@@ -34,4 +34,4 @@ jobs:
             git pull
             npm install
             npm run build
-            pm2 restart omarsec
+            ~/.nvm/versions/node/v24.14.0/bin/pm2 restart omarsec
