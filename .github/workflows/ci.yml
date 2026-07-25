@@ -1,8 +1,8 @@
+# Build check only. Runs on pull requests, never touches the server.
+# Its job is to stop a broken change from being merged into main.
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -12,10 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - uses: docker/setup-buildx-action@v3
 
-      - run: npm ci
-      - run: npm run build
+      # Build the same image the deploy workflow builds, but do not push it.
+      # If the Dockerfile or the site build is broken, this fails and the
+      # pull request shows a red X before anyone can merge.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

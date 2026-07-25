@@ -212,7 +212,38 @@ cat ~/.ssh/gh_actions
 
 Runner image পাঠাবে registry-তে। কিন্তু server সেটি টেনে আনতে পারবে তখনই, যখন তার কাছে অনুমতি থাকবে।
 
-Package private হলে একটি token লাগবে। GitHub-এ গিয়ে বানান:
+**প্রথমে একটি সিদ্ধান্ত — package private রাখবেন, নাকি public করবেন?**
+
+GitHub-এ দুটি আলাদা setting আছে। অনেকে ভাবেন একটাই।
+
+```
+Repository visibility  →  কে আপনার source code দেখতে পাবে
+Package visibility     →  কে আপনার image টানতে পারবে
+```
+
+এই দুটি **একে অপরের সাথে যুক্ত নয়**। Repository private রেখেও package public করা যায়।
+
+| | Private package | Public package |
+|---|---|---|
+| Source code | কেউ দেখবে না | কেউ দেখবে না |
+| Image টানা | token লাগবে | যে কেউ পারবে |
+| GHCR সীমা | ৫০০ MB, মাসে ১ GB | সীমাহীন |
+| Server-এ login | লাগবে | লাগবে না |
+
+Public package-এ কেউ image টেনে আপনার **build করা app** দেখতে পাবে — compiled file আর runtime `node_modules`। আপনার `.env`, source file বা git history যাবে না।
+
+<Callout type="default">
+  **কখন public করা নিরাপদ:** আপনার site যদি এমনিতেই সবার জন্য খোলা থাকে — documentation, blog, portfolio — তাহলে image-এ যা আছে তা তো browser-এ সবাই দেখছেই। তখন public করলে সীমার ঝামেলা থাকে না।
+
+  **কখন নয়:** client-এর app, ভেতরে business logic আছে এমন কিছু, বা যেকোনো private product। তখন private রাখুন আর নিচের token পদ্ধতি ব্যবহার করুন।
+
+  Package তৈরিই হবে **প্রথম push-এর পরে**। তাই visibility বদলাতে হলে প্রথম deploy সফল হওয়ার পরে করবেন:
+  `GitHub → আপনার profile → Packages → package-টি → Package settings → Change visibility`
+</Callout>
+
+Public করলে নিচের ধাপগুলো বাদ দিন — server-কে কিছু করতে হবে না।
+
+Private রাখলে একটি token লাগবে। GitHub-এ গিয়ে বানান:
 
 ```
 GitHub → Settings (আপনার profile-এর) → Developer settings
@@ -235,8 +266,6 @@ echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdi
 
 <Callout type="default">
   এখানে আপনি server-এ login করছেন না — সেখানে তো আগে থেকেই আছেন। এই command server-এর Docker-কে **GitHub-এর registry-তে** login করায়।
-
-  Package-টি public করে দিলে এই ধাপটির দরকারই নেই। কিন্তু public মানে যে কেউ আপনার image টেনে নিতে পারবে, আর image-এর ভেতরে আপনার compiled code আছে। Client project হলে private রাখুন।
 </Callout>
 
 </Steps>

@@ -1,0 +1,24 @@
+# never copy these into the build context
+node_modules
+.next
+public/_pagefind
+.git
+.github
+.env
+.env.*
+
+# docker's own files
+Dockerfile
+.dockerignore
+
+# repo docs, not needed to build the site
+README.md
+CLAUDE.md
+DOCS_RULES.md
+TECH_STACK.md
+cicdplan.md
+claudecodeplan.md
+
+# editor
+.vscode
+.idea

@@ -1,45 +1,100 @@
-# This workflow only handles DEPLOY (put changes live on the EC2 server).
-# The separate ci.yml file handles the build check on PRs.
+# Build the Docker image on GitHub, push it to GHCR, then have the server
+# pull and run it. The server never builds anything.
 name: Deploy
 
-# Runs only when code is pushed to main (not on pull requests).
 on:
   push:
     branches: [main]
 
+# Never let two deploys run at the same time — they would fight over .env
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/omarfaruk99/omarsec
+
 jobs:
-  # Job 1: build and check on a temporary GitHub machine, just to verify
-  # nothing is broken before we touch the real server.
+  # Job 1: build the image and push it to the registry.
+  # The server is not touched here.
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - uses: actions/checkout@v4 # download (clone) the repo code onto this temp machine
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4 # install Node.js on this temp machine
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: 20
-          cache: npm
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: npm ci # install dependencies (like npm install, but exact/locked versions)
-      - run: npm run build # try building the site; fails the job if something's broken
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # Job 2: only runs if "build" above succeeds. This is the real deploy —
-  # it logs into the actual EC2 server and updates the live site.
+  # Job 2: only runs if the image was built and pushed successfully.
   deploy:
-    needs: build # wait for the build job to pass first
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.0 # a ready-made action that SSHes into a server and runs commands
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }} # server IP, stored in GitHub Settings > Secrets
-          username: ${{ secrets.EC2_USER }} # SSH username, stored as a secret
-          key: ${{ secrets.EC2_SSH_KEY }} # SSH private key (.pem content), stored as a secret
-          port: 22 # default SSH port
-          # shell commands that run on the EC2 server
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 15m
           script: |
-            cd /var/www/omarsec
-            git pull
-            npm install
-            npm run build
-            ~/.nvm/versions/node/v24.14.0/bin/pm2 restart omarsec
+            set -eE
+            cd /opt/omarsec
+
+            # remember where to go back to if anything fails
+            OLD_TAG=$(grep '^TAG=' .env | cut -d= -f2)
+            NEW_TAG=${{ github.sha }}
+            PORT=$(grep '^PORT=' .env | cut -d= -f2)
+            echo "old: $OLD_TAG"
+            echo "new: $NEW_TAG"
+
+            rollback() {
+              if [ "$OLD_TAG" = "latest" ] || [ -z "$OLD_TAG" ]; then
+                echo "previous tag is not a fixed version — cannot roll back"
+                return
+              fi
+              echo "rolling back to $OLD_TAG"
+              sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
+              docker compose up -d || true
+            }
+            trap rollback ERR
+
+            # point .env at the new image and start it
+            sed -i "s|^TAG=.*|TAG=$NEW_TAG|" .env
+            docker compose pull
+            docker compose up -d
+
+            # confirm the site actually answers, up to 30 seconds
+            for i in $(seq 1 10); do
+              if curl -fsS "http://localhost:$PORT" > /dev/null; then
+                trap - ERR
+                echo "deploy ok"
+                docker image prune -af --filter "until=336h"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo "health check failed"
+            rollback
+            exit 1

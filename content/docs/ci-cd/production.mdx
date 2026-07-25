@@ -597,14 +597,20 @@ cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db psql -U "$POSTGRES_USE
 
 ## Keeping Images Small
 
-GHCR free, কিন্তু private repository-তে সীমা আছে। GitHub-এর official হিসাব:
+GHCR free, কিন্তু private package-এ সীমা আছে। GitHub-এর official হিসাব:
 
-| Repository | Storage | মাসে data transfer |
+| Package | Storage | মাসে data transfer |
 |---|---|---|
 | Public | সীমাহীন | সীমাহীন |
 | **Private (Free plan)** | **500 MB** | **1 GB** |
 
-Private repo-তে ৫০০ MB দ্রুত ভরে যেতে পারে। তিনটি কাজ করলে সমস্যা হবে না:
+<Callout type="default">
+  খেয়াল করুন — এটি **package**-এর visibility, repository-র নয়। দুটি আলাদা setting। Repository private রেখেও package public করা যায়, আর তখন কোনো সীমা থাকে না।
+
+  আপনার site যদি এমনিতেই সবার জন্য খোলা হয়, package public করাই সহজ পথ। বিস্তারিত [Setup](/docs/ci-cd/setup) page-এ আছে।
+</Callout>
+
+Private রাখলে ৫০০ MB দ্রুত ভরে যেতে পারে। তিনটি কাজ করলে সমস্যা হবে না:
 
 **Image ছোট রাখুন**
 `node:20-alpine` ব্যবহার করুন, `node:20` নয়। সাধারণ `node:20` image প্রায় ১ GB, alpine version ১৫০ MB-র কাছাকাছি। Multi-stage build আর `npm prune --omit=dev` তো আছেই।
@@ -615,9 +621,6 @@ GitHub-এ package-এর পাতায় গিয়ে retention rule ব�
 **Layer share হয়**
 ২০টি tag মানে ২০ × ১৫০ MB নয়। বেশিরভাগ layer একই থাকে, শুধু বদলানো অংশটুকু নতুন করে জমা হয়। তাই আসল খরচ অনেক কম।
 
-<Callout type="default">
-  Repository public হলে এসব নিয়ে ভাবতেই হবে না — storage আর transfer দুটোই সীমাহীন। কিন্তু public মানে যে কেউ আপনার image টেনে নিয়ে ভেতরের compiled code দেখতে পারে। Client project হলে private-ই রাখুন।
-</Callout>
 
 ## Troubleshooting
 
