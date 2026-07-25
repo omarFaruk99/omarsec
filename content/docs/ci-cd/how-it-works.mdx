@@ -13,34 +13,28 @@ import { Callout } from 'nextra/components'
 
 ## What Is a Pipeline
 
-এই section-এ "pipeline" শব্দটি বারবার আসবে, তাই আগে সেটির মানে পরিষ্কার করে নেওয়া দরকার।
+এই section-এ শব্দটি বারবার আসবে, তাই আগে মানে পরিষ্কার করে নেওয়া দরকার।
 
 Pipeline হলো কতগুলো ধাপের একটি সারি, যেগুলো **একের পর এক নিজে থেকে চলে**। আপনি শুরু করিয়ে দিলেন, বাকিটা নিজে হয়।
 
-আপনি এখন হাতে যা করেন সেটিও আসলে একটি pipeline — শুধু সেটির প্রতিটি ধাপ আপনি নিজে চালান:
+আপনি এখন হাতে যা করেন সেটিও আসলে একটি pipeline — শুধু প্রতিটি ধাপ নিজে চালান:
 
 ```
 code লিখুন → push → ssh → pull → build → restart
 ```
 
-CI/CD-র কাজ হলো এই একই সারিকে একটি file-এ লিখে রাখা, যাতে একটি machine প্রতিবার হুবহু একইভাবে চালায়।
+CI/CD-র কাজ হলো এই সারিটিকে একটি file-এ লিখে রাখা, যাতে একটি machine প্রতিবার হুবহু একইভাবে চালায়।
 
 দুটি নিয়ম মনে রাখুন:
 
 - ধাপগুলো **উপর থেকে নিচে** চলে, একটা শেষ হলে পরেরটা
-- কোনো ধাপ **fail করলে সেখানেই সব থেমে যায়** — পরের ধাপগুলো আর চলে না
+- কোনো ধাপ **fail করলে সেখানেই সব থেমে যায়**
 
 দ্বিতীয় নিয়মটিই pipeline-কে নিরাপদ করে। Build fail করলে deploy-এর ধাপ পর্যন্ত পৌঁছানোই যাবে না, তাই ভাঙা code কখনো server-এ যেতে পারবে না।
 
-<Callout type="default">
-  নামটি এসেছে পানির পাইপ থেকে। জিনিস এক দিক দিয়ে ঢোকে, ধাপে ধাপে এগোয়, অন্য দিক দিয়ে বের হয়। মাঝখানে কোথাও আটকে গেলে সামনে আর কিছু যায় না।
-</Callout>
-
-বাস্তবে একটি pipeline মানে আপনার project-এ রাখা একটি YAML file। সেই file-এ লেখা থাকে কোন ধাপ কখন চলবে। GitHub সেটি পড়ে নিজে থেকে কাজটি করে।
-
 ## CI and CD
 
-এবার দেখি এই pipeline-এর ভেতরে ঠিক কী কী থাকে। দুটি আলাদা কাজ, একসাথে লেখা হয় বলে অনেকে গুলিয়ে ফেলেন।
+দুটি আলাদা কাজ, একসাথে লেখা হয় বলে অনেকে গুলিয়ে ফেলেন।
 
 **CI — Continuous Integration**
 প্রতিটি code change build করে দেখা হয় ঠিক আছে কিনা। কিছু ভাঙলে সেখানেই ধরা পড়ে। Server-এ কিছু হয় না।
@@ -55,11 +49,21 @@ Build পাশ করলে সেই জিনিস নিজে থেকে
 | Server ছোঁয় | না | হ্যাঁ |
 | Fail করলে | merge আটকে যায় | deploy আটকে যায় |
 
-## Where Should the Build Happen
+## What Is a Runner
+
+Runner হলো একটি **অস্থায়ী Ubuntu machine** যা GitHub আপনাকে প্রতিবার নতুন করে দেয়। আপনার সব build এই machine-এ হবে।
+
+তিনটি কথা মনে রাখুন:
+
+- প্রতিবার সম্পূর্ণ নতুন — আগের run-এর কিছুই থাকে না
+- কাজ শেষ হলে মুছে যায়
+- আপনার server-এর সাথে এর কোনো সম্পর্ক নেই
+
+শেষ পয়েন্টটি জরুরি। Runner আপনার server চেনে না, তার কাছে কোনো password বা key নেই। আপনি না দিলে সে ঢুকতে পারবে না। এই কারণেই পরের page-এ SSH key আর GitHub Secrets নিয়ে কাজ করতে হবে।
+
+## Where the Build Runs
 
 এটিই এই page-এর সবচেয়ে গুরুত্বপূর্ণ প্রশ্ন। উত্তরটি পুরো pipeline-এর আকার ঠিক করে দেয়।
-
-দুটি পথ আছে।
 
 **পথ ১ — Server নিজে build করে**
 
@@ -71,15 +75,15 @@ push → server → git pull → docker compose up -d --build
 
 - Build-এ RAM আর CPU লাগে। ছোট VPS-এ Next.js build প্রায়ই `Killed` হয়ে যায়, আর build চলার সময় live site ধীর হয়ে থাকে
 - Server প্রতিবার নতুন করে package টানে। একই commit থেকে দুইবার build করলে দুটি আলাদা জিনিস তৈরি হতে পারে
-- Source code server-এ পড়ে থাকে। Server-এ কেউ ঢুকে পড়লে আপনার পুরো codebase আর git history তার হাতে
+- Source code server-এ পড়ে থাকে। কেউ ঢুকে পড়লে আপনার পুরো codebase আর git history তার হাতে
 
 **পথ ২ — Runner build করে, server শুধু চালায়**
 
 ```
-push → runner build করে image বানায় → registry-তে রাখে → server টেনে চালায়
+push → runner image বানায় → registry-তে রাখে → server টেনে চালায়
 ```
 
-এখানে server আর কিছু বানায় না। সে একটি তৈরি image টেনে এনে চালায়, ব্যস।
+Server আর কিছু বানায় না। সে একটি তৈরি image টেনে এনে চালায়, ব্যস।
 
 | | Server build করে | Runner build করে |
 |---|---|---|
@@ -92,18 +96,6 @@ push → runner build করে image বানায় → registry-তে র
 
 এই section-এ **পথ ২** শেখানো হবে। VPS-এ Docker দিয়ে deploy করার standard পদ্ধতি এটিই।
 
-## What Is a Runner
-
-Runner হলো একটি **অস্থায়ী Ubuntu machine** যা GitHub আপনাকে প্রতিবার নতুন করে দেয়।
-
-মনে রাখার মতো তিনটি কথা:
-
-- প্রতিবার সম্পূর্ণ নতুন — আগের run-এর কিছুই থাকে না
-- কাজ শেষ হলে মুছে যায়
-- আপনার server-এর সাথে এর কোনো সম্পর্ক নেই
-
-শেষ পয়েন্টটি জরুরি। Runner আপনার server চেনে না, তার কাছে কোনো password বা key নেই। আপনি না দিলে সে ঢুকতে পারবে না। এই কারণেই পরের page-এ SSH key আর GitHub Secrets নিয়ে কাজ করতে হবে।
-
 ## What Is a Registry
 
 Runner image বানাল। কিন্তু runner তো কিছুক্ষণ পরে মুছে যাবে। তাহলে image-টি রাখব কোথায়?
@@ -113,13 +105,13 @@ Registry হলো image রাখার গুদাম। GitHub-এর নি
 ```
 Runner image বানায়
       ↓  docker push
-GHCR  (ghcr.io/omar/myapp-web:a3f9c21)
+GHCR
       ↓  docker pull
 Server image টেনে চালায়
 ```
 
 <Callout type="default">
-  Docker Hub-ও ব্যবহার করা যায়। কিন্তু GHCR-এ একটি সুবিধা আছে — আপনার repository-র সাথে যুক্ত থাকায় GitHub Actions নিজে থেকেই login করে নিতে পারে, আলাদা কোনো password বা secret তৈরি করতে হয় না।
+  Docker Hub-ও ব্যবহার করা যায়। কিন্তু GHCR আপনার repository-র সাথে যুক্ত থাকায় GitHub Actions নিজে থেকেই login করে নিতে পারে — আলাদা কোনো password বা secret তৈরি করতে হয় না।
 </Callout>
 
 ## Image Tags
@@ -127,13 +119,13 @@ Server image টেনে চালায়
 একটি image-এর নামের শেষে একটি tag থাকে। এই tag দিয়েই কোন version চলছে তা বোঝা যায়।
 
 ```
-ghcr.io/omar/myapp-web:latest      ← কোনটা? বলা যাচ্ছে না
-ghcr.io/omar/myapp-web:a3f9c21     ← এই commit-এর, নিশ্চিত
+ghcr.io/your-username/myapp:latest     ← কোনটা? বলা যাচ্ছে না
+ghcr.io/your-username/myapp:a3f9c21    ← এই commit-এর, নিশ্চিত
 ```
 
 আমরা প্রতিটি image-কে তার **commit-এর নাম দিয়ে** tag করব। GitHub Actions-এ এটি `github.sha` নামে পাওয়া যায়।
 
-কেন এটি এত কাজের:
+এতে তিনটি লাভ:
 
 - Production-এ ঠিক কোন code চলছে তা এক নজরে বলা যায়
 - পুরোনো প্রতিটি version registry-তে জমা থাকে
@@ -173,9 +165,11 @@ GHCR Registry
 Site Live      (fail করলে পুরোনো TAG ফিরিয়ে আনে)
 ```
 
-## Where the File Lives
+## The Workflow File
 
-Workflow file আপনার project-এর ভেতরে থাকে, একটি নির্দিষ্ট folder-এ:
+Pipeline-টি আসলে আপনার project-এ রাখা একটি YAML file। GitHub সেটি পড়ে কাজটি করে।
+
+File-টি একটি নির্দিষ্ট folder-এ থাকতে হয়:
 
 ```
 myapp/
@@ -188,13 +182,11 @@ myapp/
 └── package.json
 ```
 
-<Callout type="default">
-  এখানে কোনো `compose.yaml` নেই — এটি ইচ্ছাকৃত। Compose file আর `.env` শুধু **server-এ** থাকে, repository-তে নয়। কারণ ওই দুটি file-এ server-এর নিজস্ব তথ্য আর secret থাকে।
-</Callout>
-
 Folder-এর নাম হুবহু `.github/workflows` হতে হবে। ভুল হলে GitHub file-টি খুঁজেই পাবে না, আর কোনো error ও দেখাবে না।
 
-## Anatomy of a Workflow
+<Callout type="default">
+  এখানে কোনো `compose.yaml` নেই — এটি ইচ্ছাকৃত। Compose file আর `.env` শুধু **server-এ** থাকে, repository-তে নয়। কারণ ওই দুটিতে server-এর নিজস্ব তথ্য আর secret থাকে।
+</Callout>
 
 একটি ছোট workflow দেখে প্রতিটি অংশ বুঝে নিই:
 
@@ -212,10 +204,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build image
-        run: docker build -t myapp-test .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
 ```
-
-প্রতিটি key-এর মানে:
 
 | Key | মানে |
 |---|---|
@@ -228,7 +221,7 @@ jobs:
 
 ### `uses` and `run`
 
-Step দুই ধরনের হয়, এই পার্থক্যটা জানা দরকার।
+Step দুই ধরনের হয়।
 
 **`uses`** — অন্যের লেখা তৈরি action চালায়:
 
@@ -236,25 +229,17 @@ Step দুই ধরনের হয়, এই পার্থক্যটা 
 - uses: actions/checkout@v4
 ```
 
-`actions/checkout` হলো GitHub-এর নিজের লেখা একটি action যা repo-র code runner-এ clone করে। নিজে লিখতে গেলে ২০ লাইন লাগত।
+`actions/checkout` হলো GitHub-এর নিজের লেখা একটি action, যা repo-র code runner-এ clone করে। নিজে লিখতে গেলে অনেক লাইন লাগত।
 
 **`run`** — সরাসরি shell command চালায়:
 
 ```yaml
-- run: docker build -t myapp-test .
+- run: npm ci
 ```
 
 ### `with`
 
-কোনো action-কে extra তথ্য দিতে `with` ব্যবহার হয়:
-
-```yaml
-- uses: docker/login-action@v3
-  with:
-    registry: ghcr.io
-    username: ${{ github.actor }}
-    password: ${{ secrets.GITHUB_TOKEN }}
-```
+কোনো action-কে extra তথ্য দিতে `with` ব্যবহার হয়। উপরের example-এ `docker/build-push-action`-কে বলা হয়েছে কোথা থেকে build করবে (`context`) আর registry-তে পাঠাবে কিনা (`push`)।
 
 ## Why Two Separate Jobs
 
@@ -284,14 +269,13 @@ jobs:
 
 ## Reading a Failed Run
 
-Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন। সেখানে:
+Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন।
 
 - লাল X মানে কোনো job fail করেছে
-- Job-এ click করলে step-গুলো দেখাবে
-- যে step-এ লাল X, সেটিতে click করলে পুরো log খুলবে
+- সেটিতে click করলে step-গুলো, আবার click করলে পুরো log খুলবে
 - Log-এর **শেষ ২০ লাইন** পড়ুন — আসল error প্রায় সবসময় সেখানেই
 
-একটি step fail করলে নিচের step-গুলো আর চলে না। তাই প্রথম লাল X-টিই আসল সমস্যা।
+একটি step fail করলে পরেরগুলো চলেই না। তাই **প্রথম** লাল X-টিই আসল সমস্যা।
 
 ## CyberSec Note
 
@@ -302,15 +286,15 @@ Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন। স
 
   এটি একটি সত্যিকারের attack path। ২০২৫ সালের ১৪ মার্চ `tj-actions/changed-files` নামের একটি action-এ ঠিক এই ঘটনা ঘটে। Action-টি ২৩,০০০-এরও বেশি repository ব্যবহার করত। Attacker ভেতরে একটি malicious script ঢুকিয়ে দেয় যা runner-এর memory থেকে secrets টেনে build log-এ লিখে দিত। Public repository-র log সবাই পড়তে পারে, তাই সেগুলোর secrets প্রকাশ্যে চলে আসে।
 
-  এই ঘটনার সবচেয়ে জরুরি শিক্ষাটি অনেকে বুঝতে ভুল করেন। Attacker শুধু code বদলায়নি — সে **পুরোনো version tag গুলোও নতুন করে ওই malicious commit-এর দিকে ঘুরিয়ে দিয়েছিল**। অর্থাৎ যারা `@v44` লিখে রেখেছিলেন, তাদের কোনো লাভ হয়নি। `@v44` তখন অন্য জিনিস দেখাচ্ছিল।
+  সবচেয়ে জরুরি শিক্ষাটি অনেকে বুঝতে ভুল করেন। Attacker শুধু code বদলায়নি — সে **পুরোনো version tag গুলোও ওই malicious commit-এর দিকে ঘুরিয়ে দিয়েছিল**। অর্থাৎ যাঁরা `@v44` লিখে রেখেছিলেন, তাঁদের কোনো লাভ হয়নি।
 
-  যাঁরা বেঁচে গিয়েছিলেন তাঁরা commit SHA দিয়ে pin করে রেখেছিলেন। SHA বদলানো যায় না — সেটিই একমাত্র আসল সুরক্ষা।
+  যাঁরা বেঁচে গিয়েছিলেন তাঁরা commit SHA দিয়ে pin করেছিলেন। SHA বদলানো যায় না — সেটিই একমাত্র আসল সুরক্ষা।
 
   তিনটি নিয়ম:
 
-  - `@main` কখনো নয়। এটি সবচেয়ে খারাপ, কারণ এখানে attack করারও দরকার নেই — maintainer নিজেই যেকোনো সময় code বদলাতে পারেন
-  - `@v4` সর্বনিম্ন মান। বেশিরভাগ ক্ষেত্রে যথেষ্ট, কিন্তু উপরের ঘটনা দেখাল যে tag ও সরানো যায়
-  - **সত্যিকারের সুরক্ষা commit SHA।** সম্পূর্ণ ৪০ অক্ষরের SHA লিখতে হবে — ছোট করে লিখলে GitHub সেটি চিনতে পারে না:
+  - `@main` কখনো নয়। এখানে attack করারও দরকার নেই — maintainer নিজেই যেকোনো সময় code বদলাতে পারেন
+  - `@v4` সর্বনিম্ন মান। বেশিরভাগ ক্ষেত্রে যথেষ্ট, তবে উপরের ঘটনা দেখাল যে tag-ও সরানো যায়
+  - **সত্যিকারের সুরক্ষা commit SHA।** সম্পূর্ণ ৪০ অক্ষর লিখতে হবে, ছোট করে লিখলে GitHub চিনতে পারে না:
 
   ```yaml
   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -318,17 +302,15 @@ Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন। স
 
   পাশে comment হিসেবে version লিখে রাখুন, না হলে ছয় মাস পরে বোঝা যাবে না কোনটা কী।
 
-  `actions/` এবং `docker/` দিয়ে শুরু হওয়া action-গুলো যথাক্রমে GitHub আর Docker-এর নিজের — এগুলোর ঝুঁকি তুলনামূলক কম, তাই এই guide-এ `@v4` ধরনের tag ব্যবহার করা হয়েছে।
+  `actions/` এবং `docker/` দিয়ে শুরু হওয়া action-গুলো যথাক্রমে GitHub আর Docker-এর নিজের — ঝুঁকি তুলনামূলক কম, তাই এই guide-এ `@v4` ধরনের tag ব্যবহার করা হয়েছে।
 </Callout>
 
 ## Quick Check
 
-- [ ] Pipeline মানে কী, নিজের ভাষায় বলতে পারবেন?
-- [ ] একটি ধাপ fail করলে পরের ধাপগুলোর কী হয়?
+- [ ] Pipeline-এর কোনো ধাপ fail করলে পরেরগুলোর কী হয়?
 - [ ] Build কেন server-এ না করে runner-এ করা উচিত?
 - [ ] Registry কী এবং কেন লাগে?
 - [ ] Image-এ শুধু `latest` tag দিলে কী হারাবেন?
-- [ ] `uses` আর `run`-এর পার্থক্য জানেন?
 - [ ] `needs: build` না থাকলে কী সমস্যা হয়?
 
 **পরবর্তী →** [Setup](/docs/ci-cd/setup)

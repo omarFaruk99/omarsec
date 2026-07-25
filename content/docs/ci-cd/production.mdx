@@ -19,7 +19,7 @@ import { Callout, FileTree } from 'nextra/components'
 |---|---|
 | Server-এ Docker, `/opt/myapp` folder | [Setup](/docs/ci-cd/setup) |
 | GitHub-এ তিনটি secret | [Setup](/docs/ci-cd/setup) |
-| Server-এ `docker login ghcr.io` | [Setup](/docs/ci-cd/setup) |
+| Registry-তে access — package public, নয়তো server-এ login | [Setup](/docs/ci-cd/setup) |
 | একটি কাজ করা basic pipeline | [First Pipeline](/docs/ci-cd/pipeline) |
 
 Basic pipeline না বুঝে থাকলে আগে ওই page-টি দেখে নিন। এখানে সম্পূর্ণ file দেওয়া আছে ঠিকই, কিন্তু `TAG` কীভাবে কাজ করে, `needs` বা `concurrency` কেন লাগে — তার ব্যাখ্যা ওখানে আছে, এখানে আবার লেখা হয়নি।
@@ -30,10 +30,12 @@ Basic pipeline না বুঝে থাকলে আগে ওই page-টি 
 
 | | First Pipeline | Production Pipeline |
 |---|---|---|
-| Image সংখ্যা | ১টি (web) | ২টি (web + api) |
+| Image সংখ্যা | ১টি — `myapp` | ২টি — `myapp-web`, `myapp-api` |
 | Database | নেই | PostgreSQL container |
 | Schema পরিবর্তন | নেই | Prisma migration |
 | Deploy-এর আগে | কিছু না | database backup |
+
+Image দুটি হয়ে গেল, তাই নামেও `-web` আর `-api` যোগ করা হলো। একটির বেশি image থাকলে নাম দেখেই বোঝা দরকার কোনটা কী।
 
 সবচেয়ে কঠিন অংশটি database। Image rollback করা সহজ — পুরোনো tag বসিয়ে দিলেই হয়। কিন্তু একবার migration চলে গেলে database-এর গঠন বদলে গেছে, সেটি ফেরানো সহজ নয়। তাই এই page-এর বড় অংশ migration নিয়ে।
 
@@ -237,7 +239,7 @@ DATABASE_URL=postgresql://myapp:a-long-random-password@db:5432/myapp
 chmod 600 /opt/myapp/.env
 ```
 
-### What Does Not Belong Here
+### Build-Time Variables
 
 `NEXT_PUBLIC_` দিয়ে শুরু হওয়া কোনো variable এই file-এ রাখবেন না। রাখলেও কাজ হবে না।
 
@@ -530,13 +532,16 @@ jobs:
   `your-username` দুই জায়গায় আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। Registry বড় হাতের অক্ষর নেয় না।
 </Callout>
 
-Script-এর তিনটি অংশের ব্যাখ্যা দরকার।
+Script-এর চারটি অংশের ব্যাখ্যা দরকার।
 
 **`trap rollback ERR`**
 `.env`-এ নতুন TAG বসানো হয় একদম শুরুতে। এরপর যেকোনো ধাপ fail করতে পারে — `pull`, backup, migration। `trap` না থাকলে `set -e` সেখানেই script থামিয়ে দিত, আর `.env`-এ এমন একটি version লেখা থেকে যেত যা কখনো চালুই হয়নি। `trap` নিশ্চিত করে যে কোথায় fail করল তা নির্বিশেষে `.env` আগের অবস্থায় ফেরে।
 
 **`docker compose up -d db` backup-এর আগে**
 `docker compose exec` শুধু চলমান container-এ কাজ করে। প্রথম deploy-এ database container তখনো কখনো চালু হয়নি, তাই `exec` সরাসরি fail করত। তাই আগে db চালু করে, `pg_isready` দিয়ে সত্যিই প্রস্তুত হওয়া পর্যন্ত অপেক্ষা করে, তারপর backup নেওয়া হয়।
+
+**`command_timeout: 20m`**
+`appleboy/ssh-action` default-এ ১০ মিনিট পরে হাল ছেড়ে দেয়। আগের page-এ শুধু pull আর restart ছিল, তাই লাগেনি। এখানে backup আর migration যোগ হয়েছে — database বড় হলে সময় বেশি লাগতে পারে, তাই সীমা বাড়ানো।
 
 **`grep` দিয়ে দুটি value পড়া**
 পুরো `.env` file shell-এ load না করে শুধু দরকারি দুটি লাইন পড়া হয়েছে। পুরোটা load করলে password-এ কোনো space, `#` বা quote থাকলে shell সেটি ভুল বুঝত — `#`-এর পরের অংশ comment ধরে বাদ দিয়ে দিত।
@@ -553,7 +558,7 @@ Script-এর তিনটি অংশের ব্যাখ্যা দরক
 
 ## The Health Endpoint
 
-API-তে একটি health route রাখুন। এটি কোনো database query করবে না — শুধু বলবে server জীবিত আছে:
+API-তে একটি health route রাখুন। এটি শুধু বলবে server জীবিত আছে:
 
 ```ts filename="apps/api/src/server.ts"
 app.get('/health', (req, res) => {
@@ -561,7 +566,7 @@ app.get('/health', (req, res) => {
 })
 ```
 
-Database query রাখবেন না — তাহলে database একটু ধীর হলেই health check fail করবে আর pipeline অকারণে rollback করে বসবে।
+এর ভেতরে database query রাখবেন না। রাখলে database একটু ধীর হলেই health check fail করবে, আর pipeline অকারণে rollback করে বসবে।
 
 ## Rollback Limits
 
@@ -597,30 +602,13 @@ cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db psql -U "$POSTGRES_USE
 
 ## Keeping Images Small
 
-GHCR free, কিন্তু private package-এ সীমা আছে। GitHub-এর official হিসাব:
+দুটি image মানে registry-তে দ্বিগুণ জায়গা। Package **private** রাখলে GitHub-এর free plan-এ সীমা আছে — ৫০০ MB storage, মাসে ১ GB transfer। ([Setup](/docs/ci-cd/setup) page-এ public করার কথা আছে; public হলে কোনো সীমা নেই।)
 
-| Package | Storage | মাসে data transfer |
-|---|---|---|
-| Public | সীমাহীন | সীমাহীন |
-| **Private (Free plan)** | **500 MB** | **1 GB** |
+Private রাখলে তিনটি কাজ করুন:
 
-<Callout type="default">
-  খেয়াল করুন — এটি **package**-এর visibility, repository-র নয়। দুটি আলাদা setting। Repository private রেখেও package public করা যায়, আর তখন কোনো সীমা থাকে না।
-
-  আপনার site যদি এমনিতেই সবার জন্য খোলা হয়, package public করাই সহজ পথ। বিস্তারিত [Setup](/docs/ci-cd/setup) page-এ আছে।
-</Callout>
-
-Private রাখলে ৫০০ MB দ্রুত ভরে যেতে পারে। তিনটি কাজ করলে সমস্যা হবে না:
-
-**Image ছোট রাখুন**
-`node:20-alpine` ব্যবহার করুন, `node:20` নয়। সাধারণ `node:20` image প্রায় ১ GB, alpine version ১৫০ MB-র কাছাকাছি। Multi-stage build আর `npm prune --omit=dev` তো আছেই।
-
-**পুরোনো version মুছুন**
-GitHub-এ package-এর পাতায় গিয়ে retention rule বসান, অথবা মাঝে মাঝে হাতে পুরোনো tag মুছে দিন। শেষ ১০-১৫টি রাখলেই যথেষ্ট।
-
-**Layer share হয়**
-২০টি tag মানে ২০ × ১৫০ MB নয়। বেশিরভাগ layer একই থাকে, শুধু বদলানো অংশটুকু নতুন করে জমা হয়। তাই আসল খরচ অনেক কম।
-
+- **`node:20-alpine` ব্যবহার করুন**, `node:20` নয়। সাধারণটি প্রায় ১ GB, alpine ১৫০ MB-র কাছাকাছি
+- **পুরোনো version মুছুন** — GitHub-এ package-এর পাতায় retention rule বসান। শেষ ১০-১৫টি রাখলেই যথেষ্ট
+- চিন্তা কম করুন — **layer share হয়**। ২০টি tag মানে ২০ × ১৫০ MB নয়, শুধু বদলানো অংশটুকু নতুন করে জমা হয়
 
 ## Troubleshooting
 
@@ -642,8 +630,16 @@ GitHub-এ package-এর পাতায় গিয়ে retention rule ব�
 | Disk full হয়ে গেছে | পুরোনো image জমে আছে | `docker image prune -af --filter "until=336h"` চালান, দরকারে সময় কমান |
 | প্রথম deploy-এ `service "db" is not running` | Database container কখনো চালু হয়নি | Script-এ `docker compose up -d db` লাইনটি আছে কিনা দেখুন |
 | `Cannot use import statement outside a module` | Runner stage-এ `package.json` copy হয়নি | Dockerfile-এ ওই `COPY` লাইনটি যোগ করুন |
+| Container বারবার `Restarting` | App ভেতরে crash করছে | `docker compose logs -f` দিয়ে আসল error দেখুন |
+| Reboot-এর পরে site উঠল না | Docker service enabled নয় | `sudo systemctl enable docker` |
+| Deploy সফল কিন্তু browser-এ পুরোনো | সামনে CDN পুরোনো copy দিচ্ছে | CDN-এর cache purge করুন |
 
-Log পড়ার নিয়ম: প্রথম লাল X-টিতে click করুন এবং **শেষ ২০ লাইন** পড়ুন। একটি step fail করলে পরের গুলো চলেই না, তাই প্রথম error-ই আসল error।
+Log পড়ার দুটি জায়গা আছে, গুলিয়ে ফেলবেন না:
+
+- **GitHub Actions-এর log** — pipeline কোথায় থেমেছে। প্রথম লাল X-এ click করে শেষ ২০ লাইন পড়ুন
+- **`docker compose logs -f`** — app-এর নিজের error। Container চালু হয়েও যদি কাজ না করে, উত্তর এখানেই
+
+Pipeline সবুজ অথচ site ভাঙা — এমন হলে দ্বিতীয়টি দেখুন।
 
 ## CyberSec Note
 

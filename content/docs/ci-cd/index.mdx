@@ -81,14 +81,21 @@ Site live — দুই মিনিটের মধ্যে
 
 ## What You Will Build
 
-শেষে আপনার হাতে একটি pipeline থাকবে যা:
+দুই ধাপে। প্রথমে একটি Next.js app, তারপর সম্পূর্ণ stack।
 
-- প্রতিটি pull request-এ image build করে দেখে — ভাঙা code merge হতে দেয় না
+**[First Pipeline](/docs/ci-cd/pipeline) শেষে** — একটি app-এর জন্য কাজ করা pipeline:
+
+- প্রতিটি pull request-এ image build করে দেখে, ভাঙা code merge হতে দেয় না
 - `main`-এ push করলেই image বানিয়ে registry-তে পাঠায়
 - Server-এ গিয়ে নতুন image টেনে চালায়
-- Database migration সঠিক order-এ চালায়
 - Deploy-এর পরে site সত্যিই চলছে কিনা check করে
 - না চললে নিজে থেকে **আগের image-এ ফিরে যায়**
+
+**[Production Pipeline](/docs/ci-cd/production) শেষে** — এর সাথে আরো:
+
+- দুটি app একসাথে (frontend + API)
+- PostgreSQL database
+- Database migration সঠিক order-এ, আর তার আগে backup
 
 ## What's Inside
 
@@ -99,7 +106,7 @@ Site live — দুই মিনিটের মধ্যে
 | [First Pipeline](/docs/ci-cd/pipeline) | একটি Next.js app — push করলেই deploy |
 | [Production Pipeline](/docs/ci-cd/production) | Next.js + Express + PostgreSQL, migration, rollback |
 
-## How to Use This Section
+## How to Use This
 
 <Callout type="default">
   শুধু পড়লে কাজ হবে না। একটি সত্যিকারের server নিন এবং প্রতিটি command নিজে চালান। Pipeline প্রথমবার fail করবেই — সেই fail থেকেই আসল শেখা হয়।

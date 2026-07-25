@@ -189,11 +189,12 @@ nano /opt/myapp/compose.yaml
 ```yaml filename="/opt/myapp/compose.yaml"
 services:
   web:
-    image: ghcr.io/your-username/myapp-web:${TAG}
+    image: ghcr.io/your-username/myapp:${TAG}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-    env_file: .env
+    environment:
+      NODE_ENV: production
 ```
 
 <Callout type="warning">
@@ -224,6 +225,14 @@ File-টি শক্ত করে দিন:
 chmod 600 /opt/myapp/.env
 ```
 
+এখন এতে গোপন কিছু নেই। কিন্তু পরে database password বা API key যোগ করবেন, তাই অভ্যাসটা শুরু থেকেই রাখা ভালো।
+
+<Callout type="default">
+  খেয়াল করুন — compose file-এ `env_file` লাইন নেই, তবু `${TAG}` কাজ করছে। কারণ Docker Compose একই folder-এর `.env` নিজে থেকেই পড়ে **নাম বসানোর জন্য**।
+
+  `env_file` অন্য কাজ করে — সে `.env`-এর সব value **container-এর ভেতরে পাঠায়**। এখানে সেটি দরকার নেই, তাই দেওয়া হয়নি। Container যতটুকু না জানলেও চলে, ততটুকু না দেওয়াই ভালো অভ্যাস।
+</Callout>
+
 ### Create the Deploy File
 
 এবার আসল কাজ।
@@ -241,7 +250,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/your-username/myapp-web
+  IMAGE: ghcr.io/your-username/myapp
 
 jobs:
   # Job 1: image বানিয়ে registry-তে পাঠানো
@@ -341,9 +350,9 @@ TAG=a3f9c21
 Docker Compose নিজে থেকেই একই folder-এর `.env` file পড়ে নেয়। তাই `compose.yaml`-এ লেখা `${TAG}` জায়গায় সে `a3f9c21` বসিয়ে দেয়:
 
 ```
-image: ghcr.io/omar/myapp-web:${TAG}
+image: ghcr.io/your-username/myapp:${TAG}
                                  ↓
-image: ghcr.io/omar/myapp-web:a3f9c21
+image: ghcr.io/your-username/myapp:a3f9c21
 ```
 
 Deploy করার মানে দাঁড়ায় শুধু ওই এক লাইন বদলে `docker compose up -d` চালানো।
@@ -425,6 +434,18 @@ GitHub-এ **Actions** tab খুলুন। সাথে সাথেই এ�
 - `build` job চলবে — প্রথমবার ৩-৫ মিনিট (cache খালি), পরের বার থেকে ১-২ মিনিট
 - সবুজ হলে `deploy` job শুরু হবে — প্রায় ৩০ সেকেন্ড
 
+<Callout type="info">
+  **প্রথমবার `deploy` job fail করতে পারে, আর সেটা স্বাভাবিক।**
+
+  Package public করবেন ঠিক করে থাকলে এখনো সেটি private অবস্থায় আছে, কারণ package তৈরিই হলো এইমাত্র। Server তাই টানতে পারবে না:
+
+  ```
+  Error response from daemon: error from registry: unauthorized
+  ```
+
+  এখন package-টি তৈরি হয়ে গেছে। GitHub-এ গিয়ে সেটিকে public করুন, তারপর Actions-এ **Re-run failed jobs** চাপুন। এবার চলবে।
+</Callout>
+
 Server-এ গিয়ে মিলিয়ে দেখুন:
 
 ```bash filename="SERVER — Terminal"
@@ -434,6 +455,14 @@ docker compose ps
 ```
 
 `.env`-এ `TAG=latest`-এর বদলে একটি লম্বা commit sha দেখা যাবে। `ps`-এ container `Up` অবস্থায় থাকবে।
+
+`Up` না দেখালে, বা `Restarting` দেখালে — container-এর ভেতরে কী হচ্ছে দেখুন:
+
+```bash filename="SERVER — Terminal"
+docker compose logs -f
+```
+
+এখানেই আপনার app-এর নিজের error message পাবেন। Pipeline-এর log ভেতরের কথা বলে না — সে শুধু জানে container চালু হয়েছিল কিনা।
 
 ## Test It for Real
 
@@ -455,6 +484,53 @@ git push origin main
   এবার server-এর পুরোনো clone করা project folder-টি মুছে ফেলতে পারেন। সেটির আর কোনো কাজ নেই। Server-এ এখন শুধু ওই দুটি file আর Docker।
 </Callout>
 
+### Will It Survive a Reboot
+
+আরেকটি পরীক্ষা বাকি, আর এটি অনেকে বাদ দিয়ে দেন।
+
+Server তো মাঝে মাঝে reboot হবেই — update, maintenance, বা cloud provider-এর কারণে। তখন container নিজে থেকে উঠবে কিনা?
+
+দুটি জিনিস ঠিক থাকতে হবে:
+
+```bash filename="SERVER — Terminal"
+systemctl is-enabled docker
+docker inspect $(docker compose ps -q) --format '{{.HostConfig.RestartPolicy.Name}}'
+```
+
+প্রথমটি `enabled` আর দ্বিতীয়টি `unless-stopped` দেখালে ঠিক আছে।
+
+- `enabled` না দেখালে — `sudo systemctl enable docker` চালান
+- `unless-stopped` না দেখালে — compose file-এ ওই লাইনটি বাদ পড়েছে
+
+<Callout type="warning">
+  পড়ে নিশ্চিত হওয়া আর পরীক্ষা করে নিশ্চিত হওয়া এক নয়। সময় থাকলে সত্যিই একবার `sudo reboot` দিন, তারপর দুই মিনিট পরে site খুলে দেখুন।
+
+  এখন এক মিনিট down থাকা ভালো, নাকি রাত ৩টায় server reboot হয়ে সারা রাত down থাকা?
+</Callout>
+
+## When a CDN Is in Front
+
+Site-এর সামনে Cloudflare বা অন্য কোনো CDN থাকলে একটি জিনিস জেনে রাখুন।
+
+Deploy সফল, container ঠিক চলছে, server সঠিক উত্তর দিচ্ছে — তবু browser-এ পুরোনো জিনিস দেখাচ্ছে। কারণ CDN মাঝখানে বসে পুরোনো copy দিচ্ছে।
+
+সাধারণত **HTML cache হয় না**, তাই লেখার পরিবর্তন সাথে সাথেই দেখা যায়। কিন্তু `.js`, `.css` আর ছবি cache হয়।
+
+Server সত্যিই কী দিচ্ছে দেখতে চাইলে URL-এর শেষে একটি অর্থহীন query যোগ করুন — CDN তখন এটিকে নতুন ঠিকানা ভেবে server-এ জিজ্ঞেস করবে:
+
+```bash filename="LOCAL — Terminal"
+curl -s -o /dev/null -w "cached: %{http_code}\n" https://yoursite.com/app.js
+curl -s -o /dev/null -w "fresh:  %{http_code}\n" "https://yoursite.com/app.js?x=123"
+```
+
+দুটি আলাদা উত্তর এলে বুঝবেন সমস্যা আপনার server-এ নয়, CDN-এ। তখন CDN-এর dashboard থেকে cache purge করুন।
+
+<Callout type="warning">
+  একটি জিনিস অনেককে ভোগায় — **CDN ভুল উত্তরও cache করে**। কোনো file একবার `404` দিলে সেই `404`-টাই জমা হয়ে যায়, কখনো কখনো এক বছরের জন্য।
+
+  পরে file-টি ঠিক করে দিলেও CDN পুরোনো `404` দিতেই থাকবে। Purge না করা পর্যন্ত ঠিক হবে না।
+</Callout>
+
 ## CyberSec Note
 
 <Callout type="warning">
@@ -470,7 +546,7 @@ git push origin main
   নিজের image-এ কী আছে দেখতে চাইলে:
 
   ```bash filename="LOCAL — Terminal"
-  docker history ghcr.io/omar/myapp-web:latest --no-trunc
+  docker history ghcr.io/your-username/myapp:latest --no-trunc
   ```
 
   আরেকটি জিনিস মনে রাখুন। `NEXT_PUBLIC_` দিয়ে শুরু হওয়া প্রতিটি environment variable Next.js **build-এর সময় JavaScript bundle-এর ভেতরে বসিয়ে দেয়** এবং browser-এ পাঠায়। কেউ `Ctrl+U` চেপেই দেখতে পারে। কখনো database password বা API secret key-তে `NEXT_PUBLIC_` prefix দেবেন না।

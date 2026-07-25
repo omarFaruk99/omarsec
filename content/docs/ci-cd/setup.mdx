@@ -11,7 +11,7 @@ import { Callout, Steps } from 'nextra/components'
   এই page-এর কাজ একবারই করতে হয়। এরপর আর কখনো এখানে ফিরে আসতে হবে না। শেষে GitHub-এর কাছে আপনার server-এ ঢোকার অনুমতি থাকবে, আর server registry থেকে image টানতে পারবে।
 </Callout>
 
-## What Your Server Already Has
+## Assumptions
 
 এই page ধরে নিচ্ছে নিচের জিনিসগুলো আপনার server-এ আগে থেকেই আছে:
 
@@ -21,7 +21,7 @@ import { Callout, Steps } from 'nextra/components'
 
 এগুলো কীভাবে করতে হয় তা এই section-এর বিষয় নয়। এখানে শুধু এই চলমান setup-টিকে automatic করা হবে।
 
-## What CI/CD Needs From Your Server
+## What CI/CD Needs
 
 মাত্র চারটি জিনিস:
 
@@ -31,6 +31,52 @@ import { Callout, Steps } from 'nextra/components'
 | 2 | শুধু Actions-এর জন্য একটি SSH key | নিজের key বা `.pem` দেওয়া বিপজ্জনক |
 | 3 | তিনটি GitHub Secret | GitHub এগুলো দিয়ে server-এ ঢুকবে |
 | 4 | Registry থেকে image টানার অনুমতি | না থাকলে `docker compose pull` fail করবে |
+
+## One Decision First
+
+ধাপে যাওয়ার আগে একটি সিদ্ধান্ত নিতে হবে, কারণ এর উপর নির্ভর করে শেষ ধাপটি আপনার লাগবে কিনা।
+
+**আপনার image private রাখবেন, নাকি public করবেন?**
+
+GitHub-এ দুটি আলাদা setting আছে। অনেকে ভাবেন একটাই।
+
+```
+Repository visibility  →  কে আপনার source code দেখতে পাবে
+Package visibility     →  কে আপনার image টানতে পারবে
+```
+
+এই দুটি **একে অপরের সাথে যুক্ত নয়**। Repository private রেখেও package public করা যায়।
+
+| | Private package | Public package |
+|---|---|---|
+| Source code | কেউ দেখবে না | কেউ দেখবে না |
+| Image টানা | token লাগবে | যে কেউ পারবে |
+| GHCR সীমা | ৫০০ MB, মাসে ১ GB | সীমাহীন |
+| Server-এ login | লাগবে | লাগবে না |
+
+Public package-এ কেউ image টেনে আপনার **build করা app** দেখতে পাবে — compiled file আর runtime `node_modules`। আপনার `.env`, source file বা git history যাবে না।
+
+**কখন public করা নিরাপদ:** আপনার site যদি এমনিতেই সবার জন্য খোলা থাকে — documentation, blog, portfolio — তাহলে image-এ যা আছে তা তো browser-এ সবাই দেখছেই।
+
+**কখন নয়:** client-এর app, ভেতরে business logic আছে এমন কিছু, বা যেকোনো private product।
+
+<Callout type="warning">
+  একটি জিনিস আগে জেনে নিন — **package তৈরিই হয় প্রথম push-এর পরে**। এখন GitHub-এ গিয়ে খুঁজলে কিছু পাবেন না। তাই আপনার সিদ্ধান্ত অনুযায়ী পথ দুটি আলাদা।
+
+  **Private রাখবেন** — নিচের শেষ ধাপে token বানিয়ে server-কে login করান। প্রথম deploy-ই কাজ করবে।
+
+  **Public করবেন** — শেষ ধাপটি বাদ দিন। তখন প্রথম deploy-এর `deploy` job **fail করবে**, কারণ package তখনো private অবস্থায় তৈরি হয়েছে আর server-এর অনুমতি নেই। Log-এ দেখাবে:
+
+  ```
+  Error response from daemon: error from registry: unauthorized
+  ```
+
+  ভয় পাবেন না, এটাই স্বাভাবিক। এখন package তৈরি হয়ে গেছে, তাই visibility বদলাতে পারবেন:
+
+  `GitHub → আপনার profile → Packages → package-টি → Package settings → Change visibility → Public`
+
+  তারপর Actions-এ গিয়ে **Re-run failed jobs** চাপুন। এবার চলবে।
+</Callout>
 
 <Steps>
 
@@ -208,42 +254,13 @@ cat ~/.ssh/gh_actions
   Registry-র জন্য কোনো secret লাগবে না। GitHub Actions নিজে থেকেই একটি অস্থায়ী token পায় (`GITHUB_TOKEN`) যা দিয়ে সে GHCR-এ image পাঠাতে পারে। এটি প্রতিটি run-এর শেষে মুছে যায়।
 </Callout>
 
-### Let the Server Pull From the Registry
+### Registry Access
 
-Runner image পাঠাবে registry-তে। কিন্তু server সেটি টেনে আনতে পারবে তখনই, যখন তার কাছে অনুমতি থাকবে।
-
-**প্রথমে একটি সিদ্ধান্ত — package private রাখবেন, নাকি public করবেন?**
-
-GitHub-এ দুটি আলাদা setting আছে। অনেকে ভাবেন একটাই।
-
-```
-Repository visibility  →  কে আপনার source code দেখতে পাবে
-Package visibility     →  কে আপনার image টানতে পারবে
-```
-
-এই দুটি **একে অপরের সাথে যুক্ত নয়**। Repository private রেখেও package public করা যায়।
-
-| | Private package | Public package |
-|---|---|---|
-| Source code | কেউ দেখবে না | কেউ দেখবে না |
-| Image টানা | token লাগবে | যে কেউ পারবে |
-| GHCR সীমা | ৫০০ MB, মাসে ১ GB | সীমাহীন |
-| Server-এ login | লাগবে | লাগবে না |
-
-Public package-এ কেউ image টেনে আপনার **build করা app** দেখতে পাবে — compiled file আর runtime `node_modules`। আপনার `.env`, source file বা git history যাবে না।
-
-<Callout type="default">
-  **কখন public করা নিরাপদ:** আপনার site যদি এমনিতেই সবার জন্য খোলা থাকে — documentation, blog, portfolio — তাহলে image-এ যা আছে তা তো browser-এ সবাই দেখছেই। তখন public করলে সীমার ঝামেলা থাকে না।
-
-  **কখন নয়:** client-এর app, ভেতরে business logic আছে এমন কিছু, বা যেকোনো private product। তখন private রাখুন আর নিচের token পদ্ধতি ব্যবহার করুন।
-
-  Package তৈরিই হবে **প্রথম push-এর পরে**। তাই visibility বদলাতে হলে প্রথম deploy সফল হওয়ার পরে করবেন:
-  `GitHub → আপনার profile → Packages → package-টি → Package settings → Change visibility`
+<Callout type="info">
+  **Package public করবেন ঠিক করে থাকলে এই পুরো ধাপটি বাদ দিন।** উপরের callout-এ লেখা পথে যাবেন — প্রথম deploy fail করবে, তারপর package public করে job আবার চালাবেন।
 </Callout>
 
-Public করলে নিচের ধাপগুলো বাদ দিন — server-কে কিছু করতে হবে না।
-
-Private রাখলে একটি token লাগবে। GitHub-এ গিয়ে বানান:
+Private package-এর image টানতে server-এর একটি token লাগবে। GitHub-এ গিয়ে বানান:
 
 ```
 GitHub → Settings (আপনার profile-এর) → Developer settings
@@ -278,37 +295,20 @@ echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdi
 
 অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। কিন্তু GitHub runner-এর IP প্রতিবার বদলায়, আর সেটি হাজার হাজার IP-র একটি বিশাল তালিকা। আগে থেকে allow করে রাখার উপায় নেই।
 
-সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password দিয়ে login পুরোপুরি বন্ধ করে দিন।
-
-<Callout type="warning">
-  Ubuntu-তে সরাসরি `/etc/ssh/sshd_config` file-এ লিখবেন না।
-
-  ওই file-এর শুরুতে `Include /etc/ssh/sshd_config.d/*.conf` লেখা থাকে। SSH একই setting দুইবার পেলে **প্রথমটি** মানে, আর cloud provider-এর রাখা file আগে পড়া হয়। তাই আপনার লেখা setting চুপচাপ অগ্রাহ্য হয়ে যাবে।
-</Callout>
-
-তার বদলে ওই folder-এ নিজের একটি file বানান:
+সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Port 22 সবার জন্য খোলা রাখুন, কিন্তু password দিয়ে login বন্ধ করে দিন:
 
 ```bash filename="SERVER — Terminal"
 printf 'PasswordAuthentication no\nPermitRootLogin no\n' | \
   sudo tee /etc/ssh/sshd_config.d/99-hardening.conf
-```
-
-Restart করার আগে config-এ ভুল আছে কিনা দেখে নিন। ভুল থাকলে restart করলে আপনি নিজেই server থেকে বেরিয়ে যেতে পারেন:
-
-```bash filename="SERVER — Terminal"
 sudo sshd -t && sudo systemctl restart ssh
 ```
 
-সত্যিই প্রয়োগ হয়েছে কিনা মিলিয়ে নিন:
-
-```bash filename="SERVER — Terminal"
-sudo sshd -T | grep -E 'passwordauthentication|permitrootlogin'
-```
-
-দুটোই `no` দেখালে ঠিক আছে। এখন port 22 সবার জন্য খোলা থাকলেও key ছাড়া কেউ ঢুকতে পারবে না।
-
 <Callout type="warning">
-  Restart করার পরে **বর্তমান terminal বন্ধ করবেন না**। আরেকটি terminal খুলে নতুন করে SSH করে দেখুন ঢোকা যাচ্ছে কিনা। কিছু ভুল হলে পুরোনো session দিয়ে ঠিক করে নিতে পারবেন।
+  দুটি জিনিস খেয়াল করুন।
+
+  Ubuntu-তে সরাসরি `/etc/ssh/sshd_config`-এ লিখবেন না। ওই file একই setting দুইবার পেলে **প্রথমটি** মানে, আর cloud provider-এর রাখা file আগে পড়া হয় — তাই আপনার লেখা চুপচাপ অগ্রাহ্য হবে। এজন্যই উপরে `sshd_config.d/` folder ব্যবহার করা হয়েছে।
+
+  `sudo sshd -t` অংশটি config-এ ভুল আছে কিনা দেখে নেয়। এটি ছাড়া restart করলে ভুল config-এর কারণে আপনি নিজেই server থেকে বেরিয়ে যেতে পারেন। Restart-এর পরে বর্তমান terminal বন্ধ না করে আরেকটি terminal থেকে SSH করে দেখুন।
 </Callout>
 
 **fail2ban runner-কে ban করে দিলে**
@@ -347,7 +347,7 @@ sudo fail2ban-client status sshd
 - [ ] `ssh -i ~/.ssh/gh_actions USER@IP "docker compose version"` কাজ করছে?
 - [ ] `/opt/myapp`-এ file লেখার test পাশ করেছে?
 - [ ] GitHub-এ তিনটি secret যোগ করা হয়েছে?
-- [ ] Server-এ `docker login ghcr.io` সফল হয়েছে?
+- [ ] Package private রাখলে — server-এ `docker login ghcr.io` সফল হয়েছে? (public করলে এটি লাগবে না)
 
 **পরবর্তী →** [First Pipeline](/docs/ci-cd/pipeline)
 
