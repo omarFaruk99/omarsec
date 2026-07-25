@@ -20,7 +20,7 @@ Pipeline হলো কতগুলো ধাপের একটি সারি,
 আপনি এখন হাতে যা করেন সেটিও আসলে একটি pipeline — শুধু প্রতিটি ধাপ নিজে চালান:
 
 ```
-code লিখুন → push → ssh → pull → build → restart
+code লিখুন → push → ssh → git pull → docker compose up -d --build
 ```
 
 CI/CD-র কাজ হলো এই সারিটিকে একটি file-এ লিখে রাখা, যাতে একটি machine প্রতিবার হুবহু একইভাবে চালায়।
@@ -92,7 +92,7 @@ Server আর কিছু বানায় না। সে একটি ত�
 | একই commit, একই ফল | নিশ্চিত নয় | নিশ্চিত |
 | Deploy-এ যা যায় | code | তৈরি image |
 | Rollback | আবার build, ৩-৫ মিনিট | পুরোনো image, ১০ সেকেন্ড |
-| Server-এ যা লাগে | Docker, Node, git, RAM | শুধু Docker |
+| Server-এ যা লাগে | Docker, git, আর অনেকটা RAM | শুধু Docker |
 
 এই section-এ **পথ ২** শেখানো হবে। VPS-এ Docker দিয়ে deploy করার standard পদ্ধতি এটিই।
 
@@ -231,11 +231,17 @@ Step দুই ধরনের হয়।
 
 `actions/checkout` হলো GitHub-এর নিজের লেখা একটি action, যা repo-র code runner-এ clone করে। নিজে লিখতে গেলে অনেক লাইন লাগত।
 
-**`run`** — সরাসরি shell command চালায়:
+**`run`** — সরাসরি shell command চালায়, runner-এর ভেতরে:
 
 ```yaml
-- run: npm ci
+- run: docker image ls
 ```
+
+<Callout type="default">
+  এই guide-এর দুটি workflow-এ প্রায় সব step-ই `uses` — কারণ Docker-এর কাজগুলো তৈরি action দিয়েই হয়ে যায়।
+
+  `run` লাগে যখন নিজের কোনো command চালাতে হয় — যেমন test চালানো, বা log-এ কিছু লিখে রাখা।
+</Callout>
 
 ### `with`
 
