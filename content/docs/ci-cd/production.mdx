@@ -37,6 +37,16 @@ Basic pipeline না বুঝে থাকলে আগে ওই page-টি 
 
 Image দুটি হয়ে গেল, তাই নামেও `-web` আর `-api` যোগ করা হলো। একটির বেশি image থাকলে নাম দেখেই বোঝা দরকার কোনটা কী।
 
+<Callout type="info">
+  আগের page-টি শেষ করে এখানে এসে থাকলে আপনার server-এ ইতিমধ্যে একটি চলতি setup আছে — `myapp` নামের একটি package আর একটি কাজ করা `compose.yaml`। নাম বদলে যাচ্ছে, তাই তিনটি কাজ করতে হবে:
+
+  - **Server-এর `compose.yaml` পুরোটা বদলে ফেলুন** নিচের নতুন version দিয়ে। পুরোনো `web` service-এর image-এর নামও বদলাবে — `myapp` থেকে `myapp-web`
+  - **`.env`-এ নতুন লাইনগুলো যোগ করুন** — `POSTGRES_*` আর `DATABASE_URL`। `TAG` লাইনটি যেমন আছে তেমনই থাকুক
+  - **পুরোনো `myapp` package-টি এখনই মুছবেন না।** নতুন pipeline কাজ করা শুরু করলে তারপর GitHub-এ গিয়ে মুছবেন। ততক্ষণ ওটাই আপনার ফেরার পথ
+
+  আরেকটি কথা জেনে রাখুন — প্রথম deploy-এ `db` container একেবারে নতুন করে তৈরি হবে, তাই database খালি থাকবে। আগের কোনো data থাকলে সেটি আলাদাভাবে import করে নিতে হবে।
+</Callout>
+
 সবচেয়ে কঠিন অংশটি database। Image rollback করা সহজ — পুরোনো tag বসিয়ে দিলেই হয়। কিন্তু একবার migration চলে গেলে database-এর গঠন বদলে গেছে, সেটি ফেরানো সহজ নয়। তাই এই page-এর বড় অংশ migration নিয়ে।
 
 ## Repository Layout
@@ -213,7 +223,23 @@ Container মুছে গেলেও data থাকবে। এই লাই�
 `web` আর `api`-তে `ports` আছে, `db`-তে নেই। তবু API database-এ পৌঁছাতে পারে, কারণ একই compose network-এর ভেতরে container-রা একে অপরকে নামে চেনে।
 
 **`web`-এ `env_file` নেই, শুধু `api`-তে আছে**
-`.env` file-এ database-এর password আছে। Frontend-এর সেটি জানার কোনো দরকার নেই, তাই তাকে দেওয়াও হয়নি। প্রতিটি container শুধু ততটুকুই পাবে যতটুকু তার লাগে — কোনো container-এ কেউ ঢুকে পড়লে তখন সে যেন সবকিছু না পায়।
+`.env` file-এ database-এর password আছে। Frontend-এর সেটি জানার কোনো দরকার নেই, তাই তাকে দেওয়াও হয়নি। কোনো container-এ কেউ ঢুকে পড়লে সে যেন সবকিছু না পায় — এটিই উদ্দেশ্য।
+
+<Callout type="default">
+  তবে সৎভাবে বলি — `env_file: .env` লেখার মানে হলো `api` ওই file-এর **সব** value পাচ্ছে। `POSTGRES_PASSWORD` আর `TAG`-ও যাচ্ছে, যদিও api-র শুধু `DATABASE_URL` দরকার।
+
+  আরো শক্ত করতে চাইলে `env_file` বাদ দিয়ে নাম ধরে ধরে দিন:
+
+  ```yaml
+  api:
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+  ```
+
+  Compose তখনো `.env` পড়বে `${DATABASE_URL}` বসানোর জন্য, কিন্তু container-এর ভেতরে শুধু ওই একটি variable-ই যাবে।
+
+  এই guide-এ `env_file` রাখা হয়েছে কারণ app বড় হলে variable-এর সংখ্যা বাড়তে থাকে, আর তখন প্রতিটি নাম হাতে লিখে রাখা ক্লান্তিকর হয়ে যায়। কোনটা বেছে নেবেন সেটি আপনার সিদ্ধান্ত।
+</Callout>
 
 এবার `.env`:
 
@@ -238,6 +264,14 @@ DATABASE_URL=postgresql://myapp:a-long-random-password@db:5432/myapp
 ```bash filename="SERVER — Terminal"
 chmod 600 /opt/myapp/.env
 ```
+
+<Callout type="default">
+  Docker section-এ [Compose Secrets](/docs/docker/multi-container/compose-secrets) নামে একটি পদ্ধতি দেখেছেন, যেখানে password আলাদা file-এ থাকে আর container-এর ভেতরে `/run/secrets/` হয়ে আসে। সেটি `.env`-এর চেয়ে শক্ত, কারণ তখন password কোনো environment variable-এ বসে না — `docker inspect` করলেও চোখে পড়ে না।
+
+  এখানে `.env` ব্যবহার করা হয়েছে কারণ Prisma-র `DATABASE_URL` একটি সম্পূর্ণ connection string চায়। Secret file দিয়ে সেটি বানাতে গেলে app-এর code-এ পরিবর্তন আনতে হয়, আর `docker compose run` দিয়ে migration চালানোও জটিল হয়ে যায়।
+
+  একটি server-এ চলা project-এ `chmod 600` করা `.env` যথেষ্ট নিরাপদ। একাধিক মানুষের server-এ access থাকলে তখন Compose Secrets-এ যাওয়ার কথা ভাববেন।
+</Callout>
 
 ### Build-Time Variables
 
@@ -498,7 +532,7 @@ jobs:
 
             mkdir -p ~/backups
             docker compose exec -T db \
-              pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
+              pg_dump --clean --if-exists -U "$POSTGRES_USER" "$POSTGRES_DB" \
               > ~/backups/pre-$NEW_TAG.sql
 
             # শেষ ১০টি backup রাখি, বাকিগুলো মুছি
@@ -532,13 +566,16 @@ jobs:
   `your-username` দুই জায়গায় আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। Registry বড় হাতের অক্ষর নেয় না।
 </Callout>
 
-Script-এর চারটি অংশের ব্যাখ্যা দরকার।
+Script-এর পাঁচটি অংশের ব্যাখ্যা দরকার।
 
 **`trap rollback ERR`**
 `.env`-এ নতুন TAG বসানো হয় একদম শুরুতে। এরপর যেকোনো ধাপ fail করতে পারে — `pull`, backup, migration। `trap` না থাকলে `set -e` সেখানেই script থামিয়ে দিত, আর `.env`-এ এমন একটি version লেখা থেকে যেত যা কখনো চালুই হয়নি। `trap` নিশ্চিত করে যে কোথায় fail করল তা নির্বিশেষে `.env` আগের অবস্থায় ফেরে।
 
 **`docker compose up -d db` backup-এর আগে**
 `docker compose exec` শুধু চলমান container-এ কাজ করে। প্রথম deploy-এ database container তখনো কখনো চালু হয়নি, তাই `exec` সরাসরি fail করত। তাই আগে db চালু করে, `pg_isready` দিয়ে সত্যিই প্রস্তুত হওয়া পর্যন্ত অপেক্ষা করে, তারপর backup নেওয়া হয়।
+
+**`pg_dump --clean --if-exists`**
+এই দুটি flag ছাড়া dump file-এ শুধু `CREATE TABLE` আর `INSERT` লেখা থাকে — কোনো `DROP` থাকে না। তখন পরে ওই file ফেরাতে গিয়ে দেখবেন database-এ table গুলো আগে থেকেই আছে, আর পুরো restore `relation already exists` আর `duplicate key` error-এ ভরে গিয়ে অর্ধেক পথে পড়ে থাকে। `--clean` প্রতিটি table আগে মুছে দেয়, আর `--if-exists` নিশ্চিত করে যে table না থাকলেও error আসবে না।
 
 **`command_timeout: 20m`**
 `appleboy/ssh-action` default-এ ১০ মিনিট পরে হাল ছেড়ে দেয়। আগের page-এ শুধু pull আর restart ছিল, তাই লাগেনি। এখানে backup আর migration যোগ হয়েছে — database বড় হলে সময় বেশি লাগতে পারে, তাই সীমা বাড়ানো।
@@ -581,7 +618,7 @@ Rollback করে না:  migration যা বদলেছে তা বদল
 
 Migration যদি destructive হয় — column drop করা, table মুছে ফেলা — তখন rollback করেও লাভ নেই। সেই অবস্থায় `~/backups`-এ রাখা file-ই একমাত্র ভরসা:
 
-প্রথমে দেখুন কোন backup ফেরাবেন:
+প্রথমে server-এ SSH করে দেখুন কোন backup ফেরাবেন:
 
 ```bash filename="SERVER — Terminal"
 ls -1t ~/backups
@@ -593,8 +630,13 @@ ls -1t ~/backups
 cd /opt/myapp
 POSTGRES_USER=$(grep '^POSTGRES_USER=' .env | cut -d= -f2-)
 POSTGRES_DB=$(grep '^POSTGRES_DB=' .env | cut -d= -f2-)
-cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db psql -U "$POSTGRES_USER" "$POSTGRES_DB"
+cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db \
+  psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"
 ```
+
+`ON_ERROR_STOP=1` অংশটি বাদ দেবেন না। এটি ছাড়া `psql` error পেলেও পরের লাইনে চলে যায়, আর শেষে দেখে মনে হয় সব ঠিকঠাক হয়েছে — অথচ ভেতরে অর্ধেক data ফেরেনি। এটি দিলে প্রথম সমস্যাতেই থেমে যাবে।
+
+অর্ধেক ফেরানো database-এর চেয়ে একটি পরিষ্কার error অনেক ভালো, কারণ তখন অন্তত আপনি জানেন কাজটি হয়নি।
 
 <Callout type="warning">
   Backup থেকে ফেরানোর মানে হলো backup নেওয়ার পর থেকে আসা সব নতুন data হারানো। এটি শেষ উপায়, প্রথম নয়। তাই destructive migration এড়িয়ে চলাই আসল সমাধান।
@@ -604,11 +646,42 @@ cat ~/backups/pre-a3f9c21.sql | docker compose exec -T db psql -U "$POSTGRES_USE
 
 দুটি image মানে registry-তে দ্বিগুণ জায়গা। Package **private** রাখলে GitHub-এর free plan-এ সীমা আছে — ৫০০ MB storage, মাসে ১ GB transfer। ([Setup](/docs/ci-cd/setup) page-এ public করার কথা আছে; public হলে কোনো সীমা নেই।)
 
-Private রাখলে তিনটি কাজ করুন:
+দুটি কথা মনে রাখলে জায়গা নিয়ে খুব বেশি ভাবতে হবে না:
 
-- **`node:20-alpine` ব্যবহার করুন**, `node:20` নয়। সাধারণটি প্রায় ১ GB, alpine ১৫০ MB-র কাছাকাছি
-- **পুরোনো version মুছুন** — GitHub-এ package-এর পাতায় retention rule বসান। শেষ ১০-১৫টি রাখলেই যথেষ্ট
-- চিন্তা কম করুন — **layer share হয়**। ২০টি tag মানে ২০ × ১৫০ MB নয়, শুধু বদলানো অংশটুকু নতুন করে জমা হয়
+- **`node:20-alpine` ব্যবহার করুন**, `node:20` নয়। সাধারণটির base প্রায় ১ GB, alpine-এর ১৩৫ MB-র কাছাকাছি
+- **Layer share হয়।** ২০টি tag মানে ২০ গুণ জায়গা নয় — শুধু বদলানো অংশটুকু নতুন করে জমা হয়
+
+তবু কয়েক মাস deploy করতে থাকলে version জমে যাবে। তখন পুরোনোগুলো মুছতে হবে।
+
+### Deleting Old Versions
+
+GHCR-এ পুরোনো version নিজে থেকে মুছে ফেলার কোনো retention setting **নেই**। অনেকে খুঁজে না পেয়ে বিভ্রান্ত হন — Actions-এর artifact-এর জন্য ওই setting আছে, package-এর জন্য নেই।
+
+দুটি উপায় আছে। হাতে মুছতে চাইলে package-এর **Versions** পাতায় প্রতিটি version-এর পাশে একটি `Delete` বাটন আছে।
+
+নিজে থেকে হওয়াতে চাইলে `build` job-এর শেষে এই দুটি step যোগ করুন:
+
+```yaml filename=".github/workflows/deploy.yml"
+      - name: Clean up old web versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: myapp-web
+          package-type: container
+          min-versions-to-keep: 10
+
+      - name: Clean up old api versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: myapp-api
+          package-type: container
+          min-versions-to-keep: 10
+```
+
+প্রতিটি deploy-এর পরে শেষ ১০টি version রেখে বাকিগুলো মুছে যাবে। দুটি image, তাই দুইবার লিখতে হলো। `packages: write` অনুমতি ওই job-এ আগে থেকেই আছে, তাই আর কিছু লাগবে না।
+
+<Callout type="warning">
+  `min-versions-to-keep` ১০-এর চেয়ে কম দেবেন না। এটিই আপনার rollback-এর পথ — যত version রাখবেন, তত পিছনে ফিরে যেতে পারবেন।
+</Callout>
 
 ## Troubleshooting
 
@@ -627,7 +700,8 @@ Private রাখলে তিনটি কাজ করুন:
 | `prisma: not found` container-এ | `prisma` এখনো `devDependencies`-এ আছে | `dependencies`-এ সরান |
 | Deploy-এর পরে database খালি | compose-এ volume নেই | `db-data` volume যোগ করুন |
 | Job সবুজ কিন্তু site পুরোনো | `set -e` নেই, মাঝপথে fail হয়েছে | `set -e` যোগ করুন, log আবার পড়ুন |
-| Disk full হয়ে গেছে | পুরোনো image জমে আছে | `docker image prune -af --filter "until=336h"` চালান, দরকারে সময় কমান |
+| Disk full হয়ে গেছে | পুরোনো image জমে আছে | `docker image prune -af --filter "until=336h"` চালান — ৩৩৬ ঘণ্টা মানে ১৪ দিন, দরকারে কমিয়ে দিন |
+| Restore-এ `relation already exists` | Dump-এ `--clean --if-exists` ছিল না | নতুন backup ওই দুটি flag দিয়ে নিন। পুরোনো file ফেরাতে আগে database drop করতে হবে |
 | প্রথম deploy-এ `service "db" is not running` | Database container কখনো চালু হয়নি | Script-এ `docker compose up -d db` লাইনটি আছে কিনা দেখুন |
 | `Cannot use import statement outside a module` | Runner stage-এ `package.json` copy হয়নি | Dockerfile-এ ওই `COPY` লাইনটি যোগ করুন |
 | Container বারবার `Restarting` | App ভেতরে crash করছে | `docker compose logs -f` দিয়ে আসল error দেখুন |

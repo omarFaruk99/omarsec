@@ -18,8 +18,16 @@ import { Callout, Steps } from 'nextra/components'
 - **Docker এবং Docker Compose** install করা
 - আপনার **app হাতে চলছে** — `docker compose up -d` দিলে site খোলে
 - একটি **non-root user** যা দিয়ে আপনি SSH করেন এবং `docker` command চালাতে পারেন
+- **`curl`** এবং **`bash`** আছে
 
 এগুলো কীভাবে করতে হয় তা এই section-এর বিষয় নয়। এখানে শুধু এই চলমান setup-টিকে automatic করা হবে।
+
+শেষ লাইনটি নিয়ে চিন্তার কিছু নেই — Ubuntu 24.04-এ `curl` আর `bash` দুটোই আগে থেকেই থাকে। তবু কেন লাগে জেনে রাখুন:
+
+- **`curl`** — deploy-এর শেষে pipeline এটি দিয়ে দেখে site সত্যিই সাড়া দিচ্ছে কিনা
+- **`bash`** — deploy script-এ `trap` ব্যবহার করা হয়, যা fail করলে নিজে থেকে rollback করে। `trap ... ERR` শুধু `bash`-এ চলে, সাধারণ `sh`-এ নয়
+
+Minimal বা Alpine-ভিত্তিক server ব্যবহার করলে দুটোই আগে বসিয়ে নিন।
 
 ## What CI/CD Needs
 
@@ -92,7 +100,7 @@ Server-এ শুধু **দুটি file** থাকবে:
 └── .env             ← secret এবং কোন version চলবে
 ```
 
-Folder তৈরি করে নিজের user-কে মালিকানা দিন:
+Server-এ SSH করে folder তৈরি করুন এবং নিজের user-কে মালিকানা দিন:
 
 ```bash filename="SERVER — Terminal"
 sudo mkdir -p /opt/myapp
@@ -137,7 +145,7 @@ ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/gh_actions -N ""
 | `gh_actions` | Private key | GitHub Secrets-এ |
 | `gh_actions.pub` | Public key | Server-এ |
 
-Public key server-এ পাঠান:
+এবার আপনার computer থেকে public key server-এ পাঠান:
 
 ```bash filename="LOCAL — Terminal"
 cat ~/.ssh/gh_actions.pub | ssh USER@YOUR_SERVER_IP \
@@ -240,7 +248,7 @@ Your Repository → Settings → Secrets and variables → Actions → New repos
 | `SERVER_USER` | SSH username, যেমন `ubuntu` |
 | `SSH_PRIVATE_KEY` | `gh_actions` file-এর সম্পূর্ণ content |
 
-Private key-র content দেখতে:
+আপনার নিজের computer-এ private key-র content দেখতে:
 
 ```bash filename="LOCAL — Terminal"
 cat ~/.ssh/gh_actions
@@ -295,7 +303,7 @@ echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdi
 
 অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। কিন্তু GitHub runner-এর IP প্রতিবার বদলায়, আর সেটি হাজার হাজার IP-র একটি বিশাল তালিকা। আগে থেকে allow করে রাখার উপায় নেই।
 
-সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Port 22 সবার জন্য খোলা রাখুন, কিন্তু password দিয়ে login বন্ধ করে দিন:
+সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Port 22 সবার জন্য খোলা রাখুন, কিন্তু password দিয়ে login বন্ধ করে দিন। Server-এ SSH করে চালান:
 
 ```bash filename="SERVER — Terminal"
 printf 'PasswordAuthentication no\nPermitRootLogin no\n' | \
@@ -313,7 +321,7 @@ sudo sshd -t && sudo systemctl restart ssh
 
 **fail2ban runner-কে ban করে দিলে**
 
-Deploy বারবার fail করলে fail2ban সেই IP ব্যান করতে পারে। তখন পরের deploy টাইমআউট হবে আর error message কিছুই বোঝাবে না। সন্দেহ হলে দেখুন:
+Deploy বারবার fail করলে fail2ban সেই IP ব্যান করতে পারে। তখন পরের deploy টাইমআউট হবে আর error message কিছুই বোঝাবে না। সন্দেহ হলে server-এ গিয়ে দেখুন:
 
 ```bash filename="SERVER — Terminal"
 sudo fail2ban-client status sshd

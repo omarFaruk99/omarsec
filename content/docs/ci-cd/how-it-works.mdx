@@ -59,7 +59,7 @@ Runner হলো একটি **অস্থায়ী Ubuntu machine** যা
 - কাজ শেষ হলে মুছে যায়
 - আপনার server-এর সাথে এর কোনো সম্পর্ক নেই
 
-শেষ পয়েন্টটি জরুরি। Runner আপনার server চেনে না, তার কাছে কোনো password বা key নেই। আপনি না দিলে সে ঢুকতে পারবে না। এই কারণেই পরের page-এ SSH key আর GitHub Secrets নিয়ে কাজ করতে হবে।
+শেষ কথাটি জরুরি। Runner আপনার server চেনে না, তার কাছে কোনো password বা key নেই। আপনি না দিলে সে ঢুকতে পারবে না। এই কারণেই পরের page-এ SSH key আর GitHub Secrets নিয়ে কাজ করতে হবে।
 
 ## Where the Build Runs
 
@@ -87,7 +87,7 @@ Server আর কিছু বানায় না। সে একটি ত�
 
 | | Server build করে | Runner build করে |
 |---|---|---|
-| Build-এর খরচ | আপনার server-এর | GitHub-এর, বিনামূল্যে |
+| Build-এর খরচ | আপনার server-এর RAM আর CPU | GitHub-এর runner-এর |
 | Server-এ code | আছে | নেই |
 | একই commit, একই ফল | নিশ্চিত নয় | নিশ্চিত |
 | Deploy-এ যা যায় | code | তৈরি image |
@@ -95,6 +95,12 @@ Server আর কিছু বানায় না। সে একটি ত�
 | Server-এ যা লাগে | Docker, git, আর অনেকটা RAM | শুধু Docker |
 
 এই section-এ **পথ ২** শেখানো হবে। VPS-এ Docker দিয়ে deploy করার standard পদ্ধতি এটিই।
+
+<Callout type="default">
+  Runner-এর সময় public repository-তে সীমাহীন এবং বিনামূল্যে। Private repository-তে GitHub-এর free plan-এ মাসে ২,০০০ মিনিট পাওয়া যায়।
+
+  একটি Next.js app-এর build-এ ২-৩ মিনিট লাগে, তাই মাসে কয়েকশ deploy করলেও এতে কুলিয়ে যায়। তবু হিসাব রাখতে চাইলে দেখুন — `Settings → Billing → Actions`।
+</Callout>
 
 ## What Is a Registry
 
@@ -135,6 +141,58 @@ ghcr.io/your-username/myapp:a3f9c21    ← এই commit-এর, নিশ্চ
   শুধু `latest` tag ব্যবহার করবেন না। `latest` আজ একটা জিনিস, কাল আরেকটা — কোনো নির্দিষ্ট version-কে সে বোঝায় না। তখন rollback করার কিছুই থাকে না, কারণ পুরোনো image-টির আর কোনো নাম নেই।
 
   আমরা দুটি tag একসাথে দেব — `a3f9c21` (নির্দিষ্ট) আর `latest` (সুবিধার জন্য)। Deploy-এ সবসময় নির্দিষ্টটি ব্যবহার হবে।
+</Callout>
+
+## Two Kinds of Compose File
+
+[Docker](/docs/docker/multi-container/the-full-stack) section-এ আপনি `compose.yaml` দেখেছেন code-এর পাশে, project-এর root folder-এ। এই section-এ সেটি থাকবে server-এ, একা।
+
+একই নামের file, কিন্তু ভেতরে একটি শব্দ আলাদা — আর ওই শব্দটিই ঠিক করে দেয় file-টি কোথায় থাকবে।
+
+**`build:` — compose নিজে image বানায়**
+
+```yaml
+services:
+  web:
+    build:
+      context: ./web
+```
+
+`build:` মানে compose-কে বলা হচ্ছে "তুমি image বানাও"। বানাতে code লাগে, `Dockerfile` লাগে। তাই এই file-টিকে code-এর পাশে থাকতেই হবে।
+
+**`image:` — compose শুধু চালায়**
+
+```yaml
+services:
+  web:
+    image: ghcr.io/your-username/myapp:${TAG}
+```
+
+`image:` মানে "বানানোর দরকার নেই, registry থেকে এই তৈরি জিনিসটি এনে চালাও"। Code লাগে না, তাই file-টি server-এ একা থাকতে পারে।
+
+| | `build:` | `image:` |
+|---|---|---|
+| Image কে বানায় | compose নিজে | আগেই বানানো হয়ে গেছে |
+| পাশে code লাগে | হ্যাঁ | না |
+| কোথায় রাখা হয় | code-এর folder-এ | যেকোনো জায়গায় |
+| কোথায় কাজে লাগে | নিজের computer-এ | production server-এ |
+
+<Callout type="warning">
+  এখানে একটি জিনিস অনেকে গুলিয়ে ফেলেন, তাই পরিষ্কার করে নিন — **এই pipeline-এ compose কখনো কিছু বানায় না।**
+
+  Runner image বানায় সরাসরি `Dockerfile` দিয়ে, compose দিয়ে নয়। তাই runner-এ কোনো compose file-ই থাকে না।
+
+  তিনটি জায়গা, তিনটি আলাদা কাজ:
+
+  ```
+  Runner    →  BUILD করে   →  লাগে: code + Dockerfile     (compose নেই)
+  Registry  →  জমা রাখে     →  লাগে: কিছুই না
+  Server    →  RUN করে     →  লাগে: compose.yaml + .env   (code নেই)
+  ```
+
+  Server-এ কোনো `Dockerfile` নেই, runner-এ কোনো `compose.yaml` নেই। দুটি কখনো একসাথে থাকে না।
+
+  তাই এই section-এ compose-এর কাজ শুধু **চালানো**, কখনো **বানানো** নয়।
 </Callout>
 
 ## The Full Flow
@@ -317,10 +375,12 @@ Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন।
 - [ ] Build কেন server-এ না করে runner-এ করা উচিত?
 - [ ] Registry কী এবং কেন লাগে?
 - [ ] Image-এ শুধু `latest` tag দিলে কী হারাবেন?
+- [ ] compose-এ `build:` আর `image:`-এর পার্থক্য কী?
+- [ ] এই pipeline-এ image কে বানায় — compose, নাকি Dockerfile?
 - [ ] `needs: build` না থাকলে কী সমস্যা হয়?
 
 **পরবর্তী →** [Setup](/docs/ci-cd/setup)
 
 <span style={{ display: 'none' }}>
-  github actions workflow bangla, ci cd kake bole, github runner bangla, container registry bangla, ghcr bangla, docker image tag bangla, workflow yml bangla, ci vs cd bangla
+  github actions workflow bangla, ci cd kake bole, github runner bangla, container registry bangla, ghcr bangla, docker image tag bangla, workflow yml bangla, ci vs cd bangla, docker compose build vs image bangla, compose yaml kothay rakhbo
 </span>

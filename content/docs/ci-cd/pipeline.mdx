@@ -56,7 +56,9 @@ Next.js-এর একটি setting আছে যা image-কে অনেক �
 
 `output: 'standalone'` দিলে Next.js build-এর সময় হিসাব করে দেখে ঠিক কোন file গুলো চালাতে লাগবে, আর শুধু সেগুলো একটি folder-এ জড়ো করে। বাকি সব বাদ।
 
-ফল হাতেনাতে — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ১৫০ MB-র কাছাকাছি নেমে আসে। প্রতিবার deploy-এ server-কে এই image টানতে হয়, তাই ছোট image মানে দ্রুত deploy আর কম bandwidth।
+ফলটা স্পষ্ট — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ২০০ MB-র কাছাকাছি নেমে আসে। এর মধ্যে `node:20-alpine` base image-ই প্রায় ১৩৫ MB, বাকিটুকু আপনার app।
+
+প্রতিবার deploy-এ server-কে এই image টানতে হয়, তাই ছোট image মানে দ্রুত deploy আর কম bandwidth।
 
 ```js filename="next.config.mjs"
 const nextConfig = {
@@ -146,7 +148,7 @@ Dockerfile
 
 ### Create the CI File
 
-এই file আপনার প্রথম রক্ষাকবচ। কেউ pull request খুললে GitHub image build করে দেখবে। Build fail করলে pull request-এ লাল X দেখাবে এবং merge করার আগেই সমস্যা ধরা পড়বে।
+এই file আপনার প্রথম পাহারা। কেউ pull request খুললে GitHub image build করে দেখবে। Build fail করলে pull request-এ লাল X দেখাবে এবং merge করার আগেই সমস্যা ধরা পড়বে।
 
 Registry-তে কিছু পাঠানো হবে না — শুধু build করে দেখা।
 
@@ -219,7 +221,7 @@ TAG=latest
 
 এখন `latest` লিখে রাখুন। প্রথম deploy-এর পরে pipeline নিজেই এই লাইনটি commit-এর নাম দিয়ে বদলে দেবে।
 
-File-টি শক্ত করে দিন:
+Server-এ file-টির permission শক্ত করে দিন:
 
 ```bash filename="SERVER — Terminal"
 chmod 600 /opt/myapp/.env
@@ -325,6 +327,7 @@ jobs:
               if curl -fsS http://localhost:3000 > /dev/null; then
                 trap - ERR
                 echo "deploy ok"
+                # ১৪ দিনের পুরোনো, অব্যবহৃত image মুছে দিই
                 docker image prune -af --filter "until=336h"
                 exit 0
               fi
@@ -357,7 +360,7 @@ image: ghcr.io/your-username/myapp:a3f9c21
 
 Deploy করার মানে দাঁড়ায় শুধু ওই এক লাইন বদলে `docker compose up -d` চালানো।
 
-আর rollback করার মানে দাঁড়ায় ওই এক লাইনে পুরোনো নামটি ফিরিয়ে আনা। Image আগে থেকেই server-এ নামানো আছে, তাই কিছু টানতেও হয় না — **প্রায় সাথে সাথেই** পুরোনো version ফিরে আসে।
+আর rollback করার মানে দাঁড়ায় ওই এক লাইনে পুরোনো নামটি ফিরিয়ে আনা। পুরোনো image সাধারণত আগে থেকেই server-এ নামানো থাকে, তাই কিছু টানতে হয় না — **দশ সেকেন্ডের মধ্যেই** পুরোনো version ফিরে আসে।
 
 ## The Health Check
 
@@ -405,6 +408,36 @@ Health check পাশ করলে `trap - ERR` দিয়ে trap-টি স
   দ্বিতীয় deploy থেকে rollback পুরোপুরি কাজ করবে, কারণ তখন `.env`-এ প্রথম deploy-এর commit sha লেখা থাকবে।
 </Callout>
 
+## Disk Cleanup
+
+Health check পাশ করার পরে script-এর শেষ কাজটি এই লাইনটি:
+
+```bash
+docker image prune -af --filter "until=336h"
+```
+
+প্রতিটি deploy server-এ একটি নতুন image নামায়, কিন্তু পুরোনোগুলো নিজে থেকে মোছে না। কয়েক মাস পরে disk ভরে যায়, আর তখন `no space left on device` দিয়ে deploy fail করতে শুরু করে।
+
+Flag তিনটির মানে:
+
+- `-a` — কোনো container ব্যবহার করছে না, এমন সব image ধরবে
+- `-f` — "সত্যিই মুছব?" জিজ্ঞেস করবে না। Pipeline-এ কেউ উত্তর দেওয়ার নেই
+- `until=336h` — **১৪ দিনের** চেয়ে পুরোনো হলেই মুছবে। ৩৩৬ ঘণ্টা = ১৪ দিন
+
+চলমান container যে image ব্যবহার করছে সেটি কখনো মোছে না, তাই এটি নিরাপদ।
+
+<Callout type="warning">
+  এই লাইনটি rollback-এর সাথে একটু টানাপোড়েনে আছে, জেনে রাখা ভালো।
+
+  Rollback দ্রুত হয় কারণ পুরোনো image আগে থেকেই server-এ নামানো থাকে। কিন্তু prune ১৪ দিনের পুরোনো image মুছে দেয়।
+
+  রোজ deploy করলে কোনো সমস্যা নেই — আগের image সবসময়ই নতুন। কিন্তু মাসে একবার deploy করলে আগের image ততদিনে মুছে গেছে।
+
+  তখনো rollback কাজ করবে, কারণ `docker compose up -d` image না পেলে নিজে থেকে registry থেকে টেনে নেয়। শুধু দশ সেকেন্ডের বদলে আধ মিনিট লাগবে।
+
+  কম deploy করলে সময়সীমা বাড়িয়ে দিন — `until=2160h` মানে ৯০ দিন।
+</Callout>
+
 ## Concurrency
 
 ```yaml
@@ -435,15 +468,11 @@ GitHub-এ **Actions** tab খুলুন। সাথে সাথেই এ�
 - সবুজ হলে `deploy` job শুরু হবে — প্রায় ৩০ সেকেন্ড
 
 <Callout type="info">
-  **প্রথমবার `deploy` job fail করতে পারে, আর সেটা স্বাভাবিক।**
+  **Package public করবেন ঠিক করে থাকলে প্রথমবার `deploy` job fail করবে — এটি স্বাভাবিক।**
 
-  Package public করবেন ঠিক করে থাকলে এখনো সেটি private অবস্থায় আছে, কারণ package তৈরিই হলো এইমাত্র। Server তাই টানতে পারবে না:
+  Package তৈরিই হলো এইমাত্র, তাই এখনো private অবস্থায় আছে। এখন GitHub-এ গিয়ে সেটিকে public করুন, তারপর Actions-এ **Re-run failed jobs** চাপুন।
 
-  ```
-  Error response from daemon: error from registry: unauthorized
-  ```
-
-  এখন package-টি তৈরি হয়ে গেছে। GitHub-এ গিয়ে সেটিকে public করুন, তারপর Actions-এ **Re-run failed jobs** চাপুন। এবার চলবে।
+  কেন এমন হয় তার পুরো ব্যাখ্যা [Setup](/docs/ci-cd/setup) page-এ আছে।
 </Callout>
 
 Server-এ গিয়ে মিলিয়ে দেখুন:
@@ -456,7 +485,7 @@ docker compose ps
 
 `.env`-এ `TAG=latest`-এর বদলে একটি লম্বা commit sha দেখা যাবে। `ps`-এ container `Up` অবস্থায় থাকবে।
 
-`Up` না দেখালে, বা `Restarting` দেখালে — container-এর ভেতরে কী হচ্ছে দেখুন:
+`Up` না দেখালে, বা `Restarting` দেখালে — server-এ থেকেই container-এর ভেতরে কী হচ্ছে দেখুন:
 
 ```bash filename="SERVER — Terminal"
 docker compose logs -f
@@ -490,7 +519,7 @@ git push origin main
 
 Server তো মাঝে মাঝে reboot হবেই — update, maintenance, বা cloud provider-এর কারণে। তখন container নিজে থেকে উঠবে কিনা?
 
-দুটি জিনিস ঠিক থাকতে হবে:
+Server-এ দুটি জিনিস ঠিক থাকতে হবে:
 
 ```bash filename="SERVER — Terminal"
 systemctl is-enabled docker
@@ -506,6 +535,58 @@ docker inspect $(docker compose ps -q) --format '{{.HostConfig.RestartPolicy.Nam
   পড়ে নিশ্চিত হওয়া আর পরীক্ষা করে নিশ্চিত হওয়া এক নয়। সময় থাকলে সত্যিই একবার `sudo reboot` দিন, তারপর দুই মিনিট পরে site খুলে দেখুন।
 
   এখন এক মিনিট down থাকা ভালো, নাকি রাত ৩টায় server reboot হয়ে সারা রাত down থাকা?
+</Callout>
+
+## Reaching It from the Internet
+
+Compose file-এ port লেখা আছে `127.0.0.1:3000:3000`। এর মানে container-টি শুধু server-এর ভেতর থেকে পাওয়া যায়। Browser-এ আপনার domain লিখলে এখনো কিছুই আসবে না।
+
+এটি ইচ্ছাকৃত। Node.js সরাসরি internet-এর মুখোমুখি বসার জন্য তৈরি নয় — HTTPS certificate, একাধিক domain, ধীর client — এসব সে ভালোভাবে সামলায় না।
+
+তাই মাঝখানে একটি **reverse proxy** বসে। বাইরের সব traffic সে নেয়, তারপর ভেতরে container-এর কাছে পাঠায়:
+
+```
+Internet  →  Nginx (port 80, 443)  →  container (127.0.0.1:3000)
+```
+
+সবচেয়ে ছোট Nginx config যা কাজ করে:
+
+```nginx filename="SERVER — /etc/nginx/sites-available/myapp"
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Server-এ এটি চালু করুন:
+
+```bash filename="SERVER — Terminal"
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`sudo nginx -t` অংশটি config-এ ভুল আছে কিনা দেখে নেয়। ভুল থাকলে reload হবে না, তাই চলমান site ভাঙে না।
+
+তারপর HTTPS বসাতে দুটি command:
+
+```bash filename="SERVER — Terminal"
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d yourdomain.com
+```
+
+Certbot নিজেই certificate এনে Nginx config-এ বসিয়ে দেয়, আর মেয়াদ শেষ হওয়ার আগে নিজে থেকে renew করে।
+
+<Callout type="default">
+  Nginx আর certificate একবার বসিয়ে দিলে আর ছোঁয়ার দরকার নেই। Deploy-এ শুধু container বদলায়, Nginx আগের মতোই `127.0.0.1:3000`-এ পাঠাতে থাকে।
+
+  এখানে শুধু কাজ চালানোর মতো টুকু দেওয়া হলো। বিস্তারিত আছে [Nginx](/docs/server-deployment/foundation/nginx) আর [SSL / HTTPS](/docs/server-deployment/foundation/ssl-https) page-এ।
 </Callout>
 
 ## When a CDN Is in Front
