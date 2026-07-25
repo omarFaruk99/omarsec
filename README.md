@@ -68,6 +68,35 @@ The server holds **two files only**. No code, no `node_modules`, no Node.js.
 `.env` holds two values — `TAG` (which commit is live) and `PORT`.
 The deploy workflow rewrites `TAG` on every deploy.
 
+### Nginx
+
+One site is hosted on this server. Nginx terminates SSL and forwards
+everything to the container.
+
+| Item | Value |
+|---|---|
+| Config | `/etc/nginx/sites-available/omarsec.com` |
+| Sites enabled | `omarsec.com` only |
+| Forwards to | `http://localhost:3001` |
+| SSL | Let's Encrypt via Certbot, auto-renewed |
+
+The container binds to `127.0.0.1:3001`, so it is reachable only from the
+server itself. All public traffic goes through Nginx.
+
+`www.omarsec.com` and plain HTTP both 301-redirect to `https://omarsec.com`.
+
+To change the port, edit `PORT` in `/opt/omarsec/.env` **and** `proxy_pass` in
+the Nginx config, then `sudo nginx -t && sudo systemctl reload nginx`.
+
+### Cloudflare
+
+The domain sits behind Cloudflare. HTML pages are not cached, so content
+changes appear as soon as a deploy finishes. Static files — `.js`, `.css`,
+images — **are** cached.
+
+If a static file looks stale after a deploy, purge it:
+Cloudflare → omarsec.com → Caching → Configuration → Purge Everything.
+
 ### Check the app
 
 ```bash
@@ -99,6 +128,5 @@ docker compose up -d
 - Search is built by Pagefind in the `postbuild` script. It runs inside the
   Docker build, so the index ships with the image.
 - Never commit secrets or `.env` files (they are in `.gitignore`).
-- The old PM2 setup is stopped but still installed. `/var/www/omarsec` and
-  `/etc/nginx/sites-available/omarsec.com.bak-pm2` are kept as a fallback and
-  can be removed once the Docker deploy has run for a while.
+- PM2, the old `/var/www/omarsec` checkout, and the `portfolio.omarsec.com`
+  site have all been removed. The server runs Docker and Nginx, nothing else.
