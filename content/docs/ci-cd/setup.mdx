@@ -93,14 +93,21 @@ ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/gh_actions -N ""
 Public key server-এ পাঠান:
 
 ```bash filename="LOCAL — Terminal"
-cat ~/.ssh/gh_actions.pub | ssh USER@YOUR_SERVER_IP "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+cat ~/.ssh/gh_actions.pub | ssh USER@YOUR_SERVER_IP \
+  "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
 `authorized_keys` file-এ যে public key গুলো থাকে, তাদের মালিক server-এ ঢুকতে পারে। আমরা সেখানে GitHub-এর জন্য একটি লাইন যোগ করলাম।
 
-### Test the Key the Way Actions Will Use It
+<Callout type="warning">
+  ওই দুটি `chmod` বাদ দেবেন না। SSH server নিরাপত্তার জন্য permission যাচাই করে — `~/.ssh` folder বা `authorized_keys` file অন্যদের জন্য লেখার অনুমতিসহ থাকলে সে key-টি **চুপচাপ অগ্রাহ্য করে**।
 
-এই ধাপটি ছোট দেখাচ্ছে, কিন্তু **সবচেয়ে বেশি pipeline এখানেই fail করে**। তাই এটি মন দিয়ে করুন।
+  তখন আপনি শুধু `Permission denied (publickey)` দেখবেন, আর ভাববেন key ভুল হয়েছে। আসলে key ঠিকই আছে, শুধু permission ঢিলা।
+</Callout>
+
+### Test the Key
+
+এখানে key-টি ঠিক সেভাবে পরীক্ষা করবেন যেভাবে GitHub Actions ব্যবহার করবে। ধাপটি ছোট দেখাচ্ছে, কিন্তু **সবচেয়ে বেশি pipeline এখানেই fail করে**। তাই মন দিয়ে করুন।
 
 প্রথমে সাধারণভাবে ঢুকে দেখুন:
 
@@ -205,30 +212,42 @@ echo "YOUR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdi
 
 </Steps>
 
-## Two Things That Silently Break Pipelines
+## Common Blockers
 
-দুটি সমস্যা খুব সাধারণ কিন্তু কোথাও লেখা থাকে না।
+দুটি সমস্যা খুব সাধারণ, কিন্তু কোথাও লেখা থাকে না। দুটোই চুপচাপ pipeline ভেঙে দেয় এবং error message কিছুই বোঝায় না।
 
 **Firewall দিয়ে SSH আটকানো থাকলে**
 
 অনেকে নিরাপত্তার জন্য শুধু নিজের বাসার IP থেকে SSH allow করে রাখেন। GitHub runner-এর IP প্রতিবার বদলায় এবং সেটি হাজার হাজার IP-র একটি বিশাল তালিকা — তাই আগে থেকে allow করা যায় না।
 
-সঠিক সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password login পুরোপুরি বন্ধ করে দিন:
+সঠিক সমাধান হলো IP দিয়ে নয়, **key দিয়ে** নিরাপত্তা দেওয়া। Password login পুরোপুরি বন্ধ করে দিন।
+
+Ubuntu-তে সরাসরি `/etc/ssh/sshd_config` file-এ লিখবেন না। ওই file-এর শুরুতে `Include /etc/ssh/sshd_config.d/*.conf` লেখা থাকে, আর SSH একই setting দুইবার পেলে **প্রথমটি** মানে। Cloud provider-এর রাখা file আগে পড়া হয়, তাই আপনার লেখা setting চুপচাপ অগ্রাহ্য হয়ে যায়।
+
+তার বদলে ওই folder-এ নিজের একটি file বানান:
 
 ```bash filename="SERVER — Terminal"
-sudo nano /etc/ssh/sshd_config
+printf 'PasswordAuthentication no\nPermitRootLogin no\n' | \
+  sudo tee /etc/ssh/sshd_config.d/99-hardening.conf
 ```
 
-```
-PasswordAuthentication no
-PermitRootLogin no
-```
+Restart করার আগে config-এ ভুল আছে কিনা দেখে নিন। ভুল থাকলে restart করলে আপনি নিজেই server থেকে বেরিয়ে যেতে পারেন:
 
 ```bash filename="SERVER — Terminal"
-sudo systemctl restart ssh
+sudo sshd -t && sudo systemctl restart ssh
 ```
 
-এখন port 22 সবার জন্য খোলা থাকলেও key ছাড়া কেউ ঢুকতে পারবে না।
+সত্যিই প্রয়োগ হয়েছে কিনা মিলিয়ে নিন:
+
+```bash filename="SERVER — Terminal"
+sudo sshd -T | grep -E 'passwordauthentication|permitrootlogin'
+```
+
+দুটোই `no` দেখালে ঠিক আছে। এখন port 22 সবার জন্য খোলা থাকলেও key ছাড়া কেউ ঢুকতে পারবে না।
+
+<Callout type="warning">
+  Restart করার পরে **বর্তমান terminal বন্ধ করবেন না**। আরেকটি terminal খুলে নতুন করে SSH করে দেখুন ঢোকা যাচ্ছে কিনা। কিছু ভুল হলে পুরোনো session দিয়ে ঠিক করে নিতে পারবেন।
+</Callout>
 
 **fail2ban runner-কে ban করে দিলে**
 
@@ -237,17 +256,6 @@ Deploy বারবার fail করলে fail2ban সেই IP ব্যা�
 ```bash filename="SERVER — Terminal"
 sudo fail2ban-client status sshd
 ```
-
-## Setup Checklist
-
-পরের page-এ যাওয়ার আগে সব মিলিয়ে নিন:
-
-- [ ] `/opt/myapp` folder আছে এবং আপনার user-এর মালিকানায়
-- [ ] `ssh -i ~/.ssh/gh_actions USER@IP` দিয়ে ঢোকা যাচ্ছে
-- [ ] `ssh -i ~/.ssh/gh_actions USER@IP "docker compose version"` কাজ করছে
-- [ ] `/opt/myapp`-এ file লেখার test পাশ করেছে
-- [ ] GitHub-এ তিনটি secret যোগ করা হয়েছে
-- [ ] Server-এ `docker login ghcr.io` সফল হয়েছে
 
 ## CyberSec Note
 
@@ -265,8 +273,19 @@ sudo fail2ban-client status sshd
 
   আরেকটি কথা জেনে রাখুন। `docker login` করার পরে আপনার token `~/.docker/config.json` file-এ জমা থাকে — সেটি **encrypt করা নয়, শুধু base64 করা**। যে কেউ ওই file পড়তে পারলেই token পেয়ে যাবে। এই কারণেই token-এ শুধু `read:packages` অনুমতি রাখা এত জরুরি।
 
-  একটি সহজ test: আপনার repository-তে যাদের write access আছে তাদের list দেখুন। ওই সবার হাতেই এখন আপনার production server আছে।
+  একটি দ্রুত পরীক্ষা: আপনার repository-তে যাদের write access আছে তাদের list দেখুন। ওই সবার হাতেই এখন আপনার production server আছে।
 </Callout>
+
+## Quick Check
+
+পরের page-এ যাওয়ার আগে সব মিলিয়ে নিন:
+
+- [ ] `/opt/myapp` folder আছে এবং আপনার user-এর মালিকানায়?
+- [ ] `ssh -i ~/.ssh/gh_actions USER@IP` দিয়ে ঢোকা যাচ্ছে?
+- [ ] `ssh -i ~/.ssh/gh_actions USER@IP "docker compose version"` কাজ করছে?
+- [ ] `/opt/myapp`-এ file লেখার test পাশ করেছে?
+- [ ] GitHub-এ তিনটি secret যোগ করা হয়েছে?
+- [ ] Server-এ `docker login ghcr.io` সফল হয়েছে?
 
 **পরবর্তী →** [First Pipeline](/docs/ci-cd/pipeline)
 

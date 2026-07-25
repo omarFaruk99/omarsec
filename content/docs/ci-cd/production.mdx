@@ -50,23 +50,57 @@ Basic pipeline না বুঝে থাকলে আগে ওই page-টি 
     <FileTree.Folder name="apps" defaultOpen>
       <FileTree.Folder name="web">
         <FileTree.File name="Dockerfile" />
-        <FileTree.File name="next.config.js" />
+        <FileTree.File name=".dockerignore" />
+        <FileTree.File name="next.config.mjs" />
         <FileTree.File name="package.json" />
+        <FileTree.File name="package-lock.json" />
       </FileTree.Folder>
       <FileTree.Folder name="api" defaultOpen>
         <FileTree.Folder name="prisma">
           <FileTree.File name="schema.prisma" />
           <FileTree.Folder name="migrations" />
         </FileTree.Folder>
+        <FileTree.Folder name="src">
+          <FileTree.File name="server.ts" />
+        </FileTree.Folder>
         <FileTree.File name="Dockerfile" />
+        <FileTree.File name=".dockerignore" />
+        <FileTree.File name="tsconfig.json" />
         <FileTree.File name="package.json" />
+        <FileTree.File name="package-lock.json" />
       </FileTree.Folder>
     </FileTree.Folder>
-    <FileTree.File name="package.json" />
   </FileTree.Folder>
 </FileTree>
 
 দুটি folder, দুটি `Dockerfile`, দুটি image। Server-এ এখনো সেই **দুটি file-ই** থাকবে — `compose.yaml` আর `.env`।
+
+<Callout type="warning">
+  প্রতিটি app-এর নিজের `package.json` **এবং নিজের `package-lock.json`** থাকতে হবে। Repository-র root-এ কোনো `package.json` নেই।
+
+  কারণটি Docker-এর। নিচের workflow-এ প্রতিটি image-এর build context হলো `./apps/web` বা `./apps/api`। Docker সেই folder-এর বাইরের কোনো file দেখতে পায় না। তাই lock file root-এ থাকলে `npm ci` সেটি খুঁজেই পাবে না এবং build fail করবে।
+
+  npm workspaces ব্যবহার করলে lock file একটিই হয় এবং সেটি root-এ থাকে। তখন build context root করতে হয় আর Dockerfile-এর প্রতিটি path বদলাতে হয়। এই guide-এ সেই জটিলতায় যাচ্ছি না — দুটি app আলাদা রাখলে এখানে কম ভুল হয়।
+</Callout>
+
+<Callout type="warning">
+  একই কারণে **প্রতিটি app folder-এ নিজের `.dockerignore` লাগবে**। Docker `.dockerignore` খোঁজে শুধু build context-এর root-এ। Context যেহেতু `apps/web` আর `apps/api`, repository-র root-এ রাখা `.dockerignore` এখানে কোনো কাজেই আসবে না।
+
+  দুটি file-এই একই content:
+
+  ```bash filename="apps/web/.dockerignore এবং apps/api/.dockerignore"
+  node_modules
+  .next
+  dist
+  .git
+  .env
+  .env.*
+  Dockerfile
+  .dockerignore
+  ```
+
+  এটি না থাকলে আপনার local `.env` file image-এর ভেতরে ঢুকে registry-তে চলে যাবে।
+</Callout>
 
 <Callout type="default">
   দুটি আলাদা repository রাখলেও চলে। তখন দুটি আলাদা `deploy.yml` লিখতে হবে, এবং API আগে না পরে deploy হবে সেটি নিজে সামলাতে হবে। ছোট ও মাঝারি project-এ monorepo অনেক কম ঝামেলার।
@@ -90,6 +124,7 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
@@ -98,7 +133,10 @@ EXPOSE 4000
 CMD ["node", "dist/server.js"]
 ```
 
-দুটি জিনিস খেয়াল করুন।
+তিনটি জিনিস খেয়াল করুন।
+
+**`package.json` final image-এ যাচ্ছে**
+Node এই file দেখে বোঝে code-টি ESM নাকি CommonJS। এটি না থাকলে `"type": "module"` ব্যবহার করা project-এ `Cannot use import statement outside a module` error আসবে। Prisma-ও এই file পড়ে।
 
 **`npx prisma generate` build-এর আগে**
 Prisma আপনার `schema.prisma` পড়ে একটি client তৈরি করে। এটি না বানালে TypeScript build fail করবে, কারণ `prisma.user.findMany()` জাতীয় জিনিস তখনো তৈরি হয়নি।
@@ -130,7 +168,8 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-    env_file: .env
+    environment:
+      NODE_ENV: production
     depends_on:
       - api
 
@@ -174,6 +213,9 @@ Container মুছে গেলেও data থাকবে। এই লাই�
 **Database-এর কোনো port বাইরে খোলা নেই**
 `web` আর `api`-তে `ports` আছে, `db`-তে নেই। তবু API database-এ পৌঁছাতে পারে, কারণ একই compose network-এর ভেতরে container-রা একে অপরকে নামে চেনে।
 
+**`web`-এ `env_file` নেই, শুধু `api`-তে আছে**
+`.env` file-এ database-এর password আছে। Frontend-এর সেটি জানার কোনো দরকার নেই, তাই তাকে দেওয়াও হয়নি। প্রতিটি container শুধু ততটুকুই পাবে যতটুকু তার লাগে — কোনো container-এ কেউ ঢুকে পড়লে তখন সে যেন সবকিছু না পায়।
+
 এবার `.env`:
 
 ```bash filename="/opt/myapp/.env"
@@ -184,14 +226,44 @@ POSTGRES_PASSWORD=a-long-random-password
 POSTGRES_DB=myapp
 
 DATABASE_URL=postgresql://myapp:a-long-random-password@db:5432/myapp
-NEXT_PUBLIC_API_URL=https://yourdomain.com/api
 ```
+
+<Callout type="warning">
+  `NEXT_PUBLIC_` দিয়ে শুরু হওয়া কোনো variable এই file-এ রাখবেন না — রাখলেও কাজ হবে না।
+
+  Next.js এই variable গুলো **build-এর সময়** JavaScript bundle-এর ভেতরে বসিয়ে দেয়। অর্থাৎ image বানানোর মুহূর্তেই value-টি স্থায়ীভাবে ঢুকে যায়। Server-এর `.env`-এ পরে লিখলে তখন আর কিছু বদলায় না।
+
+  এগুলো দিতে হয় build-এর সময়, workflow file-এ:
+
+  ```yaml
+  - name: Build and push web
+    uses: docker/build-push-action@v6
+    with:
+      context: ./apps/web
+      build-args: |
+        NEXT_PUBLIC_API_URL=https://yourdomain.com/api
+  ```
+
+  আর `apps/web/Dockerfile`-এ builder stage-এ সেটি গ্রহণ করতে হয়:
+
+  ```dockerfile
+  ARG NEXT_PUBLIC_API_URL
+  ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+  RUN npm run build
+  ```
+
+  এই কারণেই `NEXT_PUBLIC_`-এ কখনো secret দেবেন না। এটি image-এর ভেতরে বসে যায়, আর browser-এ পাঠানো হয় — যে কেউ page source-এ দেখতে পারে।
+</Callout>
+
+`DATABASE_URL` এবং `POSTGRES_*` build-এর সময় লাগে না, তাই সেগুলো এখানেই ঠিক আছে। এগুলো container চালু হওয়ার সময় পড়া হয়।
 
 <Callout type="warning">
   `DATABASE_URL`-এ `localhost` নয়, **`db`** লেখা আছে। এটি compose file-এ দেওয়া service-এর নাম।
 
   Container-এর ভেতর থেকে `localhost` মানে ওই container নিজে — database নয়। এই এক জায়গায় প্রায় সবাই একবার আটকায়।
 </Callout>
+
+এই file-এ database-এর password আছে। Server-এ গিয়ে permission শক্ত করে দিন, যাতে শুধু আপনার user পড়তে পারে:
 
 ```bash filename="SERVER — Terminal"
 chmod 600 /opt/myapp/.env
@@ -201,9 +273,9 @@ chmod 600 /opt/myapp/.env
 
 এটি এই page-এর সবচেয়ে গুরুত্বপূর্ণ অংশ। ভুল order মানে site down।
 
-### `migrate deploy`, never `migrate dev`
+### `migrate deploy` vs `migrate dev`
 
-Prisma-র দুটি migration command আছে। Pipeline-এ শুধু একটি চলতে পারে।
+Prisma-র দুটি migration command আছে। Pipeline-এ শুধু একটি চলতে পারে — `migrate deploy`।
 
 | | `prisma migrate dev` | `prisma migrate deploy` |
 |---|---|---|
@@ -250,7 +322,7 @@ Build ইতিমধ্যে runner-এ হয়ে গেছে, আর `nee
 **Migration কেন `up -d`-র ঠিক আগে?**
 Migration আর নতুন container চালু হওয়ার মাঝের সময়টুকুতে **নতুন database গঠন, পুরোনো code** — এই অবস্থা থাকে। এই সময় যত কম হয় তত ভালো। তাই দুটি পাশাপাশি রাখা হয়েছে।
 
-### Migrations That Do Not Break
+### Safe Migrations
 
 উপরের ওই ছোট সময়টুকুর কারণেই একটি নিয়ম মানতে হয়: **migration এমন হতে হবে যা পুরোনো code চালু থাকা অবস্থাতেও ভাঙে না।**
 
@@ -278,6 +350,41 @@ Deploy 3:  name column drop করুন।
 ```
 
 ধীর মনে হচ্ছে। কিন্তু প্রতিটি deploy-এ site একটুও down হয় না, আর যেকোনো ধাপে থেমে যাওয়া যায়।
+
+## Update the CI File
+
+আগের page-এর `ci.yml` এখানে আর কাজ করবে না। সেটি repository-র root-এ একটি `Dockerfile` খুঁজত, কিন্তু এখন root-এ কোনো `Dockerfile` নেই — দুটি আছে, দুই folder-এ।
+
+```yaml filename=".github/workflows/ci.yml"
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.app }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/${{ matrix.app }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+```
+
+`strategy.matrix` একটি সুবিধাজনক জিনিস। এটি একই job-কে দুইবার চালায় — একবার `app` = `web` নিয়ে, আরেকবার `api` নিয়ে। দুটি একসাথে সমান্তরালে চলে, তাই সময়ও বাড়ে না।
+
+`scope` আলাদা রাখা হয়েছে যাতে দুটি app-এর Docker cache মিশে না যায়।
 
 ## The Complete Workflow File
 
@@ -352,7 +459,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
           script: |
-            set -e
+            set -eE
             cd /opt/myapp
 
             # ফেরার ঠিকানা মনে রাখি
@@ -361,14 +468,33 @@ jobs:
             echo "old: $OLD_TAG"
             echo "new: $NEW_TAG"
 
+            # যেকোনো ধাপে fail করলে এই function চলবে
+            rollback() {
+              if [ "$OLD_TAG" = "latest" ] || [ -z "$OLD_TAG" ]; then
+                echo "previous tag is not a fixed version — cannot roll back"
+                return
+              fi
+              echo "rolling back to $OLD_TAG"
+              sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
+              docker compose up -d || true
+            }
+            trap rollback ERR
+
             # ১. নতুন version বসিয়ে image নামাই (চালু করি না)
             sed -i "s|^TAG=.*|TAG=$NEW_TAG|" .env
             docker compose pull
 
-            # .env-এর value গুলো shell-এ আনি
-            set -a; . ./.env; set +a
+            # .env থেকে শুধু যে দুটি value লাগবে সেগুলো পড়ি
+            POSTGRES_USER=$(grep '^POSTGRES_USER=' .env | cut -d= -f2-)
+            POSTGRES_DB=$(grep '^POSTGRES_DB=' .env | cut -d= -f2-)
 
-            # ২. database backup
+            # ২. database চালু আছে কিনা নিশ্চিত করি, তারপর backup
+            docker compose up -d db
+            for i in $(seq 1 30); do
+              docker compose exec -T db pg_isready -U "$POSTGRES_USER" > /dev/null 2>&1 && break
+              sleep 2
+            done
+
             mkdir -p ~/backups
             docker compose exec -T db \
               pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
@@ -387,17 +513,17 @@ jobs:
             for i in $(seq 1 10); do
               if curl -fsS http://localhost:3000 > /dev/null \
                  && curl -fsS http://localhost:4000/health > /dev/null; then
+                trap - ERR
                 echo "deploy ok"
-                docker image prune -f
+                docker image prune -af --filter "until=336h"
                 exit 0
               fi
               sleep 3
             done
 
-            # ৬. এখানে পৌঁছানো মানে app উঠল না — ফিরে যাই
-            echo "health check failed, rolling back to $OLD_TAG"
-            sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
-            docker compose up -d
+            # ৬. এখানে পৌঁছানো মানে app উঠল না
+            echo "health check failed"
+            rollback
             exit 1
 ```
 
@@ -405,11 +531,32 @@ jobs:
   `your_username` দুই জায়গায় আপনার GitHub username দিয়ে বদলান, এবং **সবটুকু ছোট হাতের অক্ষরে** লিখুন। Registry বড় হাতের অক্ষর নেয় না।
 </Callout>
 
+Script-এর কয়েকটি অংশ ব্যাখ্যা দরকার।
+
+**`trap rollback ERR`**
+`.env`-এ নতুন TAG বসানো হয় একদম শুরুতে। এরপর যেকোনো ধাপ fail করতে পারে — `pull`, backup, migration। `trap` না থাকলে `set -e` সেখানেই script থামিয়ে দিত, আর `.env`-এ এমন একটি version লেখা থেকে যেত যা কখনো চালুই হয়নি। `trap` নিশ্চিত করে যে কোথায় fail করল তা নির্বিশেষে `.env` আগের অবস্থায় ফেরে।
+
+**`docker compose up -d db` backup-এর আগে**
+`docker compose exec` শুধু চলমান container-এ কাজ করে। প্রথম deploy-এ database container তখনো কখনো চালু হয়নি, তাই `exec` সরাসরি fail করত। তাই আগে db চালু করে, `pg_isready` দিয়ে সত্যিই প্রস্তুত হওয়া পর্যন্ত অপেক্ষা করে, তারপর backup নেওয়া হয়।
+
+**`grep` দিয়ে দুটি value পড়া**
+পুরো `.env` file shell-এ load না করে শুধু দরকারি দুটি লাইন পড়া হয়েছে। পুরোটা load করলে password-এ কোনো space, `#` বা quote থাকলে shell সেটি ভুল বুঝত — `#`-এর পরের অংশ comment ধরে বাদ দিয়ে দিত।
+
+<Callout type="warning">
+  তবু database password-এ বিচিত্র অক্ষর না রাখাই ভালো, কারণ compose, shell আর Prisma-র connection string — তিন জায়গাতেই সেটি পড়া হয়। Password লম্বা করুন, জটিল নয়:
+
+  ```bash filename="LOCAL — Terminal"
+  openssl rand -hex 32
+  ```
+
+  `-hex` দিলে শুধু `0-9` আর `a-f` আসে। `-base64` দেবেন না — সেটি `+`, `/` আর `=` তৈরি করে, যা URL-এর ভেতরে সমস্যা করে।
+</Callout>
+
 ## The Health Endpoint
 
 API-তে একটি health route রাখুন। এটি কোনো database query করবে না — শুধু বলবে server জীবিত আছে:
 
-```js filename="apps/api/src/server.js"
+```ts filename="apps/api/src/server.ts"
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' })
 })
@@ -421,7 +568,7 @@ app.get('/health', (req, res) => {
 - `-s` — progress bar লুকায়
 - `-S` — তবু error message দেখায়
 
-## What Rollback Does and Does Not Fix
+## Rollback Limits
 
 Rollback পুরোনো image ফিরিয়ে আনে। **কিন্তু database ফেরায় না।**
 
@@ -430,13 +577,14 @@ Rollback করে:     web আর api container পুরোনো image-এ �
 Rollback করে না:  migration যা বদলেছে তা বদলানোই থাকে
 ```
 
-এই কারণেই উপরের "Migrations That Do Not Break" নিয়মগুলো এত জরুরি। Migration যদি পুরোনো code-এর সাথেও কাজ করে, তাহলে rollback-এর পরেও site স্বাভাবিক চলবে।
+এই কারণেই উপরের "Safe Migrations" নিয়মগুলো এত জরুরি। Migration যদি পুরোনো code-এর সাথেও কাজ করে, তাহলে rollback-এর পরেও site স্বাভাবিক চলবে।
 
 Migration যদি destructive হয় — column drop করা, table মুছে ফেলা — তখন rollback করেও লাভ নেই। সেই অবস্থায় `~/backups`-এ রাখা file-ই একমাত্র ভরসা:
 
 ```bash filename="SERVER — Terminal"
 cd /opt/myapp
-set -a; . ./.env; set +a
+POSTGRES_USER=$(grep '^POSTGRES_USER=' .env | cut -d= -f2-)
+POSTGRES_DB=$(grep '^POSTGRES_DB=' .env | cut -d= -f2-)
 cat ~/backups/pre-<সেই tag>.sql | docker compose exec -T db psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 ```
 
@@ -456,7 +604,7 @@ GHCR free, কিন্তু private repository-তে সীমা আছে�
 Private repo-তে ৫০০ MB দ্রুত ভরে যেতে পারে। তিনটি কাজ করলে সমস্যা হবে না:
 
 **Image ছোট রাখুন**
-`node:20-alpine` ব্যবহার করুন, `node:20` নয় — পার্থক্য প্রায় ৮০০ MB। Multi-stage build আর `npm prune --omit=dev` তো আছেই।
+`node:20-alpine` ব্যবহার করুন, `node:20` নয়। সাধারণ `node:20` image প্রায় ১ GB, alpine version ১৫০ MB-র কাছাকাছি। Multi-stage build আর `npm prune --omit=dev` তো আছেই।
 
 **পুরোনো version মুছুন**
 GitHub-এ package-এর পাতায় গিয়ে retention rule বসান, অথবা মাঝে মাঝে হাতে পুরোনো tag মুছে দিন। শেষ ১০-১৫টি রাখলেই যথেষ্ট।
@@ -485,7 +633,9 @@ GitHub-এ package-এর পাতায় গিয়ে retention rule ব�
 | `prisma: not found` container-এ | `prisma` এখনো `devDependencies`-এ আছে | `dependencies`-এ সরান |
 | Deploy-এর পরে database খালি | compose-এ volume নেই | `db-data` volume যোগ করুন |
 | Job সবুজ কিন্তু site পুরোনো | `set -e` নেই, মাঝপথে fail হয়েছে | `set -e` যোগ করুন, log আবার পড়ুন |
-| Disk full হয়ে গেছে | পুরোনো image জমে আছে | `docker image prune -a --filter "until=336h"` |
+| Disk full হয়ে গেছে | পুরোনো image জমে আছে | `docker image prune -af --filter "until=336h"` চালান, দরকারে সময় কমান |
+| প্রথম deploy-এ `service "db" is not running` | Database container কখনো চালু হয়নি | Script-এ `docker compose up -d db` লাইনটি আছে কিনা দেখুন |
+| `Cannot use import statement outside a module` | Runner stage-এ `package.json` copy হয়নি | Dockerfile-এ ওই `COPY` লাইনটি যোগ করুন |
 
 Log পড়ার নিয়ম: প্রথম লাল X-টিতে click করুন এবং **শেষ ২০ লাইন** পড়ুন। একটি step fail করলে পরের গুলো চলেই না, তাই প্রথম error-ই আসল error।
 
@@ -505,7 +655,7 @@ Log পড়ার নিয়ম: প্রথম লাল X-টিতে cl
   - **Database container-এর port বাইরে খুলবেন না।** উপরের compose file-এ `db`-র কোনো `ports` নেই — এটি ইচ্ছাকৃত। Debug করার জন্য একবার খুলে বন্ধ করতে ভুলে যাওয়া একটি খুব সাধারণ ভুল, আর automated scanner খোলা 5432 port কয়েক ঘণ্টার মধ্যে খুঁজে পায়।
   - **Deploy log-এ কী যাচ্ছে দেখুন।** `echo $DATABASE_URL` জাতীয় debug লাইন ভুলে থেকে গেলে password log-এ ছাপা হয়ে যাবে, আর Actions log মুছে ফেলা যায় না।
 
-  একটি সহজ পরীক্ষা: repository-র Settings → Collaborators খুলুন। ওই list-এর প্রত্যেকের হাতে এখন আপনার production database আছে।
+  একটি দ্রুত পরীক্ষা: repository-র Settings → Collaborators খুলুন। ওই list-এর প্রত্যেকের হাতে এখন আপনার production database আছে।
 </Callout>
 
 ## Quick Check
@@ -516,8 +666,6 @@ Log পড়ার নিয়ম: প্রথম লাল X-টিতে cl
 - [ ] `DATABASE_URL`-এ host-এর নাম কী হবে?
 - [ ] `db-data` volume না দিলে কী হারাবেন?
 - [ ] Rollback database ফেরায় — সত্য না মিথ্যা?
-
-## Where to Go Next
 
 আপনার pipeline এখন production-ready। Push করলে দুটি image build হয়, registry-তে যায়, database-এর backup হয়, migration চলে, container বদলায়, আর কিছু ভাঙলে নিজে থেকে পুরোনো image-এ ফিরে যায়।
 

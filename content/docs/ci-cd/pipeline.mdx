@@ -23,7 +23,7 @@ import { Callout, Steps } from 'nextra/components'
 
 ## What Goes Where
 
-শুরুতেই পরিষ্কার করে নিই কোন file কোথায় থাকবে। এই ছবিটি মাথায় থাকলে বাকিটা সহজ।
+শুরুতেই পরিষ্কার করে নিই কোন file কোথায় থাকবে। এই ছবিটি মাথায় থাকলে বাকি ধাপগুলো পরিষ্কার লাগবে।
 
 **GitHub repository-তে (আপনি যা লেখেন):**
 
@@ -34,7 +34,7 @@ myapp/
 │   └── deploy.yml
 ├── Dockerfile
 ├── .dockerignore
-├── next.config.js
+├── next.config.mjs
 └── package.json
 ```
 
@@ -56,13 +56,19 @@ Next.js-এর একটি setting আছে যা image-কে অনেক �
 
 `output: 'standalone'` দিলে Next.js build-এর সময় হিসাব করে দেখে ঠিক কোন file গুলো চালাতে লাগবে, আর শুধু সেগুলো একটি folder-এ জড়ো করে। বাকি সব বাদ।
 
-```js filename="next.config.js"
+```js filename="next.config.mjs"
 const nextConfig = {
   output: 'standalone',
 }
 
 export default nextConfig
 ```
+
+<Callout type="warning">
+  File-এর extension `.mjs`, `.js` নয়। `.js` file-এ `export default` লিখলে Node সেটি পড়তে পারে না — `package.json`-এ `"type": "module"` না থাকলে build fail করবে। `.mjs` দিলে এই ঝামেলা থাকে না।
+
+  আপনার project-এ যদি আগে থেকেই `next.config.js` থাকে এবং সেটি `module.exports` ব্যবহার করে, তাহলে নাম না বদলে শুধু ভেতরে `output: 'standalone'` লাইনটি যোগ করুন।
+</Callout>
 
 ফলাফল হাতেনাতে পাওয়া যায় — সাধারণ Next.js image প্রায় ১ GB, standalone দিয়ে সেটি ১৫০ MB-র কাছাকাছি নেমে আসে।
 
@@ -102,12 +108,20 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
 ```
 
 কেন তিনটি stage:
 
 শেষ stage-এ শুধু `public`, `.next/standalone` আর `.next/static` copy করা হয়েছে। `node_modules`, source code, build tool — কিছুই যায়নি। ওগুলো আগের stage-এ ছিল, আর সেই stage গুলো final image-এ থাকে না।
+
+<Callout type="warning">
+  `ENV HOSTNAME=0.0.0.0` লাইনটিও জরুরি। Docker প্রতিটি container-এ `HOSTNAME` নামে একটি variable বসিয়ে দেয় যার value হলো container-এর নিজের id। Next.js-এর তৈরি করা `server.js` ওই variable দেখে ঠিক করে কোন ঠিকানায় শুনবে। ফলে সে ভুল জায়গায় bind করে বসে, আর বাইরে থেকে connection আসে না।
+
+  `0.0.0.0` মানে "সব ঠিকানায় শোনো"। Next.js-এর official Dockerfile-এও ঠিক এই দুটি লাইন আছে।
+</Callout>
 
 <Callout type="warning">
   `USER nextjs` লাইনটি বাদ দেবেন না। এটি না থাকলে আপনার app container-এর ভেতরে `root` হিসেবে চলবে। কেউ যদি app-এর কোনো দুর্বলতা কাজে লাগিয়ে ভেতরে ঢুকে পড়ে, তখন তার হাতে container-এর সব ক্ষমতা থাকবে।
@@ -273,7 +287,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
+            set -eE
             cd /opt/myapp
 
             # এখন কোন version চলছে, মনে রাখি — ফিরে আসার জন্য
@@ -281,6 +295,18 @@ jobs:
             NEW_TAG=${{ github.sha }}
             echo "old: $OLD_TAG"
             echo "new: $NEW_TAG"
+
+            # যেকোনো ধাপে fail করলে এই function চলবে
+            rollback() {
+              if [ "$OLD_TAG" = "latest" ] || [ -z "$OLD_TAG" ]; then
+                echo "previous tag is not a fixed version — cannot roll back"
+                return
+              fi
+              echo "rolling back to $OLD_TAG"
+              sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
+              docker compose up -d || true
+            }
+            trap rollback ERR
 
             # নতুন version বসাই
             sed -i "s|^TAG=.*|TAG=$NEW_TAG|" .env
@@ -290,17 +316,17 @@ jobs:
             # সত্যিই চলছে কিনা দেখি, ৩০ সেকেন্ড পর্যন্ত অপেক্ষা
             for i in $(seq 1 10); do
               if curl -fsS http://localhost:3000 > /dev/null; then
+                trap - ERR
                 echo "deploy ok"
-                docker image prune -f
+                docker image prune -af --filter "until=336h"
                 exit 0
               fi
               sleep 3
             done
 
-            # এখানে পৌঁছানো মানে app উঠল না — ফিরে যাই
-            echo "health check failed, rolling back to $OLD_TAG"
-            sed -i "s|^TAG=.*|TAG=$OLD_TAG|" .env
-            docker compose up -d
+            # এখানে পৌঁছানো মানে app উঠল না
+            echo "health check failed"
+            rollback
             exit 1
 ```
 
@@ -330,7 +356,7 @@ Deploy করার মানে দাঁড়ায় শুধু ওই �
 
 Deploy-এর শেষে ওই `for` loop-টি বাদ দেবেন না।
 
-কারণটি সহজ: GitHub-এর সবুজ checkmark-এর মানে শুধু "সব command exit code 0 দিয়েছে"। `docker compose up -d` container চালু করেই ফিরে আসে — container-টি ভেতরে গিয়ে crash করল কিনা সে জানে না।
+মূল কারণ: GitHub-এর সবুজ checkmark-এর মানে শুধু "সব command exit code 0 দিয়েছে"। `docker compose up -d` container চালু করেই ফিরে আসে — container-টি ভেতরে গিয়ে crash করল কিনা সে জানে না।
 
 App উঠে গিয়ে তিন সেকেন্ড পরে মরে যেতে পারে — `.env`-এ একটি variable missing থাকলে, port দখল হয়ে থাকলে, বা code-এ কোনো ভুল থাকলে। Docker তখনো "started" বলবে, GitHub সবুজ দেখাবে, আর আপনার site down থাকবে।
 
@@ -343,6 +369,34 @@ App উঠে গিয়ে তিন সেকেন্ড পরে মর�
 - `-S` — তবু error message দেখায়
 
 Loop-টি ১০ বার চেষ্টা করে, প্রতিবার ৩ সেকেন্ড অপেক্ষা করে। Next.js উঠতে সাধারণত ৩-৫ সেকেন্ড লাগে, তাই ৩০ সেকেন্ড যথেষ্ট।
+
+## Automatic Rollback
+
+Script-এ `rollback` নামে একটি function আছে আর তার সাথে একটি লাইন:
+
+```bash
+trap rollback ERR
+```
+
+`trap` shell-কে বলে — "নিচের যেকোনো command fail করলে আগে `rollback` চালিয়ে নিও"।
+
+এটি কেন দরকার, একটু ভেবে দেখুন। Script-এর তৃতীয় লাইনেই `.env`-এ নতুন TAG বসিয়ে দেওয়া হয়। এরপর যদি `docker compose pull` fail করে (registry-তে ঢুকতে না পারলে, বা image না পেলে), তাহলে `set -e`-র কারণে script সাথে সাথে থেমে যাবে।
+
+`trap` না থাকলে তখন যা হতো: `.env`-এ এমন একটি version লেখা আছে যা কখনো চালুই হয়নি। পরের বার কেউ `docker compose up -d` দিলে বা server reboot হলে সেই ভুল version উঠতে চাইবে।
+
+`trap` থাকায় যেখানেই fail করুক, `.env` আগের অবস্থায় ফিরে যায়।
+
+Health check পাশ করলে `trap - ERR` দিয়ে trap-টি সরিয়ে দেওয়া হয় — কাজ শেষ, আর দরকার নেই।
+
+<Callout type="warning">
+  প্রথম deploy-এ rollback কাজ করবে না, আর সেটাই স্বাভাবিক।
+
+  কারণ `.env`-এ শুরুতে `TAG=latest` লেখা ছিল। `latest` কোনো নির্দিষ্ট version নয় — আর এই run-এ সেটিও নতুন (ভাঙা) image-এর দিকেই ঘুরে গেছে। তাই ওখানে ফিরে যাওয়ার কোনো মানে হয় না।
+
+  `rollback` function-এর শুরুর `if` লাইনটি ঠিক এই কারণেই আছে — সে দেখে নেয় ফেরার মতো সত্যিকারের কোনো version আছে কিনা, না থাকলে পরিষ্কার করে বলে দেয়।
+
+  দ্বিতীয় deploy থেকে rollback পুরোপুরি কাজ করবে, কারণ তখন `.env`-এ প্রথম deploy-এর commit sha লেখা থাকবে।
+</Callout>
 
 ## Understand `concurrency`
 
@@ -416,7 +470,7 @@ git push origin main
 
   নিজের image-এ কী আছে দেখতে চাইলে:
 
-  ```bash
+  ```bash filename="LOCAL — Terminal"
   docker history ghcr.io/omar/myapp-web:latest --no-trunc
   ```
 
@@ -430,8 +484,6 @@ git push origin main
 - [ ] Server-এ এখন কয়টি file আছে বলতে পারবেন?
 - [ ] `.env`-এর `TAG` লাইনটি কী কাজ করে?
 - [ ] Health check না থাকলে কোন সমস্যাটি ধরা পড়বে না?
-
-## What's Next
 
 আপনার Next.js app এখন নিজে থেকে deploy হচ্ছে, আর deploy fail করলে নিজে থেকে ফিরেও যাচ্ছে।
 

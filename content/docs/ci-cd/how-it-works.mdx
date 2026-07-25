@@ -157,9 +157,13 @@ myapp/
 │       ├── ci.yml         ← pull request-এ build check
 │       └── deploy.yml     ← main-এ push হলে deploy
 ├── Dockerfile
-├── compose.yaml
+├── .dockerignore
 └── package.json
 ```
+
+<Callout type="default">
+  এখানে কোনো `compose.yaml` নেই — এটি ইচ্ছাকৃত। Compose file আর `.env` শুধু **server-এ** থাকে, repository-তে নয়। কারণ ওই দুটি file-এ server-এর নিজস্ব তথ্য আর secret থাকে।
+</Callout>
 
 Folder-এর নাম হুবহু `.github/workflows` হতে হবে। ভুল হলে GitHub file-টি খুঁজেই পাবে না, আর কোনো error ও দেখাবে না।
 
@@ -269,15 +273,25 @@ Pipeline fail করলে GitHub-এ **Actions** tab-এ যাবেন। স
 
   `uses: someone/some-action@main` লিখলে আপনি একজন অচেনা মানুষের code-কে আপনার secrets-এর কাছে যাওয়ার অনুমতি দিচ্ছেন। `@main` মানে "সবসময় সর্বশেষ version" — অর্থাৎ সে যখন খুশি code বদলাতে পারে, আর আপনার pipeline সেই বদলানো code চালাবে।
 
-  এটি একটি সত্যিকারের attack path। ২০২৫ সালে `tj-actions/changed-files` নামের একটি জনপ্রিয় action-এ ঠিক এই ঘটনা ঘটে — attacker action-টির tag বদলে দেয়, আর হাজার হাজার repository-র secrets build log-এ ফাঁস হয়ে যায়।
+  এটি একটি সত্যিকারের attack path। ২০২৫ সালের ১৪ মার্চ `tj-actions/changed-files` নামের একটি action-এ ঠিক এই ঘটনা ঘটে। Action-টি ২৩,০০০-এরও বেশি repository ব্যবহার করত। Attacker ভেতরে একটি malicious script ঢুকিয়ে দেয় যা runner-এর memory থেকে secrets টেনে build log-এ ছেপে দিত। Public repository-র log সবাই পড়তে পারে, তাই সেগুলোর secrets প্রকাশ্যে চলে আসে।
+
+  এই ঘটনার সবচেয়ে জরুরি শিক্ষাটি অনেকে বুঝতে ভুল করেন। Attacker শুধু code বদলায়নি — সে **পুরোনো version tag গুলোও নতুন করে ওই malicious commit-এর দিকে ঘুরিয়ে দিয়েছিল**। অর্থাৎ যারা `@v44` লিখে রেখেছিলেন, তাদের কোনো লাভ হয়নি। `@v44` তখন অন্য জিনিস দেখাচ্ছিল।
+
+  যাঁরা বেঁচে গিয়েছিলেন তাঁরা commit SHA দিয়ে pin করে রেখেছিলেন। SHA বদলানো যায় না — সেটিই একমাত্র আসল সুরক্ষা।
 
   তিনটি নিয়ম:
 
-  - সবসময় version pin করুন — `@v4`, কখনো `@main` নয়
-  - সবচেয়ে নিরাপদ হলো commit SHA দিয়ে pin করা — `uses: actions/checkout@8f4b7f8`
-  - অচেনা action ব্যবহারের আগে তার source code একবার পড়ুন
+  - `@main` কখনো নয়। এটি সবচেয়ে খারাপ, কারণ এখানে attack করারও দরকার নেই — maintainer নিজেই যেকোনো সময় code বদলাতে পারেন
+  - `@v4` সর্বনিম্ন মান। বেশিরভাগ ক্ষেত্রে যথেষ্ট, কিন্তু উপরের ঘটনা দেখাল যে tag ও সরানো যায়
+  - **সত্যিকারের সুরক্ষা commit SHA।** সম্পূর্ণ ৪০ অক্ষরের SHA লিখতে হবে — ছোট করে লিখলে GitHub সেটি চিনতে পারে না:
 
-  `actions/` এবং `docker/` দিয়ে শুরু হওয়া action-গুলো যথাক্রমে GitHub আর Docker-এর নিজের — এগুলো তুলনামূলক নিরাপদ।
+  ```yaml
+  uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  ```
+
+  পাশে comment হিসেবে version লিখে রাখুন, না হলে ছয় মাস পরে বোঝা যাবে না কোনটা কী।
+
+  `actions/` এবং `docker/` দিয়ে শুরু হওয়া action-গুলো যথাক্রমে GitHub আর Docker-এর নিজের — এগুলোর ঝুঁকি তুলনামূলক কম, তাই এই guide-এ `@v4` ধরনের tag ব্যবহার করা হয়েছে।
 </Callout>
 
 ## Quick Check
