@@ -123,7 +123,9 @@ Use Fumadocs (`fumadocs-core` + `fumadocs-ui`) as a Nextra alternative — it is
 - Free tier covers all current needs.
 - Custom domain support included.
 
-**Current domain:** omarsec.com (connected via Namecheap nameservers → Vercel)
+**Current domain:** omarsec.com — DNS is on Cloudflare, records set to **DNS only**
+(grey cloud) so they resolve straight to Vercel. Proxying stays off: Cloudflare's CDN
+in front of Vercel's own causes SSL errors and stale assets.
 
 **If you want to replace it:**
 - **Netlify** — similar free tier, slightly less optimized for Next.js but works with static export.

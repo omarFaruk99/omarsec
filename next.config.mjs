@@ -6,7 +6,5 @@ const withNextra = nextra({
 
 export default withNextra({
   // Next.js config options
-  reactStrictMode: true,
-  // Bundle only the files needed to run, so the Docker image stays small
-  output: 'standalone'
+  reactStrictMode: true
 })
