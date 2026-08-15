@@ -1,0 +1,68 @@
+---
+title: Why Not Gmail
+description: The real reasons a personal Gmail or Workspace account cannot send automated or bulk email for a company, and what an Email Service Provider actually sells.
+---
+
+import { Callout } from 'nextra/components'
+
+# Why Not Gmail
+
+<Callout type="info">
+  "Gmail তো আছেই, তাহলে আলাদা service কেন লাগবে?" — এটা প্রায় সবাই প্রথমে জিজ্ঞেস করে। এই পেজে সেই কারণগুলো একটা একটা করে দেখানো হয়েছে, শুধু "লিমিট আছে" বলে ছেড়ে দেওয়া হয়নি।
+</Callout>
+
+## The Limits Are Real, but Not the Main Problem
+
+Gmail-এর একটা দৈনিক পাঠানোর সীমা আছে — ফ্রি অ্যাকাউন্টে প্রায় ৫০০, Google Workspace-এ প্রায় ২০০০। আপনার ক্লায়েন্ট লিস্ট যদি ১০ হাজার হয়, একদিনেই সেটা পার হয়ে যাবে। কিন্তু আসল সমস্যাটা লিমিট না — সমস্যা হলো Google-এর **Terms of Service**। ব্যক্তিগত Gmail অ্যাকাউন্ট মানুষে-মানুষে যোগাযোগের জন্য বানানো, automated/programmatic বাল্ক পাঠানোর জন্য না। এটা করতে গেলে অ্যাকাউন্ট suspend হওয়ার ঝুঁকি থাকে — আর সেই অ্যাকাউন্টেই যদি কোম্পানির অন্য সব যোগাযোগও চলে, পুরো ইমেইল বন্ধ হয়ে যেতে পারে।
+
+## What Actually Breaks
+
+- **`noreply@yourcompany.com` থেকে ঠিকভাবে পাঠানো যায় না।** Gmail SMTP ব্যবহার করলে envelope-এ Gmail-এর নিজস্ব ডোমেইন থেকে যায়, আপনার কোম্পানির ডোমেইন থেকে না — যেটা DMARC alignment ভাঙে ([How Email Works](/docs/email/how-email-works)-এ envelope vs header দেখুন)।
+- **Bounce handling নেই।** কোন ইমেইল ঠিকানা ভুল, কে মেইল পায়নি — এটা জানারই উপায় নেই।
+- **Unsubscribe/suppression list নেই।** একবার কেউ unsubscribe করলে তাকে বাদ দেওয়ার কোনো স্বয়ংক্রিয় ব্যবস্থা নেই।
+- **Webhook/event নেই।** কে মেইল খুলেছে, কে ক্লিক করেছে, কে স্প্যাম মার্ক করেছে — কোনো ডেটাই আসে না।
+- **Reputation আপনার হাতে না।** Gmail-এর IP লাখো মানুষের সাথে শেয়ার করা। অন্য কেউ স্প্যাম পাঠালে সেটার প্রভাব আপনার মেইলেও পড়তে পারে।
+- **নতুন bulk sender নিয়ম।** ২০২৪ থেকে Gmail ও Yahoo বাল্ক পাঠানোর জন্য বাধ্যতামূলক করেছে: authentication (SPF/DKIM/DMARC), one-click unsubscribe, আর ০.৩%-এর নিচে spam complaint rate। ব্যক্তিগত Gmail অ্যাকাউন্ট দিয়ে এগুলো পূরণ করার কোনো উপায়ই নেই।
+
+## What an Email Service Provider Actually Sells
+
+এখানেই আসল প্রশ্নের উত্তর — Email Service Provider (ESP) টাকা নিয়ে আসলে কী দেয়?
+
+আপনি যা কিনছেন সেটা "মেইল পাঠানোর ক্ষমতা" না — SMTP তো ফ্রি। আপনি কিনছেন:
+
+- **IP/domain reputation ব্যবস্থাপনা** — বড় ISP-দের (Gmail, Outlook, Yahoo) সাথে সরাসরি সম্পর্ক ও feedback loop
+- **Bounce ও complaint স্বয়ংক্রিয় প্রসেসিং**
+- **Suppression list** — যাকে একবার পাঠানো যাবে না বলে চিহ্নিত হয়েছে, তাকে আর পাঠানো হয় না
+- **Webhook events, analytics, delivery log**
+- **API + SMTP relay**, উচ্চ throughput
+
+সংক্ষেপে — আপনি কিনছেন **"পাঠানো" না, "ইনবক্সে পৌঁছানো"**। যেকোনো সার্ভার থেকে মেইল পাঠানো টেকনিক্যালি সহজ; সেটা স্প্যাম ফোল্ডারে না গিয়ে ইনবক্সে পৌঁছানো কঠিন, আর সেটাই ESP-দের আসল কাজ।
+
+## Choosing a Provider
+
+| Provider | চরিত্র |
+|----------|--------|
+| **Amazon SES** | সবচেয়ে সস্তা (প্রতি ১০০০ মেইলে ~$0.10), বেশি সেটআপ লাগে, AWS ইকোসিস্টেমের সাথে ভালো মেশে — এই গাইডে মূল উদাহরণ |
+| Resend | Developer-friendly, দ্রুত সেটআপ, ছোট প্রজেক্টের জন্য জনপ্রিয় |
+| Postmark | Transactional-এ বিশেষায়িত, ভালো deliverability reputation |
+| SendGrid | পুরনো ও পরিচিত, transactional + marketing দুটোই করে |
+| Mailgun | Developer-focused, API-first |
+| Brevo | Transactional + marketing + SMS, ফ্রি টিয়ার আছে |
+
+এই গাইডে **Amazon SES** ব্যবহার করা হবে — কারণ এটা সবচেয়ে কম খরচে scale করে এবং AWS-ভিত্তিক ইনফ্রাস্ট্রাকচারের সাথে স্বাভাবিকভাবেই মেশে। বাকি প্রোভাইডারদের কনসেপ্ট (domain verify, SPF/DKIM/DMARC) প্রায় একই — শুধু dashboard-এর জায়গা আলাদা।
+
+## What About Running Your Own Mail Server?
+
+Postfix বা exim দিয়ে নিজের সার্ভারেই মেইল সার্ভার বসানো সম্ভব — টেকনিক্যালি। কিন্তু MVP-এর জন্য এটা এড়িয়ে চলাই ভালো:
+
+- বেশিরভাগ cloud provider (AWS, DigitalOcean, GCP) নতুন সার্ভারে outbound port 25 বন্ধ রাখে, কারণ এটাই সবচেয়ে বেশি স্প্যামের জন্য misuse হয়
+- একটা নতুন IP-তে কোনো reputation থাকে না — শুরুতেই ব্ল্যাকলিস্টে পড়ার ঝুঁকি
+- PTR record (reverse DNS), IP warmup, blacklist monitoring — সব নিজে সামলাতে হয়
+
+এগুলো ঠিক সেই কাজ, যেটার জন্য ESP-কে টাকা দেওয়া হয়। তাই নিজে সার্ভার চালানো সাধারণত তখনই যুক্তিসঙ্গত হয় যখন volume অনেক বেশি এবং একটা dedicated infrastructure/deliverability team আছে।
+
+**পরবর্তী →** [Domain Setup](/docs/email/domain-setup)
+
+<span style={{ display: 'none' }}>
+  why not use gmail for sending emails bangla, email service provider bangla, amazon ses vs gmail bangla, transactional email provider comparison bangla, postfix mail server bangla
+</span>

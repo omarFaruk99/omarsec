@@ -35,6 +35,12 @@ export default {
       collapsed: true
     }
   },
+  'email': {
+    title: 'Email Service',
+    theme: {
+      collapsed: true
+    }
+  },
   'claude-code': {
     title: 'Claude Code',
     theme: {

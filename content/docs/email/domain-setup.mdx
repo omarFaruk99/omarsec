@@ -1,0 +1,120 @@
+---
+title: Domain Setup
+description: Verify a domain with Amazon SES and configure SPF, DKIM, DMARC, and MX records — what each one does and why it exists.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Domain Setup
+
+<Callout type="info">
+  এই পেজে Amazon SES-কে উদাহরণ ধরে দেখানো হয়েছে একটা ডোমেইনকে ইমেইল পাঠানোর জন্য কীভাবে প্রস্তুত করতে হয়। অন্য যেকোনো provider (Resend, Postmark, SendGrid) একই ধরনের ধাপ চায় — শুধু dashboard-এর জায়গা আলাদা।
+</Callout>
+
+## Why a Subdomain
+
+মূল ডোমেইন (`yourcompany.com`) দিয়ে সরাসরি transactional মেইল না পাঠিয়ে আলাদা একটা subdomain ব্যবহার করা ভালো — যেমন `mail.yourcompany.com`। এর কারণ হলো **reputation isolation**। যদি sending subdomain-এর reputation কোনো কারণে খারাপ হয় (স্প্যাম রিপোর্ট বেশি, বাউন্স রেট বেশি), মূল ডোমেইনের ওয়েবসাইট বা corporate ইমেইল (`@yourcompany.com`)-এর উপর তার প্রভাব পড়ে না।
+
+## Sandbox Mode
+
+Amazon SES-এ নতুন অ্যাকাউন্ট ডিফল্টভাবে **Sandbox** মোডে থাকে। এর মানে:
+
+- শুধু verified email address/domain-এ পাঠানো যায় (নিজের টেস্ট ইনবক্সে)
+- দৈনিক পাঠানোর সীমা খুবই কম (২০০ মেইল/দিন)
+
+Production-এ real ক্লায়েন্টদের পাঠাতে হলে **"Request Production Access"** ফর্ম জমা দিতে হয় — AWS জিজ্ঞেস করে আপনি কী ধরনের মেইল পাঠাবেন, কীভাবে bounce/complaint হ্যান্ডেল করবেন, কীভাবে unsubscribe দেবেন। এটা এক ধরনের quality gate — যাতে নতুন অ্যাকাউন্ট দিয়ে সরাসরি স্প্যাম না ছড়ায়।
+
+<Callout type="default">
+  Production access পাওয়ার আগেই DNS সেটআপ ও টেস্ট মেইল পাঠানো সম্ভব — শুধু production-এ real ক্লায়েন্টদের পাঠানো আটকানো থাকে। তাই সেটআপ শুরু করতে অপেক্ষা করার দরকার নেই।
+</Callout>
+
+<Steps>
+
+### Add and Verify the Domain
+
+SES Console-এ **Identities → Create identity → Domain** থেকে `mail.yourcompany.com` যোগ করুন। SES আপনাকে কয়েকটা DNS রেকর্ড দেবে, যেগুলো ডোমেইনের DNS provider-এ (Cloudflare, Route 53, Namecheap ইত্যাদি) যোগ করতে হবে। নিচের প্রতিটা রেকর্ডের কাজ আলাদা করে ব্যাখ্যা করা হলো।
+
+### DKIM — Proving the Message Wasn't Altered
+
+**DKIM (DomainKeys Identified Mail)** একটা ডিজিটাল স্বাক্ষর। SES প্রতিটা পাঠানো মেইলে একটা private key দিয়ে স্বাক্ষর করে, আর গ্রহীতার সার্ভার DNS-এ থাকা public key দিয়ে সেটা যাচাই করে।
+
+SES সাধারণত তিনটা CNAME রেকর্ড দেয়:
+
+```
+Type:  CNAME
+Name:  abc123._domainkey.mail.yourcompany.com
+Value: abc123.dkim.amazonses.com
+```
+
+এটা যাচাই করে দেয় — মেইলটা সত্যিই SES থেকে পাঠানো হয়েছে এবং পথে কেউ এর কনটেন্ট বদলায়নি।
+
+### SPF — Who Is Allowed to Send
+
+**SPF (Sender Policy Framework)** একটা TXT রেকর্ড, যেখানে বলা থাকে কোন কোন সার্ভার এই ডোমেইনের নামে মেইল পাঠানোর অনুমতিপ্রাপ্ত।
+
+```
+Type:  TXT
+Name:  mail.yourcompany.com
+Value: v=spf1 include:amazonses.com ~all
+```
+
+`include:amazonses.com` মানে SES-কে অনুমতি দেওয়া হলো। `~all` মানে এর বাইরে থেকে এলে soft-fail (সন্দেহজনক হিসেবে চিহ্নিত, একদম বাতিল না)। একটা ডোমেইনে **একটাই** SPF রেকর্ড থাকতে পারে, আর DNS lookup-এর সীমা ১০টা — একাধিক `include` যোগ করতে করতে এই সীমা পার হয়ে গেলে SPF পুরোপুরি ফেল করে।
+
+### DMARC — What To Do When Checks Fail
+
+**DMARC** বলে দেয় — SPF বা DKIM ফেল করলে গ্রহীতার সার্ভার কী করবে, আর রিপোর্ট কোথায় পাঠাবে।
+
+```
+Type:  TXT
+Name:  _dmarc.mail.yourcompany.com
+Value: v=DMARC1; p=none; rua=mailto:dmarc-reports@yourcompany.com
+```
+
+`p=` পলিসি ধাপে ধাপে বাড়ানো উচিত, একবারে কড়া করা ঠিক না:
+
+1. **`p=none`** — শুধু মনিটর করো, কিছু ব্লক করো না। শুরুতে এটাই ব্যবহার করুন, রিপোর্ট দেখে নিশ্চিত হন সব বৈধ মেইল pass করছে
+2. **`p=quarantine`** — ফেল করা মেইল স্প্যাম ফোল্ডারে যাবে
+3. **`p=reject`** — ফেল করা মেইল সম্পূর্ণ বাতিল হবে
+
+তাড়াহুড়ো করে `p=reject`-এ চলে গেলে নিজের বৈধ মেইলও হারিয়ে যেতে পারে, যদি কোনো legitimate sending source SPF/DKIM-এ যোগ করতে ভুলে যান।
+
+DMARC-এর সবচেয়ে গুরুত্বপূর্ণ ও প্রায়ই ভুল বোঝা অংশ হলো **alignment** — শুধু SPF বা DKIM pass করলেই হবে না, header-এর `From:` ডোমেইনের সাথে সেই pass হওয়া চেক-এর ডোমেইনও মিলতে হবে। এই কারণেই Gmail SMTP দিয়ে `noreply@yourcompany.com` পাঠালে DMARC ফেল করে ([Why Not Gmail](/docs/email/why-not-gmail) দেখুন) — SPF pass হয় Gmail-এর ডোমেইনের জন্য, আপনার ডোমেইনের জন্য না।
+
+### MX — This Is for Receiving, Not Sending
+
+এখানেই সবচেয়ে বেশি বিভ্রান্তি হয়। **MX (Mail Exchange) রেকর্ড পাঠানোর জন্য না — মেইল গ্রহণ করার জন্য।**
+
+```
+Type:  MX
+Name:  yourcompany.com
+Value: 10 mail.protection.outlook.com  (অথবা Google Workspace/Zoho-র MX)
+```
+
+পাঠানো (sending) আর গ্রহণ করা (receiving) সম্পূর্ণ আলাদা দুটো সিস্টেম:
+
+- **Sending** — SES/Resend/ইত্যাদির মাধ্যমে, SPF/DKIM/DMARC দিয়ে প্রমাণিত
+- **Receiving** — যেখানে `info@yourcompany.com`-এ পাঠানো রিপ্লাই এসে জমা হয় — এর জন্য Google Workspace বা Zoho Mail-এর মতো একটা mailbox provider লাগে, আর MX রেকর্ড সেখানে পয়েন্ট করে
+
+যদি sending subdomain (`mail.yourcompany.com`)-এ কোনো mailbox না থাকে, সেখানে MX রেকর্ড লাগবে না। মূল ডোমেইনের MX রেকর্ড আলাদাভাবে ঠিক করা থাকবে, mailbox provider যেটা দেয়।
+
+### Verify with dig
+
+DNS রেকর্ড যোগ করার পর নিজে যাচাই করা যায়:
+
+```bash filename="LOCAL — Terminal"
+dig TXT mail.yourcompany.com +short
+dig CNAME abc123._domainkey.mail.yourcompany.com +short
+dig TXT _dmarc.mail.yourcompany.com +short
+```
+
+<Callout type="info">
+  DNS propagation-এ কয়েক মিনিট থেকে কয়েক ঘণ্টা লাগতে পারে। SES Console-এও ডোমেইনের পাশে "Verified"/"Pending" স্ট্যাটাস দেখা যায় — dig-এর আউটপুট আর SES-এর স্ট্যাটাস দুটোই মিলিয়ে নিশ্চিত হন।
+</Callout>
+
+</Steps>
+
+**পরবর্তী →** [Deliverability](/docs/email/deliverability)
+
+<span style={{ display: 'none' }}>
+  amazon ses domain verification bangla, spf dkim dmarc setup bangla, mx record explained bangla, email dns records bangla, ses sandbox mode bangla
+</span>

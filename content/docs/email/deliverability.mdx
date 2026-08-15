@@ -1,0 +1,87 @@
+---
+title: Deliverability
+description: Why email lands in spam, IP/domain reputation, warmup, suppression lists, and a full checklist to launch a transactional email system.
+---
+
+import { Callout } from 'nextra/components'
+
+# Deliverability
+
+<Callout type="info">
+  DNS রেকর্ড ঠিকভাবে বসানো মানেই মেইল ইনবক্সে পৌঁছাবে — এমন না। **Deliverability** একটা চলমান প্রক্রিয়া, একবারের সেটআপ না। এই পেজে সেই কারণগুলো এবং একটা সম্পূর্ণ launch checklist দেওয়া হলো।
+</Callout>
+
+## Reputation Is Everything
+
+প্রতিটা sending domain আর sending IP-র একটা **reputation score** থাকে, যা Gmail/Outlook/Yahoo-এর মতো ISP-রা নিজেদের কাছে রাখে। এই স্কোর নির্ধারণ করে মেইল ইনবক্সে যাবে, না স্প্যামে যাবে, না একেবারে ব্লক হয়ে যাবে। নতুন ডোমেইন/IP-র কোনো history না থাকায় শুরুতে reputation নিরপেক্ষ থাকে — এবং প্রথম কয়েকদিনের আচরণ দিয়েই এটা গড়ে ওঠে।
+
+Amazon SES-এর মতো বড় provider ব্যবহার করলে সাধারণত **shared IP** পাওয়া যায়, যার একটা established reputation আগে থেকেই থাকে। বেশি volume হলে **dedicated IP** নেওয়া যায়, কিন্তু তখন সেই IP-র reputation সম্পূর্ণ নিজেকেই গড়ে তুলতে হয়।
+
+## Warmup
+
+নতুন ডোমেইন বা dedicated IP দিয়ে প্রথম দিনেই ৫,০০০ মেইল পাঠালে ISP-রা এটাকে সন্দেহজনক হিসেবে ধরে নেয় — কারণ এই প্যাটার্ন স্প্যাম bot-দের মতো দেখায়। **Warmup** মানে অল্প সংখ্যক মেইল দিয়ে শুরু করে ধীরে ধীরে (কয়েক সপ্তাহ ধরে) volume বাড়ানো, যাতে ISP-রা ধীরে ধীরে এই sender-কে "চিনতে" পারে।
+
+Shared IP ব্যবহার করলে formal warmup সাধারণত দরকার হয় না, কারণ IP-র reputation আগে থেকেই আছে। কিন্তু dedicated IP বা নিজের ডোমেইন থেকে প্রথমবার পাঠানোর সময় warmup গুরুত্বপূর্ণ।
+
+## Bounces, Complaints, and Suppression
+
+- **Hard bounce** — ইমেইল ঠিকানা আসলেই অস্তিত্বহীন। একবার হার্ড বাউন্স হলে সেই ঠিকানায় আর কখনো পাঠানো উচিত না
+- **Soft bounce** — সাময়িক সমস্যা (mailbox full, সার্ভার ডাউন)। কয়েকবার চেষ্টার পর বাদ দেওয়া উচিত
+- **Complaint** — গ্রহীতা "Mark as Spam" চাপলে ISP সেটা রিপোর্ট করে ফেরত পাঠায়
+
+**Suppression list** হলো এমন একটা তালিকা, যেখানে hard bounce ও complaint হওয়া ঠিকানাগুলো রাখা হয় এবং ভবিষ্যতে সেগুলোতে আর পাঠানো হয় না। এটা বাদ দিলে bounce/complaint rate বাড়তে থাকে, আর একটা নির্দিষ্ট সীমার (সাধারণত complaint rate ০.৩%-এর বেশি) পর ISP পুরো ডোমেইনকেই ব্লক করে দিতে পারে। Amazon SES নিজে থেকেই bounce/complaint নোটিফিকেশন দেয় (SNS-এর মাধ্যমে), যেটা suppression list বানানোর ভিত্তি।
+
+## List Hygiene
+
+- কখনো কেনা ইমেইল লিস্টে পাঠাবেন না — এটা reputation নষ্ট করার সবচেয়ে দ্রুত উপায়
+- **Double opt-in** ব্যবহার করুন (সাইনআপের পর একটা কনফার্মেশন লিংকে ক্লিক করানো), যাতে ভুল/ভুয়া ঠিকানা লিস্টে না ঢোকে
+- Unsubscribe লিংক **বাধ্যতামূলক**, এবং সেটা এক ক্লিকেই কাজ করা উচিত — ২০২৪-এর Gmail/Yahoo নিয়ম অনুযায়ী এটা প্রায় সব bulk sender-এর জন্য প্রযোজ্য
+
+## Content Signals
+
+শুধু ছবি দিয়ে ভরা মেইল, লিংক শর্টনার ব্যবহার, বা plain-text ভার্সন না থাকা — এগুলো স্প্যাম ফিল্টারে negative signal হিসেবে ধরা হয়। প্রতিটা মেইলে একটা HTML ভার্সনের পাশাপাশি একটা plain-text ভার্সনও থাকা ভালো। Transactional আর marketing মেইল আলাদা subdomain থেকে পাঠানো উচিত (যেমন `mail.` বনাম `news.`), যাতে marketing মেইলের কারণে transactional মেইলের reputation না নষ্ট হয়।
+
+## Testing Tools
+
+- **mail-tester.com** — একটা টেস্ট মেইল পাঠিয়ে ১০-এর মধ্যে স্কোর দেয়, SPF/DKIM/DMARC ও কনটেন্ট ইস্যু ধরিয়ে দেয়
+- **Google Postmaster Tools** — Gmail-এ নিজের ডোমেইনের reputation, spam rate সরাসরি দেখা যায়
+- **MXToolbox** — DNS রেকর্ড, blacklist status যাচাই করার জন্য
+
+## CyberSec Note
+
+<Callout type="warning">
+  DMARC policy `p=none`-এ রেখে দিলে বা একেবারেই না থাকলে, যে কেউ আপনার কোম্পানির ডোমেইনের নামে ফিশিং মেইল পাঠাতে পারে — এটাকে **Business Email Compromise (BEC)** বলা হয়, এবং এটা এখনো সবচেয়ে সফল ফিশিং ভেক্টরগুলোর একটি।
+
+  Pentesting-এর সময় একটা টার্গেট ডোমেইনের email security posture যাচাই করার জন্য:
+
+  ```bash filename="Terminal"
+  dig TXT targetdomain.com +short          # SPF দেখুন
+  dig TXT _dmarc.targetdomain.com +short   # DMARC policy দেখুন
+  ```
+
+  `p=none` বা DMARC রেকর্ড না থাকা মানে সেই ডোমেইনের নামে spoofed ফিশিং মেইল পাঠানো তুলনামূলক সহজ — এটা social engineering engagement-এর একটা সাধারণ reconnaissance ধাপ। TryHackMe-র phishing-সংক্রান্ত room-গুলোতে (যেমন **"Phishing Analysis Tools"**) এই ধরনের header ও DNS বিশ্লেষণের হাতেকলমে অনুশীলন আছে।
+</Callout>
+
+## Quick Check
+
+একটা transactional email সিস্টেম চালু করার পূর্ণ যাত্রা — শুরু থেকে শেষ পর্যন্ত:
+
+- [ ] Email Service Provider বেছে নেওয়া হয়েছে (এই গাইডে Amazon SES)
+- [ ] Sending subdomain (`mail.yourcompany.com`) ঠিক করা হয়েছে
+- [ ] Provider-এ ডোমেইন add করে verification শুরু হয়েছে
+- [ ] DKIM, SPF, DMARC (`p=none` দিয়ে শুরু), এবং প্রয়োজনে MX রেকর্ড DNS-এ যোগ হয়েছে
+- [ ] `dig`/`nslookup` দিয়ে প্রতিটা রেকর্ড নিজে যাচাই করা হয়েছে
+- [ ] নিজের ইনবক্সে একটা টেস্ট মেইল পাঠিয়ে mail-tester স্কোর চেক করা হয়েছে
+- [ ] Bounce/complaint notification (SNS/webhook) সেটআপ করা হয়েছে
+- [ ] Suppression list ও unsubscribe ব্যবস্থা আছে
+- [ ] Sandbox থেকে বের হওয়ার জন্য Production Access request করা হয়েছে
+- [ ] অল্প volume দিয়ে শুরু করে ধীরে ধীরে বাড়ানো (warmup) পরিকল্পনা করা আছে
+- [ ] DMARC policy কয়েক সপ্তাহ পর্যবেক্ষণের পর ধাপে ধাপে `quarantine` → `reject`-এ নেওয়ার পরিকল্পনা আছে
+
+এই লিস্টটা শেষ করলে একজন client-এর অ্যাপ থেকে বাস্তবে প্রোডাকশনে transactional email পাঠানোর জন্য প্রয়োজনীয় সব ভিত্তি তৈরি হয়ে যাবে।
+
+**পরবর্তী →** [Claude Code](/docs/claude-code)
+
+<span style={{ display: 'none' }}>
+  email deliverability bangla, spam prevention email bangla, ip warmup email bangla, suppression list bangla, bec attack bangla, amazon ses production access bangla
+</span>

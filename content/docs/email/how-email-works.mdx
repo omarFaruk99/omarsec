@@ -1,0 +1,79 @@
+---
+title: How Email Works
+description: Transactional vs bulk email, the journey of a message through SMTP, and why the envelope and header are two different things.
+---
+
+import { Callout } from 'nextra/components'
+
+# How Email Works
+
+<Callout type="info">
+  ডোমেইন সেটআপ বা প্রোভাইডার বাছাইয়ে যাওয়ার আগে বুঝতে হবে ইমেইল আসলে কী এবং কীভাবে এক জায়গা থেকে আরেক জায়গায় যায়। এই একটি পেজ বুঝলে পরের সব DNS রেকর্ড আর মুখস্থ করে রাখতে হবে না — নিজে থেকেই যুক্তিসঙ্গত মনে হবে।
+</Callout>
+
+## Two Different Jobs
+
+সব ইমেইল একরকম না। একজন মানুষ Gmail থেকে আরেকজন মানুষকে যে মেইল পাঠায়, সেটা একটা জিনিস। একটা সিস্টেম হাজার হাজার মানুষকে যে মেইল পাঠায়, সেটা সম্পূর্ণ আলাদা জিনিস — অন্য নিয়ম, অন্য টুল।
+
+সিস্টেম মেইলের ভেতরেও দুটো আলাদা ভাগ আছে, আর এই ভাগটা গুলিয়ে ফেললে বাকি সবকিছু ঘোলাটে লাগে:
+
+- **Transactional email** — একজন নির্দিষ্ট ইউজারের একটি নির্দিষ্ট action-এর ফল। সাইনআপ কনফার্মেশন, OTP, পাসওয়ার্ড রিসেট, ইনভয়েস। এটা expected — ইউজার নিজেই এটা trigger করেছে।
+- **Bulk/Marketing email** — একসাথে অনেক মানুষকে পাঠানো। নিউজলেটার, প্রোমোশন, প্রোডাক্ট আপডেট। এটা unsolicited হতে পারে, তাই এখানে আইনি ও reputation-এর নিয়ম অনেক কড়া (unsubscribe, consent)।
+
+দুটোরই টেকনিক্যাল ভিত্তি এক (SMTP), কিন্তু deliverability-এর নিয়ম, volume, এবং প্রায়ই ব্যবহৃত সার্ভিসও আলাদা হয়। এই গাইডে মূলত transactional-এর কথা বলা হবে, কারণ বেশিরভাগ কোম্পানির অ্যাপ প্রথমে এটাই দরকার হয়।
+
+## The Journey of an Email
+
+একটি মেইল পাঠানোর সময় কয়েকটা স্টেপ পার হয়:
+
+```
+Your App → SMTP → Sending Server (MTA) → Internet → Receiving Server (MTA) → Recipient's Inbox
+```
+
+- **MUA (Mail User Agent)** — যে সফটওয়্যার দিয়ে মেইল লেখা হয় (Outlook, Gmail ওয়েব অ্যাপ, বা আপনার নিজের অ্যাপ)
+- **MTA (Mail Transfer Agent)** — যে সার্ভার আসলে মেইল এক জায়গা থেকে আরেক জায়গায় পাঠায়/রিলে করে। Amazon SES, Postmark ইত্যাদি essentially একটা managed MTA
+- **MDA (Mail Delivery Agent)** — গ্রহীতার সার্ভারে যে মেইলবক্সে জমা করে
+
+মেইল পাঠানোর প্রোটোকলের নাম **SMTP** (Simple Mail Transfer Protocol)। মেইল *পড়ার* জন্য আলাদা প্রোটোকল লাগে — **IMAP** বা **POP3**। এই দুটো গুলিয়ে ফেলা সাধারণ ভুল: পাঠানো আর গ্রহণ করা সম্পূর্ণ আলাদা দুটো সিস্টেম, এবং এটা মনে রাখা [Domain Setup](/docs/email/domain-setup) পেজে MX রেকর্ড বুঝতে সরাসরি কাজে লাগবে।
+
+তিনটা পোর্ট প্রায়ই দেখবেন:
+
+| Port | ব্যবহার |
+|------|---------|
+| 25 | সার্ভার-টু-সার্ভার মেইল রিলে। বেশিরভাগ cloud provider (AWS EC2 সহ) নতুন ইনস্ট্যান্সে এই পোর্ট ব্লক করে রাখে, কারণ এটাই সবচেয়ে বেশি স্প্যামের জন্য misuse হয় |
+| 587 | আপনার অ্যাপ/ক্লায়েন্ট থেকে মেইল সার্ভারে সাবমিট করার standard পোর্ট (STARTTLS দিয়ে encrypted) |
+| 465 | পুরনো implicit-TLS পোর্ট, এখনো অনেক provider সাপোর্ট করে |
+
+## Envelope vs Header — The Key Weakness
+
+এই অংশটা সবচেয়ে গুরুত্বপূর্ণ, কারণ এখান থেকেই স্প্যাম, ফিশিং, আর SPF/DKIM/DMARC-এর দরকার তৈরি হয়েছে।
+
+একটা চিঠির সাথে তুলনা করলে সহজ হয়:
+
+- **Envelope (খাম)** — SMTP প্রোটোকলের `MAIL FROM` কমান্ডে থাকা ঠিকানা। এটা দিয়ে ঠিক হয় বাউন্স মেইল কোথায় ফেরত যাবে। ইউজার এটা দেখতে পায় না।
+- **Header (চিঠির ভেতরের অংশ)** — মেইল ক্লায়েন্টে যে `From:` ঠিকানা দেখা যায়। এটা ইউজার দেখে।
+
+সমস্যা হলো — **SMTP প্রোটোকলে এই দুটো মিলে থাকার কোনো বাধ্যবাধকতা নেই, আর `From:` header-এ যা খুশি লেখার কোনো বাধাও নেই**। কেউ চাইলেই একটা মেইল পাঠিয়ে `From: ceo@yourcompany.com` লিখে দিতে পারে, যদিও সেটা আসলে অন্য কোনো সার্ভার থেকে এসেছে। SMTP ডিজাইন হয়েছিল ১৯৮০-এর দশকে, যখন identity যাচাইয়ের কথা ভাবা হয়নি।
+
+এই একটা ফাঁক থেকেই তৈরি হয়েছে:
+- Email spoofing/phishing (আপনার ডোমেইনের নামে কেউ ভুয়া মেইল পাঠানো)
+- স্প্যাম ফিল্টার করার প্রয়োজন
+- SPF, DKIM, DMARC — তিনটাই আসলে এই একটা প্রশ্নের উত্তর দেওয়ার চেষ্টা: *"এই মেইলটা কি সত্যিই এই ডোমেইনের অনুমতি নিয়ে পাঠানো হয়েছে?"*
+
+<Callout type="default">
+  এই একটা ধারণা মাথায় গেঁথে নিলে [Domain Setup](/docs/email/domain-setup) পেজের প্রতিটা DNS রেকর্ড আর আলাদা করে মুখস্থ করতে হবে না — প্রতিটাই এই একই সমস্যার সমাধান করছে, শুধু ভিন্ন কোণ থেকে।
+</Callout>
+
+## CyberSec Note
+
+<Callout type="warning">
+  Envelope আর Header আলাদা হতে পারে বলেই ফিশিং attacker সহজেই `From:` header spoof করতে পারে, অথচ bounce ঠিকই attacker-এর নিজের সার্ভারে ফেরত যায় (কারণ envelope alag)। মেইল হেডার বিশ্লেষণ (header analysis) এই কারণেই ফিশিং তদন্তের একটি মূল কৌশল — `Received:` হেডারগুলো পড়ে আসল উৎস সার্ভার খুঁজে বের করা যায়।
+
+  নিজে দেখতে চাইলে যেকোনো মেইলের "Show Original" (Gmail) বা "View Source" অপশন থেকে raw header দেখুন — `From:`, `Return-Path:`, আর প্রথম `Received:` লাইন তুলনা করলেই পার্থক্যটা চোখে পড়বে।
+</Callout>
+
+**পরবর্তী →** [Why Not Gmail](/docs/email/why-not-gmail)
+
+<span style={{ display: 'none' }}>
+  smtp bangla, how email works bangla, transactional vs marketing email bangla, mta mua mda bangla, email envelope header bangla, email spoofing explained bangla
+</span>

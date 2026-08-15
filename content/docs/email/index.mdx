@@ -1,0 +1,41 @@
+---
+title: Email Service
+description: Understand how companies send transactional and bulk email to real clients — what to provision, what to configure on the domain, and why Gmail cannot do this job.
+---
+
+import { Callout } from 'nextra/components'
+
+# Email Service
+
+<Callout type="info">
+  একটি কোম্পানির অ্যাপ থেকে হাজারো ক্লায়েন্টকে সিগন্যাপ কনফার্মেশন, পাসওয়ার্ড রিসেট, ইনভয়েস বা নোটিফিকেশন মেইল পাঠানোর জন্য কী কী লাগে — এই section সেটাই শেখায়। এটি একটি কোডিং গাইড না; এখানে software engineering, DevOps, এবং server security-এর দৃষ্টিকোণ থেকে সিস্টেমটা কীভাবে কাজ করে তা বোঝানো হয়েছে।
+</Callout>
+
+## The Scenario
+
+ধরুন আপনার কোম্পানির একটি web application আছে। প্রতিদিন কয়েকশো ইউজার সাইনআপ করে, পাসওয়ার্ড ভুলে গেলে রিসেট লিংক চায়, অর্ডার দিলে ইনভয়েস পায়। এই সব মেইল যাবে সরাসরি আপনার সার্ভার/অ্যাপ থেকে — কোনো মানুষ বসে বসে পাঠাচ্ছে না।
+
+স্বাভাবিক প্রশ্ন আসে: personal Gmail বা Outlook দিয়ে এটা করা যায় না? উত্তর হলো — না, বাস্তবে যায় না। কেন যায় না, আর তার বদলে আসলে কী দরকার হয়, সেটাই এই section-এর মূল বিষয়।
+
+## Who This Is For
+
+- যে software engineer একটি অ্যাপ বানাচ্ছেন যেখান থেকে ক্লায়েন্টদের মেইল যাবে
+- যে DevOps/server-এর দায়িত্বে আছেন এবং deliverability (মেইল ইনবক্সে পৌঁছানো) নিশ্চিত করতে হবে
+- যে security-এর দিক থেকে জানতে চান একটি ডোমেইন কীভাবে email spoofing/phishing থেকে সুরক্ষিত রাখা হয়
+
+## What's Inside
+
+| Page | কী শিখবেন |
+|------|-----------|
+| [How Email Works](/docs/email/how-email-works) | SMTP, MTA, Envelope vs Header — একটি মেইল আসলে কীভাবে এক সার্ভার থেকে আরেক সার্ভারে পৌঁছায় |
+| [Why Not Gmail](/docs/email/why-not-gmail) | Gmail/Outlook দিয়ে বাল্ক বা transactional মেইল না পাঠানোর আসল কারণ, এবং Email Service Provider (ESP) কী বিক্রি করে |
+| [Domain Setup](/docs/email/domain-setup) | Amazon SES দিয়ে উদাহরণ — domain verify, SPF/DKIM/DMARC/MX রেকর্ড, sandbox থেকে বের হওয়া |
+| [Deliverability](/docs/email/deliverability) | মেইল কেন স্প্যামে যায়, warmup, suppression list, এবং একটি শুরু-থেকে-শেষ MVP checklist |
+
+<Callout type="default">
+  এখানে কোনো অ্যাপ্লিকেশন কোড লেখা হবে না। প্রতিটি পেজে যা কোড দেখবেন তা হলো DNS রেকর্ড এবং যাচাইয়ের জন্য `dig`/`nslookup` কমান্ড — বাকি সবকিছু concept ও configuration decision নিয়ে।
+</Callout>
+
+<span style={{ display: 'none' }}>
+  email service bangla, transactional email bangla, bulk email setup bangla, amazon ses bangla tutorial, email deliverability bangla, spf dkim dmarc bangla
+</span>
