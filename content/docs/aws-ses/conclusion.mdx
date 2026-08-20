@@ -1,0 +1,37 @@
+---
+title: Conclusion
+description: মনে রাখার জিনিস, Access Key আর Domain-এর সম্পর্ক, আর references — সব এক জায়গায়।
+---
+
+import { Callout } from 'nextra/components'
+
+# Conclusion
+
+<Callout type="info">
+সেটআপ শেষ। এখানে কয়েকটা জিনিস মনে রাখার জন্য গুছিয়ে দেওয়া হলো।
+</Callout>
+
+## মনে রাখার জিনিস
+
+- **Bounce** (মেইল না পৌঁছানো) আর **Complaint** (স্প্যাম রিপোর্ট) বেশি হলে AWS একাউন্ট ব্লক করে দিতে পারে। লিস্ট পরিষ্কার রাখুন।
+- প্রতিটা মেইলে **Unsubscribe লিংক** থাকতে হবে।
+- খরচ: প্রতি ১,০০০ মেইলে প্রায় $0.10 (আনুমানিক) — খুবই সস্তা।
+- নতুন domain দিয়ে হুট করে হাজার হাজার মেইল পাঠাবেন না — ধীরে ধীরে বাড়ান ("warm up"), নাহলে স্প্যাম ফোল্ডারে যাওয়ার সম্ভাবনা বাড়ে।
+
+## Access Key আর Domain — গুরুত্বপূর্ণ পয়েন্ট
+
+যে domain(s) একটা AWS SES account-এ verify করা আছে, সেই account-এর Access Key/credential যার কাছে যাবে, সে **সব verified domain থেকেই** মেইল পাঠাতে পারবে। Access Key কোনো নির্দিষ্ট person বা domain-এর সাথে বাঁধা না — চাবি যার হাতে, সে account-এর সব ক্ষমতা পায়। তাই:
+
+- Access Key/SMTP credential শুধু বিশ্বস্ত Developer-কে, নিরাপদভাবে দিন।
+- Leak হলে বা ভুল মানুষের হাতে গেলে, সে আপনার নামে (verified domain থেকে) মেইল পাঠাতে পারবে — এমনকি spam/phishing-ও।
+- একাধিক developer/team থাকলে প্রতিটার জন্য **আলাদা Access Key** বানানো ভালো (একই IAM approach, শুধু আলাদা user) — কারো access বাতিল করতে চাইলে শুধু ওই একটা key delete করলেই হয়, বাকিদের প্রভাবিত না করে।
+
+## References
+
+- [Creating and verifying identities in Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html)
+- [Verified identities in Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/verify-addresses-and-domains.html)
+- [Obtaining Amazon SES SMTP credentials](https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html)
+
+<span style={{ display: 'none' }}>
+  aws ses conclusion, ses access key security bangla, bulk email best practices bangla, ses bounce complaint bangla
+</span>

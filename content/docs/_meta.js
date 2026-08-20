@@ -29,6 +29,12 @@ export default {
       collapsed: true
     }
   },
+  'aws-ses': {
+    title: 'AWS SES',
+    theme: {
+      collapsed: true
+    }
+  },
   'docker': {
     title: 'Docker',
     theme: {

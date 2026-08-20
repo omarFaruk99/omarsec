@@ -1,0 +1,43 @@
+---
+title: AWS SES
+description: নিজের bulk email সিস্টেম বানাতে AWS SES, Cloudflare, আর domain provider (Namecheap) দিয়ে যা যা সেটআপ করতে হবে।
+---
+
+import { Callout } from 'nextra/components'
+
+# AWS SES
+
+<Callout type="info">
+এই section তাদের জন্য যারা নিজের bulk email সিস্টেম বানাতে চান — Developer না হলেও অনুসরণ করা যাবে, যাতে owner/admin নিজেই AWS SES, domain, আর DNS সেটআপ করে Developer-কে হ্যান্ডওভার করতে পারেন।
+</Callout>
+
+## এই Section কেন
+
+কোনো কোম্পানি যখন নিজের সার্ভার থেকে বাল্ক ইমেইল (marketing/product update) পাঠাতে চায়, তখন Gmail/Yahoo-র কাছে বিশ্বাসযোগ্য হতে হলে **AWS SES**, **domain ownership প্রমাণ (DKIM/SPF/DMARC)**, আর সঠিক DNS সেটআপ লাগে। এই section সেই পুরো প্রসেসটা ধাপে ধাপে দেখায় — AWS console-এর ভেতরে ঠিক কোথায় ক্লিক করতে হবে, সহ।
+
+## Prerequisites
+
+- একটা ইমেইল এড্রেস
+- একটা কার্ড (AWS account খুলতে লাগে)
+- ডোমেইন কেনার টাকা (একটা ডোমেইন প্রতি বছর প্রায় $10-15)
+
+Developer হওয়া দরকার নেই — এই section একজন non-technical owner-ও অনুসরণ করতে পারবেন।
+
+## What You Will Learn
+
+- **AWS Account ও Test Mail:** AWS account খোলা, region বাছা, SES-এ প্রথম টেস্ট মেইল পাঠানো
+- **Domain Verification:** নিজের domain SES-এ verify করা, DKIM/SPF/DMARC রেকর্ড Cloudflare-এ বসানো
+- **Sending Credentials:** কোড থেকে মেইল পাঠানোর জন্য Access Key বা SMTP credential বানানো
+- **Production Access:** Sandbox থেকে বের হয়ে আসল ক্লায়েন্টদের মেইল পাঠানোর অনুমতি নেওয়া, আর Developer-কে হ্যান্ডওভার করা
+
+## How to Use This Section
+
+<Callout type="warning">
+প্রতিটা ধাপ AWS console-এর real screen দেখে verify করা — কিন্তু AWS console মাঝে মাঝে UI বদলায়, তাই লেখা navigation-এর সাথে সামান্য পার্থক্য দেখলে ঘাবড়াবেন না, সাধারণত একই জায়গায় বা কাছাকাছি নামে থাকে।
+</Callout>
+
+**পরবর্তী →** [Setup](/docs/aws-ses/setup)
+
+<span style={{ display: 'none' }}>
+  aws ses bangla, bulk email setup guide, aws ses bangla tutorial, deliverability bangla, spf dkim dmarc bangla
+</span>
