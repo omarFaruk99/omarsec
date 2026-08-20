@@ -156,10 +156,34 @@ IAM users লিস্ট → `ses-sender` ক্লিক → **Security creden
 Access Key ইতিমধ্যে করে থাকলে এই sub-section স্কিপ করুন। SMTP পুরনো mail library-এর সাথে সহজে কাজ করে।
 </Callout>
 
-SES কনসোল → বামের সাইডবারে **SMTP settings** → **Create SMTP credentials** → username দিন (default রাখা যায়) → **Create**।
+SES কনসোল → বামের সাইডবারে **SMTP settings** → এখানে দুইটা অপশন দেখাবে:
 
-- `SMTP username` + `SMTP password` দেখাবে — সেভ করুন (একবারই দেখাবে)।
-- SMTP endpoint দেখাবে যেমন `email-smtp.ap-southeast-1.amazonaws.com`, port `587`।
+| অপশন | কী করবেন |
+|---|---|
+| **Mail Manager SMTP** (default/Recommended) | বাছবেন না — এটায় extra "Mail Manager processing charges" আছে |
+| **IAM SMTP credentials** | এটা বাছুন — ফ্রি, সাধারণ ব্যবহারের জন্য যথেষ্ট |
+
+**IAM SMTP credentials** বেছে → **Create SMTP credentials** → একটা **"Create user for SMTP"** পেজ খুলবে:
+
+- **User name** — default রাখা যায় (যেমন `ses-smtp-user.20260820-200820`)
+- **Permissions** — AWS নিজে থেকে একটা group বানাবে (`AWSSESSendingGroupDoNotRename`), যাতে শুধু `ses:SendRawEmail` permission থাকে — এটা Access Key-এর `AmazonSESFullAccess`-এর চেয়েও নিরাপদ (শুধু মেইল পাঠানোর অনুমতি, আর কিছু না)
+- **Tags** — খালি রাখুন (ঐচ্ছিক)
+
+শেষে **Create user** ক্লিক করুন। এরপর **"Retrieve SMTP credentials"** পেজে দেখাবে:
+
+- **IAM user name** — যা উপরে দিয়েছিলেন
+- **SMTP user name** — এটা IAM user name থেকে আলাদা, Access Key-এর মতো দেখতে একটা কোড (যেমন `AKIAV27H45JYYYORBG6C`)
+- **SMTP password** — লুকানো থাকে, **Show** ক্লিক করলে দেখা যায়
+
+<Callout type="warning">
+এই পেজেই একবারই SMTP password দেখাবে — পরে আর ফিরে দেখা যাবে না। **Download .csv file** বাটনে ক্লিক করে সেভ করে রাখুন।
+</Callout>
+
+<Callout type="info">
+নতুন console-এ SMTP endpoint/port আলাদাভাবে আর দেখায় না — এটা region অনুযায়ী ফিক্সড:
+- **Endpoint:** `email-smtp.<region>.amazonaws.com` (যেমন আপনার region `ap-southeast-1` হলে `email-smtp.ap-southeast-1.amazonaws.com`)
+- **Port:** `587` (recommended, STARTTLS দিয়ে) — বিকল্প হিসেবে `465` (TLS wrapper) ব্যবহার করা যায়, `25` এড়িয়ে চলুন
+</Callout>
 
 ## Production Access
 
