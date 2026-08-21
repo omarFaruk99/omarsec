@@ -5,8 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 OmarSec is a documentation site for [omarsec.com](https://www.omarsec.com) — a Bengali-language
-cybersecurity knowledge base (Pentesting, Linux, Git, Server, Docker, Claude Code). It is a
-**content project**: almost all work is writing/editing MDX pages under `content/`, not app code.
+tech learning knowledge base covering Cybersecurity/Pentesting, Linux, Git, Server Deployment,
+Docker, CI/CD, Cloud, DevOps, AI Engineering, and Claude Code. The audience is broad: software
+engineers, DevOps/cloud engineers, AI engineers, security folks, and tech-savvy learners in
+general — not cybersecurity-only anymore. It is a **content project**: almost all work is
+writing/editing MDX pages under `content/`, not app code.
 
 ## Commands
 
@@ -53,14 +56,17 @@ All `.mdx` pages must follow `DOCS_RULES.md`. Read it before writing or editing 
 Key points that are easy to get wrong:
 
 - **Language split:** main content in English; explanations, context, and callouts in Bengali;
-  code/commands always English. Audience is Bengali-speaking cybersecurity learners.
+  code/commands always English. Audience is Bengali-speaking tech learners (software engineering,
+  DevOps, cloud, AI engineering, cybersecurity, and general tech-savvy readers). Content is
+  Bengali-only for now; an English version is planned for later — don't build i18n routing yet.
 - **No emojis anywhere** (headings, lists, callouts, frontmatter).
 - **Headings are short identifiers only** — put the description in the paragraph below. Use `##`
   and `###` only. No "Part 1"/"Step 2" numbering in headings. No `---` inside body content.
 - **Teach why before how:** explain the concept before showing a command. A bare command with no
   explanation (cheatsheet style) is a rule violation.
-- **Required sections per page:** opening `<Callout>`, a `## CyberSec Note`, a "পরবর্তী →" next-page
-  link at the bottom, and a hidden SEO keyword `<span>`. `## Quick Check` is optional (see rule 9).
+- **Required sections per page:** opening `<Callout>`, a `## Real-World Note` (security angle when
+  relevant, otherwise practical/production context), a "পরবর্তী →" next-page link at the bottom,
+  and a hidden SEO keyword `<span>`. `## Quick Check` is optional (see rule 9).
 - **File naming:** semantic slugs, lowercase, hyphens only (`file-permissions.mdx`), no numeric
   prefixes, no underscores.
 - **Platform assumption:** commands target Ubuntu 24.04 LTS (`apt`) unless stated otherwise.

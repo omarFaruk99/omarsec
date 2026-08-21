@@ -1,6 +1,8 @@
 # OmarSec
 
-Bengali-language cybersecurity documentation site — **[omarsec.com](https://omarsec.com)**.
+Bengali-language tech learning documentation site — **[omarsec.com](https://omarsec.com)**.
+Covers cybersecurity, Linux, Git, DevOps, cloud, and AI engineering for software engineers,
+DevOps/cloud/AI engineers, security folks, and tech-savvy learners in general.
 
 Next.js 15 + Nextra 4, hosted on Vercel. Almost all work is writing MDX pages
 under `content/`.

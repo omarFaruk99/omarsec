@@ -221,7 +221,7 @@ SES → Account dashboard → **Sending limits** সেকশনে "Sandbox" �
 
 </Steps>
 
-## CyberSec Note
+## Real-World Note
 
 <Callout type="warning">
 এই পুরো সেটআপের কেন্দ্রে আছে **spoofing/phishing prevention**: DKIM/SPF/DMARC প্রমাণ করে মেইলটা আসল domain থেকেই এসেছে, আর AWS ইচ্ছা করেই নতুন account-কে Sandbox-এ আটকে রাখে যাতে কেউ SES ব্যবহার করে spam/phishing campaign চালাতে না পারে। Access Key/SMTP credential leak হলে যে কেউ আপনার verified domain থেকে মেইল পাঠাতে পারবে — তাই এটা কখনো কোডে hardcode বা Git repository-তে commit করবেন না, `.env` + `.gitignore` ব্যবহার করুন।

@@ -127,7 +127,7 @@ sudo systemctl reload nginx
   Next.js অ্যাপ এখনো চালু না হলে Nginx একটি error দেখাবে। চিন্তা করবেন না — পরের page-এ আমরা PM2 দিয়ে অ্যাপটি background-এ চালু করব।
 </Callout>
 
-## CyberSec Note
+## Real-World Note
 
 <Callout type="warning">
   কনফিগে `server_tokens off` লেখার কারণটি মনে রাখবেন। এটি না লিখলে HTTP response header-এ Nginx-এর version দেখা যায় (যেমন: `nginx/1.24.0`)। একজন attacker এই তথ্য দিয়ে ওই version-এর known vulnerability খুঁজবে। এই একটি লাইন দিয়ে আপনি তাকে অনেক কম তথ্য দিচ্ছেন। এটিকে বলে **Information Hiding** — সিকিউরিটির একটি মৌলিক নীতি।

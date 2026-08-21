@@ -15,7 +15,7 @@ Every `.mdx` page must follow this exact order:
 3. # Page Title        → single H1, matches frontmatter title
 4. Opening <Callout>   → what this page covers (1–2 sentences)
 5. Content sections    → concept → example → code (see Rule 5)
-6. ## CyberSec Note    → why this matters in security context
+6. ## Real-World Note  → why this matters in practice (see Rule 8)
 7. ## Quick Check      → self-assessment checklist (optional — see Rule 9)
 8. Next page link      → "পরবর্তী →" with path
 9. Hidden SEO keywords → <span style={{ display: 'none' }}>
@@ -47,7 +47,9 @@ The right-side TOC has limited width. A long heading wraps and looks bad.
 - **Main content:** English
 - **Explanations, context, callouts:** Bengali
 - **Code and commands:** Always English, never Bengali
-- **Target audience:** Bengali-speaking learners studying cybersecurity
+- **Target audience:** Bengali-speaking tech learners — software engineers, DevOps/cloud
+  engineers, AI engineers, security folks, and tech-savvy readers in general. Not
+  cybersecurity-only. Content is Bengali-only for now; an English version is planned later.
 
 ---
 
@@ -107,14 +109,19 @@ Do not use `<Callout type="error">` unless the action is truly destructive or ir
 
 ---
 
-## 8. CyberSec Note (Required)
+## 8. Real-World Note (Required)
 
-Every page must have a `## CyberSec Note` section before Quick Check.
+Every page must have a `## Real-World Note` section before Quick Check. It explains why the
+topic matters in practice — the angle depends on the topic:
 
-- Wrap content in `<Callout type="warning">`
-- Explain why this topic matters in a security context
-- Reference TryHackMe rooms, CTF scenarios, or pentesting workflows where relevant
-- Include practical commands when possible
+- **Security-relevant topic** (Linux, Git, Server, Docker, networking, etc.): wrap in
+  `<Callout type="warning">`, explain the security angle, and reference TryHackMe rooms, CTF
+  scenarios, or pentesting workflows where relevant.
+- **Non-security topic** (pure AI engineering, DevOps automation, cloud architecture, etc.):
+  wrap in `<Callout type="info">` or `<Callout type="default">` and explain the practical/
+  production angle instead — reliability, cost, scaling, common mistakes in real projects.
+  Do not force a security tie-in where none naturally exists.
+- Include practical commands or examples when possible.
 
 ---
 
