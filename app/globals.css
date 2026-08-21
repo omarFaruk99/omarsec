@@ -22,6 +22,12 @@ body:not(.nav-scrolled) .nextra-navbar-blur {
   border-bottom-color: transparent !important;
 }
 
+/* Cursor-follow network node background — turned off per request.
+   To re-enable, delete this rule; the effect below is untouched. */
+body.has-home-bg::before {
+  display: none !important;
+}
+
 /* Base Network Node Pattern (Dark Mode Default) */
 /* Only applied on Homepage via the .has-home-bg class */
 body.has-home-bg::before {
@@ -89,6 +95,12 @@ h3 {
      separate brand color, matching the site's black & white look. */
   --teal-accent: #ffffff;
   --accent-rgb: 255, 255, 255;
+
+  /* Blue hover accent used sparingly (topic card icon + lesson count, the
+     Contribute button text) — the rest of the site stays monochrome. */
+  --hover-accent: hsl(var(--nextra-primary-hue) var(--nextra-primary-saturation) var(--nextra-primary-lightness));
+  --hover-accent-bg: hsl(var(--nextra-primary-hue) var(--nextra-primary-saturation) var(--nextra-primary-lightness) / 0.1);
+  --hover-accent-border: hsl(var(--nextra-primary-hue) var(--nextra-primary-saturation) var(--nextra-primary-lightness) / 0.3);
 }
 
 html:not(.dark),

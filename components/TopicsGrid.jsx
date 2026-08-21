@@ -161,13 +161,6 @@ export function TopicsGrid() {
           min-height: 9.5rem;
         }
 
-        .topic-card:hover {
-          border-color: var(--teal-accent);
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateY(-2px);
-          box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.12);
-        }
-
         .topic-card--linux { grid-area: linux; }
         .topic-card--claude { grid-area: claude; }
         .topic-card--docker { grid-area: docker; }
@@ -187,6 +180,12 @@ export function TopicsGrid() {
           color: var(--teal-accent);
           border: 1px solid rgba(var(--accent-rgb), 0.25);
           margin-bottom: 1rem;
+        }
+
+        .topic-card:hover .topic-icon {
+          background: var(--hover-accent-bg);
+          color: var(--hover-accent);
+          border-color: var(--hover-accent-border);
         }
 
         .topic-icon svg {
@@ -220,6 +219,11 @@ export function TopicsGrid() {
           font-size: 0.9rem;
           line-height: 1.55;
           color: #888;
+        }
+
+        .topic-card:hover .topic-meta {
+          color: var(--hover-accent);
+          opacity: 1;
         }
 
         .topic-meta {

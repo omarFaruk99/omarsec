@@ -3,6 +3,7 @@ title: OmarSec
 ---
 
 import { TopicsGrid } from '@/components/TopicsGrid'
+import { ContributeButton } from '@/components/ContributeButton'
 
 <div className="home-content-wrapper">
 
@@ -36,7 +37,7 @@ import { TopicsGrid } from '@/components/TopicsGrid'
 
   <div style={{
     display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-    gap: '1.5rem', marginTop: '1.5rem', padding: '2rem',
+    gap: '1.5rem', marginTop: '3rem', padding: '2rem',
     borderRadius: '16px', border: '1px solid rgba(var(--accent-rgb), 0.25)', background: 'rgba(var(--accent-rgb), 0.04)'
   }}>
     <div style={{ maxWidth: '520px' }}>
@@ -47,13 +48,7 @@ import { TopicsGrid } from '@/components/TopicsGrid'
         From fundamentals to production — open-source, and growing every week.
       </div>
     </div>
-    <a href="https://github.com/omarFaruk99/omarsec" target="_blank" rel="noreferrer" style={{
-      display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem',
-      borderRadius: '0.75rem', border: '1px solid rgba(var(--accent-rgb), 0.4)', background: 'rgba(var(--accent-rgb), 0.1)',
-      color: 'var(--teal-accent)', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap'
-    }}>
-      Contribute on GitHub →
-    </a>
+    <ContributeButton />
   </div>
 </div>
 
