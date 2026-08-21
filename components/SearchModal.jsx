@@ -124,6 +124,10 @@ export function SearchModal() {
         }
 
         .nextra-search-results {
+          position: fixed !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          width: min(22rem, calc(100vw - 2rem)) !important;
           margin-top: 0.5rem !important;
           z-index: 61 !important;
         }
