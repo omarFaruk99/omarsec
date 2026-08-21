@@ -10,6 +10,18 @@ body {
   position: relative;
 }
 
+/* Navbar starts transparent/borderless at the top of the page and only gains its
+   blurred background + border once scrolled (like vercel.com/oss/swr). */
+.nextra-navbar-blur {
+  transition: background-color 0.25s ease, backdrop-filter 0.25s ease, border-color 0.25s ease;
+}
+
+body:not(.nav-scrolled) .nextra-navbar-blur {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom-color: transparent !important;
+}
+
 /* Base Network Node Pattern (Dark Mode Default) */
 /* Only applied on Homepage via the .has-home-bg class */
 body.has-home-bg::before {
@@ -144,6 +156,8 @@ h3 {
   padding-top: 0.5rem !important;
 }
 
+/* Navbar search trigger + modal styling lives in SearchTrigger.jsx and SearchModal.jsx */
+
 /* Un-bold right sidebar TOC (On This Page) */
 .nextra-toc a,
 .nextra-toc li {
@@ -175,8 +189,9 @@ h3 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100dvh - 180px);
   width: 100%;
+  padding-top: 3rem;
+  padding-bottom: 1rem;
 }
 
 /* Override Nextra's default layout forcing scroll */
@@ -261,4 +276,14 @@ body.has-home-bg footer {
 body.has-home-bg footer > div {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* Hide Nextra's auto-injected locale/theme switcher row (shown by default on
+   sidebar-less pages) and its divider — our own ThemeToggle lives in the footer instead. */
+body.has-home-bg *:has(> hr.nextra-border) > div:first-child {
+  display: none;
+}
+
+body.has-home-bg hr.nextra-border {
+  display: none;
 }

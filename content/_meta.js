@@ -3,6 +3,7 @@ export default {
     title: 'Home',
     type: 'page',
     theme: {
+      layout: 'full',
       toc: false,
       sidebar: false,
       timestamp: false

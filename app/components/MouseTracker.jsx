@@ -9,7 +9,7 @@ export default function MouseTracker() {
   useEffect(() => {
     // Only track mouse and apply styles if on the Homepage
     const isHome = pathname === '/'
-    
+
     if (isHome) {
       document.body.classList.add('has-home-bg')
     } else {
@@ -27,6 +27,17 @@ export default function MouseTracker() {
       window.removeEventListener('mousemove', handleMouseMove)
       document.body.classList.remove('has-home-bg')
     }
+  }, [pathname])
+
+  useEffect(() => {
+    // Navbar border/blur only appears once the page is scrolled (like vercel.com/oss/swr)
+    const handleScroll = () => {
+      document.body.classList.toggle('nav-scrolled', window.scrollY > 4)
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [pathname])
 
   return null
