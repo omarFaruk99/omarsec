@@ -85,8 +85,16 @@ h3 {
 /* Phase 4: Homepage & Branding Enhancements */
 
 :root {
-  --teal-accent: #00d4aa;
-  --teal-glow: rgba(0, 212, 170, 0.2);
+  /* Same neutral white/black nav links already turn on hover/active — no
+     separate brand color, matching the site's black & white look. */
+  --teal-accent: #ffffff;
+  --accent-rgb: 255, 255, 255;
+}
+
+html:not(.dark),
+html[data-theme='light'] {
+  --teal-accent: #111111;
+  --accent-rgb: 17, 17, 17;
 }
 
 .hero-title {
@@ -137,17 +145,17 @@ h3 {
 @keyframes pulse-glow {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7);
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.7);
   }
 
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(0, 212, 170, 0);
+    box-shadow: 0 0 0 10px rgba(var(--accent-rgb), 0);
   }
 
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(0, 212, 170, 0);
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
   }
 }
 
@@ -230,19 +238,19 @@ body.has-home-bg main {
   transform: translateY(-2px) !important;
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: var(--teal-accent) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.1);
   color: var(--teal-accent) !important;
 }
 
 /* Primary Button (First one) */
 .home-cards a:nth-child(1) {
-  border-color: rgba(0, 212, 170, 0.3) !important;
-  background: rgba(0, 212, 170, 0.05) !important;
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+  background: rgba(var(--accent-rgb), 0.05) !important;
   color: var(--teal-accent) !important;
 }
 
 .home-cards a:nth-child(1):hover {
-  background: rgba(0, 212, 170, 0.1) !important;
+  background: rgba(var(--accent-rgb), 0.1) !important;
 }
 
 /* Light Mode Overrides */
@@ -262,8 +270,8 @@ html:not(.dark) .home-cards a:hover {
 
 html[data-theme='light'] .home-cards a:nth-child(1),
 html:not(.dark) .home-cards a:nth-child(1) {
-  background: rgba(0, 212, 170, 0.05) !important;
-  border-color: rgba(0, 212, 170, 0.2) !important;
+  background: rgba(var(--accent-rgb), 0.05) !important;
+  border-color: rgba(var(--accent-rgb), 0.2) !important;
   color: #008f72 !important; /* Slightly darker teal for light mode accessibility */
 }
 

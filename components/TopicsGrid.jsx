@@ -165,7 +165,7 @@ export function TopicsGrid() {
           border-color: var(--teal-accent);
           background: rgba(255, 255, 255, 0.05);
           transform: translateY(-2px);
-          box-shadow: 0 0 24px rgba(0, 212, 170, 0.12);
+          box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.12);
         }
 
         .topic-card--linux { grid-area: linux; }
@@ -183,9 +183,9 @@ export function TopicsGrid() {
           width: 2.5rem;
           height: 2.5rem;
           border-radius: 10px;
-          background: rgba(0, 212, 170, 0.08);
+          background: rgba(var(--accent-rgb), 0.08);
           color: var(--teal-accent);
-          border: 1px solid rgba(0, 212, 170, 0.25);
+          border: 1px solid rgba(var(--accent-rgb), 0.25);
           margin-bottom: 1rem;
         }
 

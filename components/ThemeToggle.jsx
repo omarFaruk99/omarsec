@@ -83,8 +83,8 @@ export function ThemeToggle() {
         }
 
         .theme-toggle-btn[aria-pressed="true"] {
-          background: rgba(0, 212, 170, 0.12);
-          border: 1px solid rgba(0, 212, 170, 0.35);
+          background: rgba(var(--accent-rgb), 0.12);
+          border: 1px solid rgba(var(--accent-rgb), 0.35);
           color: var(--teal-accent);
           opacity: 1;
         }

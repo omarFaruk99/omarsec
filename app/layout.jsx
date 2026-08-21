@@ -21,7 +21,7 @@ export const metadata = {
     template: '%s | OmarSec',
   },
   description:
-    'A Bengali-language knowledge base for software engineering, DevOps, cloud, AI engineering, and cybersecurity. Open-source notes and hands-on guides for tech-savvy learners.',
+    'An open-source knowledge base for software engineering, DevOps, cloud, AI engineering, and cybersecurity. Hands-on guides for tech-savvy learners.',
   openGraph: {
     title: 'OmarSec',
     description: 'A Bengali-language knowledge base for software engineering, DevOps, cloud, AI engineering, and cybersecurity. Open-source notes and hands-on guides for tech-savvy learners.',
@@ -33,24 +33,7 @@ export const metadata = {
 const navbar = (
   <Navbar
     logo={
-      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.05rem' }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '1.75rem',
-            height: '1.75rem',
-            borderRadius: '6px',
-            background: 'rgba(0, 212, 170, 0.1)',
-            border: '1px solid rgba(0, 212, 170, 0.3)',
-            color: 'var(--teal-accent)',
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '0.8rem',
-          }}
-        >
-          &gt;_
-        </span>
+      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>
         OmarSec
       </span>
     }
