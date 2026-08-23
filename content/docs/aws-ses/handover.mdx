@@ -1,0 +1,43 @@
+---
+title: Developer Handover
+description: সেটআপ শেষে Developer-কে ঠিক কী কী, আর কীভাবে নিরাপদে দিতে হবে।
+---
+
+import { Callout } from 'nextra/components'
+
+# Developer Handover
+
+<Callout type="info">
+AWS, domain, credential — সব রেডি। এখন Developer-এর হাতে তুলে দেওয়ার পালা।
+</Callout>
+
+## যা দিতে হবে
+
+- AWS Region (যেমন `ap-southeast-1`)
+- Access Key ID + Secret Access Key (API ব্যবহার করলে)
+- SMTP endpoint + username + password (SMTP ব্যবহার করলে) — endpoint দেখতে এমন হয়: `email-smtp.ap-southeast-1.amazonaws.com` (region অনুযায়ী বদলায়), সাথে port `587`
+- ভেরিফাই করা sender domain/email (যেমন `no-reply@mail.yourcompany.com`)
+- Production access পাওয়া গেছে কনফার্ম, সাথে Send rate ও Send quota সংখ্যা
+- Cloudflare DNS এডিট এক্সেস — ভবিষ্যতে নতুন রেকর্ড লাগতে পারে, যেমন click/open tracking চালু করা, DKIM key rotate করা, বা নতুন sub-domain দিয়ে মেইল পাঠানো
+- Bounce/Complaint notification কোন ইমেইলে আসবে সেটা জানিয়ে দিন (default-এ যে ঠিকানা থেকে মেইল পাঠানো হয়, সেখানেই আসে — বিস্তারিত [Conclusion](/docs/aws-ses/conclusion)-এ)
+
+## কীভাবে দিতে হবে
+
+<Callout type="warning">
+এগুলো নিরাপদে দিন — পাসওয়ার্ড ম্যানেজার বা এনক্রিপ্টেড শেয়ার দিয়ে, কখনো চ্যাটে বা ইমেইলে প্লেইন টেক্সটে না।
+</Callout>
+
+## Real-World Note
+
+<Callout type="warning">
+যে domain(s) একটা AWS SES account-এ verify করা আছে, সেই account-এর credential যার কাছে যাবে, সে **সব verified domain থেকেই** মেইল পাঠাতে পারবে। Credential কোনো নির্দিষ্ট person বা domain-এর সাথে বাঁধা না — চাবি যার হাতে, সে account-এর সব ক্ষমতা পায়। তাই:
+
+- Credential leak হলে বা ভুল মানুষের হাতে গেলে, সে আপনার নামে (verified domain থেকে) spam/phishing মেইলও পাঠাতে পারবে।
+- একাধিক developer/team থাকলে প্রতিটার জন্য **আলাদা Access Key** বানানো ভালো — কারো access বাতিল করতে চাইলে শুধু ওই একটা key delete করলেই হয়, বাকিদের প্রভাবিত না করে।
+</Callout>
+
+**পরবর্তী →** [Conclusion](/docs/aws-ses/conclusion)
+
+<span style={{ display: 'none' }}>
+  aws ses developer handover bangla, ses credential sharing bangla, ses access key security bangla
+</span>

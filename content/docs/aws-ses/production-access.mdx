@@ -1,0 +1,56 @@
+---
+title: Production Access
+description: Sandbox থেকে বের হয়ে আসল ক্লায়েন্টদের মেইল পাঠানোর অনুমতি নেওয়া, আর sending quota বোঝা।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Production Access
+
+<Callout type="info">
+এতক্ষণ যা করেছেন তা Sandbox-এ — শুধু verified email-এ মেইল যাচ্ছে। এই পেজ সেই সীমা তুলে দেয়।
+</Callout>
+
+<Steps>
+
+### Production Access রিকোয়েস্ট করা
+
+SES → বামের সাইডবারে **Get set up** → "Request production access" কার্ডে **Request production access** বাটন ক্লিক করুন (domain verify শেষ না হলে এই বাটন disabled থাকবে) → ফর্মে জানতে চাইবে:
+
+- মেইল কী ধরনের (Marketing/Transactional)
+- লিস্ট কীভাবে বানানো (মানুষ কীভাবে subscribe করেছে)
+- Unsubscribe আছে কিনা
+- Bounce/complaint কীভাবে সামলাবেন
+
+ফর্ম পূরণ করে **Submit for review**।
+
+<Callout type="info">
+সাধারণত ২৪–৪৮ ঘণ্টায় সিদ্ধান্ত আসে (ইমেইলে)। মাঝে মাঝে AWS সরাসরি approve না করে একটা **Support Case** খুলে আরও তথ্য চায় — যেমন কত ঘন ঘন মেইল পাঠাবেন, list কীভাবে বানানো, sample মেইল কেমন হবে। এমন হলে Support Center-এ গিয়ে ওই case-এ reply দিতে হবে, নাহলে request আটকে থাকবে।
+</Callout>
+
+### Production Approve হওয়া চেক করা
+
+SES → Account dashboard → **Sending limits** সেকশনে "Sandbox" এর বদলে দেখাবে **Production access granted**।
+
+</Steps>
+
+## Sending Quota বোঝা
+
+একই **Sending limits** সেকশনে দুইটা সংখ্যা দেখাবে:
+
+- **Send rate** — প্রতি সেকেন্ডে সর্বোচ্চ কয়টা মেইল পাঠানো যাবে
+- **Send quota** — ২৪ ঘণ্টায় সর্বোচ্চ কয়টা মেইল পাঠানো যাবে
+
+Developer-কে এই দুইটা সংখ্যা জানানো জরুরি — নাহলে bulk mail পাঠানোর সময় rate limit-এ আটকে যাবে। ব্যবহার বাড়লে AWS Support-এ quota বাড়ানোর request করা যায়।
+
+## Real-World Note
+
+<Callout type="info">
+AWS ইচ্ছা করেই নতুন account-কে Sandbox-এ আটকে রাখে, যাতে কেউ SES ব্যবহার করে spam/phishing campaign চালাতে না পারে। Production access পাওয়ার পরও bounce/complaint rate বেশি হলে account আবার সীমাবদ্ধ হয়ে যেতে পারে — এটা [Conclusion](/docs/aws-ses/conclusion)-এ বিস্তারিত আছে।
+</Callout>
+
+**পরবর্তী →** [Developer Handover](/docs/aws-ses/handover)
+
+<span style={{ display: 'none' }}>
+  ses production access bangla, ses sandbox bangla, ses sending quota bangla, ses send rate bangla
+</span>

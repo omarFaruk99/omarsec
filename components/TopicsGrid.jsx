@@ -128,8 +128,8 @@ const TOPICS = [
     size: 'md',
     Icon: EnvelopeIcon,
     title: 'AWS SES',
-    description: 'Transactional and bulk email delivery, set up end to end.',
-    meta: '2 lessons',
+    description: 'AWS, domain, and DNS setup for bulk email — ready to hand off to a developer.',
+    meta: '6 lessons',
     href: '/docs/aws-ses',
   },
 ]

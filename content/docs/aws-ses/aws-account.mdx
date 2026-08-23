@@ -1,0 +1,63 @@
+---
+title: AWS Account
+description: AWS account খোলা, region বাছা, আর SES-এ প্রথম টেস্ট মেইল পাঠানো পর্যন্ত ধাপে ধাপে গাইড।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# AWS Account
+
+<Callout type="info">
+এখানে AWS account খোলা থেকে শুরু করে SES-এ প্রথম টেস্ট মেইল পাঠানো পর্যন্ত দেখানো হয়েছে।
+</Callout>
+
+<Steps>
+
+### AWS Account খোলা
+
+aws.amazon.com → **Create an AWS Account** → ইমেইল, পাসওয়ার্ড, কার্ড তথ্য দিয়ে সাইনআপ সম্পূর্ণ করুন।
+
+### Region বাছা
+
+AWS Console → উপরে ডানদিকে কোণায় region ড্রপডাউন (যেমন লেখা থাকবে "N. Virginia" বা অন্য কিছু) → ক্লিক করে **Asia Pacific (Singapore) ap-southeast-1** বাছুন।
+
+<Callout type="warning">
+যা বাছবেন এই region-ই মনে রাখবেন — বাকি সব ধাপ এই একই region-এ করতে হবে।
+</Callout>
+
+### SES কনসোলে যাওয়া
+
+উপরে সার্চ বক্সে লিখুন `SES` → **Amazon Simple Email Service** ক্লিক করুন।
+
+### Test Email ভেরিফাই করা (sender + receiver)
+
+SES কনসোল → **Configuration → Identities** → **Create identity** বাটন → Identity type = **Email address** → ইমেইল লিখুন → **Create identity**।
+
+- ওই ইমেইলে AWS-এর confirm লিংক আসবে → ক্লিক করুন।
+- এই কাজ দুইবার করুন — একবার sender ইমেইল দিয়ে, একবার receiver ইমেইল দিয়ে (দুইটা আলাদা ইমেইল এড্রেস)।
+
+<Callout type="info">
+এই email verification শুধু **Sandbox-এ এখনই টেস্ট করার জন্য** — Sandbox-এ শুধু verified identity-তে/থেকে মেইল আসা-যাওয়া করে। Production-এ আসল bulk mail পাঠানো হবে পরের পেজে verify করা **domain** দিয়ে, individual email address দিয়ে না। তাই sender email verify করাটা সাময়িক — domain verify হয়ে গেলে সেটার আর দরকার পড়বে না।
+</Callout>
+
+### Console থেকে Test Mail পাঠানো
+
+Identities লিস্ট → sender ইমেইলে ক্লিক করুন → উপরে ডানে **Send test email** বাটন → To বক্সে receiver ইমেইল দিন → **Send test email**।
+
+<Callout type="info">
+মেইল পেলেও এই ধাপে Spam folder-এ যাওয়া স্বাভাবিক — কারণ এখনো domain ভেরিফাই করা হয়নি (SPF/DKIM নেই)। পরের পেজ শেষ হলে এটা ঠিক হয়ে যাবে।
+</Callout>
+
+</Steps>
+
+## Real-World Note
+
+<Callout type="info">
+নতুন AWS account **SES Sandbox**-এ শুরু হয় — এখানে শুধু verified email address-এর মধ্যেই মেইল আসা-যাওয়া করে। তাই টেস্ট করার জন্য sender আর receiver, দুটো ইমেইলই আলাদাভাবে verify করা লাগলো। আসল ক্লায়েন্টদের মেইল পাঠাতে Production Access লাগবে, যেটা পরে আসছে।
+</Callout>
+
+**পরবর্তী →** [Domain & DNS](/docs/aws-ses/domain-dns)
+
+<span style={{ display: 'none' }}>
+  aws ses account setup bangla, aws ses sandbox bangla, ses test email bangla, ses identity verify bangla
+</span>

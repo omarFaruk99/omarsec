@@ -1,0 +1,109 @@
+---
+title: Domain & DNS
+description: নিজের domain SES-এ verify করা, আর DKIM/SPF/DMARC রেকর্ড Cloudflare-এ বসানো — সম্পূর্ণ ধাপে ধাপে।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Domain & DNS
+
+<Callout type="info">
+Gmail/Yahoo জানতে চায় — এই ডোমেইনের মালিক কি সত্যিই আপনি? এই পুরো পেজ সেটার প্রমাণ (DKIM/DMARC) সেটআপ করে দেখায়।
+</Callout>
+
+## ডোমেইন কেনা
+
+<Callout type="info">
+ইতিমধ্যে ডোমেইন থাকলে এই ধাপ বাদ দিয়ে সরাসরি "Cloudflare-এ Domain যোগ করা" থেকে শুরু করুন।
+</Callout>
+
+namecheap.com → সার্চে চাওয়া domain লিখুন → কার্টে নিয়ে checkout করুন।
+
+## Cloudflare-এ Domain যোগ করা
+
+<Steps>
+
+### Cloudflare-এ Add Site
+
+dash.cloudflare.com → **Add a site** → domain লিখুন → Free plan বাছুন → Cloudflare দুইটা nameserver দেখাবে।
+
+### Namecheap-এ Nameserver বদলানো
+
+Namecheap → Domain List → domain-এর পাশে **Manage** → **Nameservers** → **Custom DNS** বাছুন → Cloudflare-এর দেওয়া দুইটা nameserver বসান → Save।
+
+</Steps>
+
+<Callout type="info">
+নতুন nameserver active হতে কয়েক ঘণ্টা লাগতে পারে।
+</Callout>
+
+## SES-এ Domain ভেরিফাই করা
+
+মূল ডোমেইন সরাসরি না দিয়ে একটা sub-domain দেওয়া ভালো (যেমন `mail.yourcompany.com`), যাতে bulk mail-এ সমস্যা হলে মূল ওয়েবসাইট/ইমেইলের সুনাম (reputation) নষ্ট না হয়।
+
+SES → **Identities** → **Create identity** → Identity type = **Domain** → domain/sub-domain লিখুন।
+
+নিচে আরও কিছু অপশন দেখাবে:
+
+| অপশন | কী করবেন |
+|---|---|
+| **DKIM signatures** | চালু/on রাখুন — মেইল প্রমাণ করার আসল জিনিস এটাই |
+| **DKIM signing key length** | Default রাখুন (RSA 2048-bit) |
+| **Publish DNS records to Route 53** | বন্ধ/off রাখুন — এটা শুধু DNS Route53-এ থাকলে লাগে, Cloudflare ব্যবহার করলে দরকার নেই |
+
+আরও নিচে এই ৩টা checkbox দেখাবে — তিনটাই খালি/unchecked রাখুন (এখন দরকার নেই):
+
+| Checkbox | কেন skip |
+|---|---|
+| **Assign a default configuration set** | event tracking (open/click/bounce)-এর advanced ফিচার, পরে আলাদাভাবে যোগ করা যায় |
+| **Assign to a tenant** | multi-tenant/enterprise setup-এর জন্য, একজনের জন্য দরকার নেই |
+| **Use a custom MAIL FROM domain** | DMARC আরও কড়া করে, কিন্তু DKIM already on থাকায় এটা ছাড়াই DMARC pass করবে |
+
+শেষে **Create identity** ক্লিক করুন।
+
+Identity তৈরি হওয়ার পর, ওই identity-এর পেজে **Authentication** ট্যাবে দুইটা জায়গায় "Publish DNS records" দেখবেন — একটা **DKIM** সেকশনে, একটা **DMARC** সেকশনে।
+
+<Callout type="warning">
+দুই জায়গাতেই ক্লিক করুন — একটা বাছতে হবে না, দুটোই লাগে। ক্লিক করলে রেকর্ডের Type/Name/Value দেখাবে — Route53 use না করায় এটা কোথাও নিজে থেকে বসবে না, শুধু কপি করার জন্য দেখাবে।
+</Callout>
+
+## DKIM/DMARC রেকর্ড বসানো
+
+Cloudflare → আপনার domain → **DNS** সেকশন → **Records** → **Add record** → নিচেরগুলো এক এক করে বসান।
+
+**DKIM (৩টা CNAME)** — উপরের DKIM সেকশনে যা Name ও Value দেখিয়েছে, সেগুলো হুবহু কপি করে বসান।
+
+**DMARC (১টা TXT)** — উপরের DMARC সেকশনে যা দেখিয়েছে (সাধারণত default `p=none` দিয়ে), সেটাও হুবহু কপি করে বসান।
+
+`p=none` মানে শুরুতে শুধু রিপোর্ট পাঠাবে, মেইল ব্লক করবে না — কয়েক সপ্তাহ পর্যবেক্ষণ করে পরে `p=quarantine` বা `p=reject`-এ কড়া করা যায়।
+
+**SPF (ঐচ্ছিক, SES নিজে থেকে দেখায় না):** যেহেতু "Use a custom MAIL FROM domain" আমরা skip করেছি, SES ডিফল্টভাবে নিজের `amazonses.com` address দিয়ে পাঠায় — সেখানে SPF আগে থেকেই ঠিক করা আছে। তাই DKIM + DMARC-ই যথেষ্ট, SPF আলাদা করে বসানো এখন বাধ্যতামূলক না।
+
+<Callout type="warning">
+প্রতিটা রেকর্ড বসানোর সময় proxy status **DNS only (grey cloud)** রাখুন, orange cloud না — মেইল রেকর্ডে Cloudflare-এর প্রক্সি কাজ করে না।
+</Callout>
+
+## Verified হওয়ার অপেক্ষা
+
+SES → Identities → domain নামের পাশে status চেক করুন।
+
+- Status **Pending** থেকে **Verified** হতে সাধারণত ৫ মিনিট থেকে কয়েক ঘণ্টা লাগে, তবে AWS বলে সর্বোচ্চ ৭২ ঘণ্টা পর্যন্ত লাগতে পারে।
+- DKIM status আলাদাভাবে **Successful** দেখাতে হবে — শুধু domain verified হলেই চলবে না, DKIM-ও verified হতে হবে।
+
+## Real-World Note
+
+<Callout type="warning">
+এই পুরো ধাপের কেন্দ্রে আছে **spoofing/phishing prevention**: DKIM/SPF/DMARC প্রমাণ করে মেইলটা আসল domain থেকেই এসেছে। এগুলো ছাড়া যে কেউ আপনার domain-এর নামে ভুয়া মেইল পাঠাতে পারতো — DKIM/DMARC সেটা আটকায়।
+</Callout>
+
+## Quick Check
+
+- [ ] Sub-domain কেন root domain-এর চেয়ে ভালো, বুঝেছেন?
+- [ ] DKIM আর DMARC আলাদা আলাদা "Publish DNS records" — দুটোই বসিয়েছেন?
+- [ ] Cloudflare-এ DNS record বসানোর সময় grey cloud (DNS only) রেখেছেন?
+
+**পরবর্তী →** [Sending Credentials](/docs/aws-ses/credentials)
+
+<span style={{ display: 'none' }}>
+  aws ses domain verify bangla, dkim spf dmarc bangla, cloudflare dns setup bangla, ses domain identity bangla
+</span>

@@ -1,5 +1,9 @@
 export default {
   index: 'Introduction',
-  'setup': 'Setup',
+  'aws-account': 'AWS Account',
+  'domain-dns': 'Domain & DNS',
+  'credentials': 'Sending Credentials',
+  'production-access': 'Production Access',
+  'handover': 'Developer Handover',
   'conclusion': 'Conclusion',
 }

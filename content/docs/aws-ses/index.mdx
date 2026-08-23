@@ -8,7 +8,7 @@ import { Callout } from 'nextra/components'
 # AWS SES
 
 <Callout type="info">
-এই section তাদের জন্য যারা নিজের bulk email সিস্টেম বানাতে চান — Developer না হলেও অনুসরণ করা যাবে, যাতে owner/admin নিজেই AWS SES, domain, আর DNS সেটআপ করে Developer-কে হ্যান্ডওভার করতে পারেন।
+এই section তাদের জন্য যারা নিজের bulk email সিস্টেম বানাতে চান — কোনো কোড লেখা লাগে না, তাই এটা Developer-এর কাজ না। owner/admin নিজেই AWS SES, domain, আর DNS সেটআপ করে Developer-কে হ্যান্ডওভার করতে পারেন। তবে AWS console, DNS record, আর টার্মিনোলজির সাথে কিছুটা পরিচিত থাকা দরকার — ধাপগুলো মনোযোগ দিয়ে অনুসরণ করতে হবে।
 </Callout>
 
 ## এই Section কেন
@@ -18,17 +18,18 @@ import { Callout } from 'nextra/components'
 ## Prerequisites
 
 - একটা ইমেইল এড্রেস
-- একটা কার্ড (AWS account খুলতে লাগে)
+- একটা কার্ড ও ফোন নাম্বার (AWS account খুলতে দুইটাই ভেরিফাই করা লাগে)
 - ডোমেইন কেনার টাকা (একটা ডোমেইন প্রতি বছর প্রায় $10-15)
 
-Developer হওয়া দরকার নেই — এই section একজন non-technical owner-ও অনুসরণ করতে পারবেন।
+Developer হওয়া বা কোড জানা দরকার নেই — কিন্তু AWS console-এ ধাপে ধাপে সাবধানে কাজ করতে হবে, তাড়াহুড়া করলে ভুল হতে পারে।
 
 ## What You Will Learn
 
-- **AWS Account ও Test Mail:** AWS account খোলা, region বাছা, SES-এ প্রথম টেস্ট মেইল পাঠানো
-- **Domain Verification:** নিজের domain SES-এ verify করা, DKIM/SPF/DMARC রেকর্ড Cloudflare-এ বসানো
+- **AWS Account:** AWS account খোলা, region বাছা, SES-এ প্রথম টেস্ট মেইল পাঠানো
+- **Domain & DNS:** নিজের domain SES-এ verify করা, DKIM/SPF/DMARC রেকর্ড Cloudflare-এ বসানো
 - **Sending Credentials:** কোড থেকে মেইল পাঠানোর জন্য Access Key বা SMTP credential বানানো
-- **Production Access:** Sandbox থেকে বের হয়ে আসল ক্লায়েন্টদের মেইল পাঠানোর অনুমতি নেওয়া, আর Developer-কে হ্যান্ডওভার করা
+- **Production Access:** Sandbox থেকে বের হয়ে আসল ক্লায়েন্টদের মেইল পাঠানোর অনুমতি নেওয়া, sending quota বোঝা
+- **Developer Handover:** Developer-কে যা যা নিরাপদে হ্যান্ডওভার করতে হবে
 
 ## How to Use This Section
 
@@ -36,7 +37,13 @@ Developer হওয়া দরকার নেই — এই section একজ
 প্রতিটা ধাপ AWS console-এর real screen দেখে verify করা — কিন্তু AWS console মাঝে মাঝে UI বদলায়, তাই লেখা navigation-এর সাথে সামান্য পার্থক্য দেখলে ঘাবড়াবেন না, সাধারণত একই জায়গায় বা কাছাকাছি নামে থাকে।
 </Callout>
 
-**পরবর্তী →** [Setup](/docs/aws-ses/setup)
+## Real-World Note
+
+<Callout type="default">
+এই সেটআপে কোনো কোড লেখা লাগে না — কাজ হলো owner/admin হিসেবে AWS, domain, আর DNS ঠিকঠাক প্রস্তুত করে Developer-কে হ্যান্ডওভার করা। মেইল পাঠানোর কোড Developer লিখবে।
+</Callout>
+
+**পরবর্তী →** [AWS Account](/docs/aws-ses/aws-account)
 
 <span style={{ display: 'none' }}>
   aws ses bangla, bulk email setup guide, aws ses bangla tutorial, deliverability bangla, spf dkim dmarc bangla
