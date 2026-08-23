@@ -17,9 +17,10 @@ AWS, domain, credential — সব রেডি। এখন Developer-এর �
 - Access Key ID + Secret Access Key (API ব্যবহার করলে)
 - SMTP endpoint + username + password (SMTP ব্যবহার করলে) — endpoint দেখতে এমন হয়: `email-smtp.ap-southeast-1.amazonaws.com` (region অনুযায়ী বদলায়), সাথে port `587`
 - ভেরিফাই করা sender domain/email (যেমন `no-reply@mail.yourcompany.com`)
-- Production access পাওয়া গেছে কনফার্ম, সাথে Send rate ও Send quota সংখ্যা
+- Production access পাওয়া গেছে কনফার্ম, সাথে Maximum send rate ও Daily sending quota সংখ্যা
 - Cloudflare DNS এডিট এক্সেস — ভবিষ্যতে নতুন রেকর্ড লাগতে পারে, যেমন click/open tracking চালু করা, DKIM key rotate করা, বা নতুন sub-domain দিয়ে মেইল পাঠানো
-- Bounce/Complaint notification কোন ইমেইলে আসবে সেটা জানিয়ে দিন (default-এ যে ঠিকানা থেকে মেইল পাঠানো হয়, সেখানেই আসে — বিস্তারিত [Conclusion](/docs/aws-ses/conclusion)-এ)
+- Bounce/Complaint notification কোন ইমেইলে আসবে সেটা জানিয়ে দিন — default-এ যে ঠিকানা থেকে মেইল পাঠানো হয়, সেখানেই আসে ([Bounce and Complaint Notifications](/docs/aws-ses/bounce-complaint-notifications)-এ বিস্তারিত)
+- Configuration set-এর নাম আর SNS topic-এর ARN, যদি ওই পেজের সেটআপ করা থাকে — কোড ওই নামটা দিয়ে মেইল পাঠাবে, নাহলে কোনো ঘটনার খবর আসবে না
 
 ## কীভাবে দিতে হবে
 

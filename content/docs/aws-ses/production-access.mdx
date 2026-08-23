@@ -30,16 +30,16 @@ SES → বামের সাইডবারে **Get set up** → "Request pro
 
 ### Production Approve হওয়া চেক করা
 
-SES → Account dashboard → **Sending limits** সেকশনে "Sandbox" এর বদলে দেখাবে **Production access granted**।
+SES → **Account dashboard** → উপরের বক্সে "Your account is in the sandbox" warning-টা আর দেখাবে না, Production access granted হয়ে গেলে সেটা চলে যাবে।
 
 </Steps>
 
 ## Sending Quota বোঝা
 
-একই **Sending limits** সেকশনে দুইটা সংখ্যা দেখাবে:
+একই **Account dashboard** পেজে **Sending limits** বক্সে দুইটা সংখ্যা দেখাবে:
 
-- **Send rate** — প্রতি সেকেন্ডে সর্বোচ্চ কয়টা মেইল পাঠানো যাবে
-- **Send quota** — ২৪ ঘণ্টায় সর্বোচ্চ কয়টা মেইল পাঠানো যাবে
+- **Maximum send rate** — প্রতি সেকেন্ডে সর্বোচ্চ কয়টা মেইল পাঠানো যাবে (Sandbox-এ ডিফল্ট `1 email per second`)
+- **Daily sending quota** — ২৪ ঘণ্টায় সর্বোচ্চ কয়টা মেইল পাঠানো যাবে (Sandbox-এ ডিফল্ট `200 emails per 24-hour period`)
 
 Developer-কে এই দুইটা সংখ্যা জানানো জরুরি — নাহলে bulk mail পাঠানোর সময় rate limit-এ আটকে যাবে। ব্যবহার বাড়লে AWS Support-এ quota বাড়ানোর request করা যায়।
 
@@ -49,7 +49,7 @@ Developer-কে এই দুইটা সংখ্যা জানানো �
 AWS ইচ্ছা করেই নতুন account-কে Sandbox-এ আটকে রাখে, যাতে কেউ SES ব্যবহার করে spam/phishing campaign চালাতে না পারে। Production access পাওয়ার পরও bounce/complaint rate বেশি হলে account আবার সীমাবদ্ধ হয়ে যেতে পারে — এটা [Conclusion](/docs/aws-ses/conclusion)-এ বিস্তারিত আছে।
 </Callout>
 
-**পরবর্তী →** [Developer Handover](/docs/aws-ses/handover)
+**পরবর্তী →** [Bounce and Complaint Notifications](/docs/aws-ses/bounce-complaint-notifications)
 
 <span style={{ display: 'none' }}>
   ses production access bangla, ses sandbox bangla, ses sending quota bangla, ses send rate bangla

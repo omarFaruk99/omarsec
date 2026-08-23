@@ -1,0 +1,180 @@
+---
+title: Bounce and Complaint Notifications
+description: SES → SNS → নিজের সার্ভার — bounce আর complaint-এর খবর কোডের কাছে পাঠানো, যাতে খারাপ address নিজে নিজেই বন্ধ হয়।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Bounce and Complaint Notifications
+
+<Callout type="info">
+এই পেজ দেখায় কীভাবে bounce আর complaint-এর খবর AWS থেকে সোজা নিজের সার্ভারে আনা যায় — যাতে খারাপ address কেউ হাতে না মুছেও নিজে নিজেই বন্ধ হয়।
+</Callout>
+
+## Why This
+
+**Bounce** মানে মেইল ঠিকানায় পৌঁছায়নি (ভুল বা বন্ধ address), **Complaint** মানে receiver মেইলটা "Mark as spam" করেছে। AWS-এর নিরাপদ সীমা — bounce **৫%-এর নিচে**, complaint **০.১%-এর নিচে**। এর বেশি হলে AWS account review-এ ফেলে, আরও বাড়লে sending পুরোপুরি বন্ধ করে দেয়।
+
+AWS ডিফল্টেই **email feedback forwarding** চালু রাখে — এই দুইটা ঘটনার খবর একটা ইমেইল হিসেবে সেই inbox-এ আসে, যে address দিয়ে মেইল পাঠানো হয়েছিল। কেউ দেখে হাতে address-টা list থেকে সরিয়ে দেয়। চালু আছে কিনা দেখতে: SES → **Identities** → domain-এ ক্লিক → **Notifications** → **Edit Configuration** → **Email Feedback Forwarding**।
+
+২০-৩০ জনকে মেইল পাঠালে এই হাতের কাজটাই চলে। কিন্তু ৭০০-৮০০ জনে ভেঙে পড়ে — কেউ inbox দেখতে দেরি করলে পরের campaign-ও একই ভুল address-এ যায়, bounce rate বাড়ে। আর `no-reply@` ধরনের sender address-এর প্রায়ই আসল কোনো inbox থাকে না, তাই খবরটা কেউ দেখতেই পায় না।
+
+তাই মাঝখান থেকে মানুষকে সরিয়ে দিতে হয়। পথটা তিনটা ধাপ: **SNS topic** বানানো (AWS-এর নোটিশ বোর্ড), **SES configuration set** দিয়ে সেই বোর্ডে খবর পাঠানো, আর সার্ভারের URL-টা ওই বোর্ডে **subscribe** করা। AWS-এর নিজের ডকুমেন্টেশনে এই ব্যবস্থার নাম **event notifications** বা **event publishing**, আর bounce/complaint-কে বলা হয় **event** — AWS docs-এ এই শব্দ দিয়েই খুঁজবেন।
+
+<Callout type="warning">
+শুরু করার আগে AWS console-এর উপরে ডানদিকের **region** দেখে নিন। SNS topic আর SES configuration set একই region-এ হতে হবে, নাহলে SES-এর dropdown-এ topic-টাই দেখাবে না। নিচের সব ধাপে region একই রাখুন।
+</Callout>
+
+## SNS Topic
+
+<Steps>
+
+### Topic বানানো
+
+AWS console-এর search box-এ `SNS` → **Simple Notification Service** → বামের সাইডবারে **Topics** → **Create topic**।
+
+- **Type** = **Standard** (FIFO নয় — SES শুধু Standard-এ খবর পাঠাতে পারে)
+- **Name** = একটা নাম, যেমন `app-email-events`
+- বাকি সব default
+
+নিচে **Create topic**।
+
+### ARN কপি করা
+
+তৈরি হলে উপরে **ARN** দেখাবে, দেখতে এমন: `arn:aws:sns:ap-southeast-1:111122223333:app-email-events`। এটা topic-এর পুরো ঠিকানা — কপি করে রাখুন, Developer-কে দিতে লাগবে।
+
+</Steps>
+
+## Configuration Set
+
+Configuration set হলো SES-এ একটা নাম দেওয়া setting-গুচ্ছ। মেইল পাঠানোর সময় এই নামটা জুড়ে দিলে SES বুঝে নেয়, এই মেইলের ঘটনাগুলো কোথায় পাঠাতে হবে।
+
+<Steps>
+
+### Set বানানো
+
+SES কনসোল → বামের সাইডবারে **Configuration** → **Configuration sets** → **Create set** → **Configuration set name** দিন (যেমন `app-events`) → বাকি সব default → **Create set**।
+
+<Callout type="warning">
+Account-এ আগে থেকে অন্য configuration set থাকলে সেগুলোতে হাত দেবেন না — একটা account একাধিক অ্যাপ ব্যবহার করতে পারে। সবসময় নিজের জন্য নতুন একটা বানান।
+</Callout>
+
+### Event destination যোগ করা
+
+লিস্ট থেকে `app-events` ক্লিক করুন → **Event destinations** ট্যাব → **Add destination**।
+
+**Event types**-এ অনেকগুলো অপশন থাকবে — শুধু **Hard bounces** আর **Complaints** টিক দিন, বাকিগুলো (Sends, Deliveries, Opens, Clicks) দরকার নেই। তারপর **Next**।
+
+### Destination সেট করা
+
+- **Destination type** = **Amazon SNS**
+- **SNS topic** = আগের ধাপের `app-email-events`
+- **Name** = একটা নাম, যেমন `bounce-complaint`
+
+**Next** → **Add destination**।
+
+### SES-কে topic-এ লেখার অনুমতি দেওয়া
+
+SNS কনসোল → **Topics** → আপনার topic → **Edit** → **Access policy** অংশটা expand করুন। ওখানে এই entry-টা যোগ করতে হবে:
+
+```json
+{
+    "Effect": "Allow",
+    "Principal": { "Service": "ses.amazonaws.com" },
+    "Action": "sns:Publish",
+    "Resource": "arn:aws:sns:<region>:<account-id>:<topic-name>",
+    "Condition": {
+        "StringEquals": {
+            "AWS:SourceAccount": "<account-id>",
+            "AWS:SourceArn": "arn:aws:ses:<region>:<account-id>:configuration-set/<configuration-set-name>"
+        }
+    }
+}
+```
+
+উপরেরটা হুবহু কপি করলে কাজ করবে না — চারটা প্লেসহোল্ডার নিজের মান দিয়ে বদলাতে হবে:
+
+| প্লেসহোল্ডার | কী বসাবেন |
+| --- | --- |
+| `<region>` | যে region-এ কাজ করছেন, যেমন `ap-southeast-1` |
+| `<account-id>` | আপনার ১২-ডিজিট AWS account নম্বর (তিন জায়গায় আছে) |
+| `<topic-name>` | SNS topic-এর নাম, যেমন `app-email-events` |
+| `<configuration-set-name>` | Configuration set-এর নাম, যেমন `app-events` |
+
+Account ID পাবেন AWS console-এর উপরে ডানদিকে নিজের নামে ক্লিক করলে, অথবা topic-এর ARN-এর মধ্যেই: `arn:aws:sns:ap-southeast-1:`**`123456789012`**`:app-email-events`।
+
+এই policy-টা AWS-এর ভেতরের সেটিং — একবার Save করলেই শেষ, কাউকে দিতে হয় না, কোডেও এর কোনো অস্তিত্ব নেই।
+
+এই ধাপটা বাদ পড়লে বা ARN ভুল হলে AWS কোনো error দেখায় না — কনসোলে সব ঠিক দেখাবে, শুধু কোনো দিন কোনো খবর আসবে না। AWS-এ এটাই সবচেয়ে বিরক্তিকর ধরনের ভুল, নীরব ভুল।
+
+<Callout type="warning">
+বক্সে আগে থেকেই একটা default policy থাকবে। **পুরোটা মুছে এটা বসাবেন না** — ভেতরের `"Statement"` তালিকায় শেষ `}`-এর পরে একটা কমা দিয়ে নতুন entry হিসেবে যোগ করুন, তারপর **Save changes**। শেষে দেখতে এমন হবে:
+
+```
+{
+    "Version": "2008-10-17",
+    "Id": "__default_policy_ID",
+    "Statement": [
+        <-- আগের যা ছিল, অপরিবর্তিত -->,
+        <-- উপরের নতুন entry -->
+    ]
+}
+```
+
+</Callout>
+
+</Steps>
+
+উপরের দুইটা ধাপ — SNS topic আর configuration set — এখনই করা যায়। পরের ধাপের জন্য সার্ভার deploy হওয়া লাগবে।
+
+## Webhook Subscription
+
+এটা **deploy-এর পরে**, আগে নয় — কারণ এখানে একটা আসল, বাইরে থেকে খোলা `https://` URL দিতে হয়।
+
+<Steps>
+
+### Subscription বানানো
+
+SNS → **Topics** → আপনার topic → **Create subscription**।
+
+- **Protocol** = **HTTPS**
+- **Endpoint** = Developer-এর দেওয়া URL, যেমন `https://mail.example.com/webhooks/ses`
+
+<Callout type="warning">
+**Enable raw message delivery** টিক দেবেন না। এটা চালু করলে SNS তার নিজের খাম (signature সহ) বাদ দিয়ে শুধু ভেতরের বার্তা পাঠায় — আর ওই signature দিয়েই সার্ভার প্রমাণ করে খবরটা সত্যিই AWS-এর। খাম না থাকলে কোড প্রতিটা request বাতিল করে দেবে।
+</Callout>
+
+**Create subscription** → status দেখাবে **Pending confirmation**।
+
+### Confirm করা
+
+SNS সাথে সাথে ওই URL-এ একটা confirmation লিংক পাঠায়, যা সার্ভারের log-এ আসে (browser-এ না)। Developer log থেকে লিংকটা নিয়ে একবার খুললে status **Confirmed** হয়ে যায়। ততক্ষণ পর্যন্ত কোনো খবর যাবে না।
+
+</Steps>
+
+## Handover
+
+Developer-কে দিতে হবে:
+
+- **Configuration set-এর নাম** (যেমন `app-events`) — কোড এই নাম দিয়েই মেইল পাঠাবে, না দিলে সব সেটআপ ঠিক থাকলেও কোনো খবর আসবে না
+- **SNS topic-এর ARN**
+
+Developer-এর কাছ থেকে নিতে হবে webhook-এর **HTTPS URL**, যেটা উপরের subscription ধাপে লাগে।
+
+## Real-World Note
+
+<Callout type="warning">
+এই webhook URL ইন্টারনেটে **সম্পূর্ণ খোলা** থাকতে হয় — AWS কোনো login নিয়ে আসে না। মানে যে কেউ URL-টা খুঁজে পেলে নিজে বানানো ভুয়া "bounce" পাঠিয়ে আপনার পুরো client list ব্লক করে দিতে পারে।
+
+তাই কোডে **SNS signature verification** থাকা বাধ্যতামূলক — প্রতিটা request-এর signature AWS-এর certificate দিয়ে মিলিয়ে দেখা, না মিললে বাতিল। Developer-কে জিজ্ঞেস করে নিশ্চিত হয়ে নিন এটা আছে; ওই খোলা দরজার এটাই একমাত্র তালা।
+
+টেস্ট করার সময় নিজে বানানো ভুয়া address (`test@example.com`) ব্যবহার করবেন না — ওটা AWS-এর চোখে আসল hard bounce, আপনার নিজের rate-ই নষ্ট করবে। SES-এর simulator address আছে এর জন্য: `bounce@simulator.amazonses.com` আর `complaint@simulator.amazonses.com` — এগুলোতে পাঠানো মেইল কোনো মানুষের কাছে যায় না, আর bounce/complaint rate-এও গোনা হয় না।
+</Callout>
+
+**পরবর্তী →** [Developer Handover](/docs/aws-ses/handover)
+
+<span style={{ display: 'none' }}>
+  aws ses bounce notification bangla, ses sns webhook bangla, ses configuration set bangla,
+  ses event destination bangla, sns topic access policy bangla, ses mailbox simulator bangla,
+  bounce complaint handling bangla, sns signature verification bangla
+</span>

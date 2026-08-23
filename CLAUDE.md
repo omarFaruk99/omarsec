@@ -27,11 +27,10 @@ imports (warnings).
 changes there. Running a production build also overwrites `.next`, which then breaks the running
 dev server with `Cannot find module './undefined'` errors.
 
-Run `npm run build` only when it is genuinely needed:
-
-- a new page or folder was added, or `_meta.js` was edited (Nextra validates these at build time
-  and the dev server does not)
-- right before a release, if the user asks to verify
+Run `npm run build` in exactly one situation: **right before pushing to GitHub**, as a final
+check, immediately followed by the push. Do not build proactively for a new page or an edited
+`_meta.js` either, even though Nextra would catch errors there that the dev server misses —
+wait until the user says to push. If the build fails, fix it and rebuild before pushing.
 
 Otherwise make the edit and stop. The user runs the build manually when they want it.
 
