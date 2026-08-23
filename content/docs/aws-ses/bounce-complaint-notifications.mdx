@@ -19,6 +19,10 @@ AWS ডিফল্টেই **email feedback forwarding** চালু রা�
 
 ২০-৩০ জনকে মেইল পাঠালে এই হাতের কাজটাই চলে। কিন্তু ৭০০-৮০০ জনে ভেঙে পড়ে — কেউ inbox দেখতে দেরি করলে পরের campaign-ও একই ভুল address-এ যায়, bounce rate বাড়ে। আর `no-reply@` ধরনের sender address-এর প্রায়ই আসল কোনো inbox থাকে না, তাই খবরটা কেউ দেখতেই পায় না।
 
+<Callout type="info">
+একটা জিনিস AWS নিজে থেকেই করে দেয়: hard bounce বা complaint হলে সেই address নিজের **account-level suppression list**-এ যোগ হয়ে যায়, আর পরে ওই address-এ পাঠানোর চেষ্টা করলে SES নিজেই আটকে দেয় — কোনো setup ছাড়াই, ডিফল্টে চালু থাকে। মানে খারাপ address-এ বারবার পাঠানো বন্ধ হওয়ার জন্য নিচের SNS/webhook ব্যবস্থা **বাধ্যতামূলক না**। এটা লাগে যখন আপনার নিজের app/database-এও এই খবরটা real-time জানা দরকার (যেমন নিজের dashboard-এ bounce status দেখানো)।
+</Callout>
+
 তাই মাঝখান থেকে মানুষকে সরিয়ে দিতে হয়। পথটা তিনটা ধাপ: **SNS topic** বানানো (AWS-এর নোটিশ বোর্ড), **SES configuration set** দিয়ে সেই বোর্ডে খবর পাঠানো, আর সার্ভারের URL-টা ওই বোর্ডে **subscribe** করা। AWS-এর নিজের ডকুমেন্টেশনে এই ব্যবস্থার নাম **event notifications** বা **event publishing**, আর bounce/complaint-কে বলা হয় **event** — AWS docs-এ এই শব্দ দিয়েই খুঁজবেন।
 
 <Callout type="warning">
