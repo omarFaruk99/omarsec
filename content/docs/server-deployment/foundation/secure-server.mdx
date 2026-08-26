@@ -1,6 +1,6 @@
 ---
 title: Secure the Server
-description: Create a non-root user, set up SSH key authentication, disable password login, and configure a firewall before deploying anything.
+description: Set up per-person users and SSH keys the way engineering teams do — no shared root password, no password login, firewall on.
 ---
 
 import { Callout, Steps } from 'nextra/components'
@@ -8,286 +8,381 @@ import { Callout, Steps } from 'nextra/components'
 # Secure the Server
 
 <Callout type="info">
-  App deploy করার আগে server secure করা **বাধ্যতামূলক**। এই page-এ শিখবেন নিরাপদ user তৈরি করতে, SSH key দিয়ে login করতে, password login বন্ধ করতে এবং firewall চালু করতে।
+  একটি নতুন server শুধু **একটি** login দেয় — `root`, যার হাতে সব ক্ষমতা।
+
+  এই page-এ আপনি server-এর **owner হিসেবে** কাজ করবেন — নিজের access সেট করবেন, এবং team-এ কেউ যোগ দিলে তার access কিভাবে দেবেন সেটিও শিখবেন। প্রতিটি ধাপে দুটোই দেখানো আছে।
 </Callout>
 
-## Why Secure First?
+## The Purpose
 
-**১. Non-root user (`queen`):** Root বা admin হিসেবে সরাসরি কাজ করা ঝুঁকিপূর্ণ। কারণ root হিসেবে একটি সামান্য টাইপিং ভুলে পুরো সার্ভার মুছে যেতে পারে। আমরা একটি সাধারণ ইউজার তৈরি করব যা প্রয়োজনে `sudo` দিয়ে admin-এর কাজ করতে পারবে।
+ভাবুন আপনার team-এ তিনজন developer এবং সবাইকে root-এর password দিয়ে দিলেন। কী হয়?
 
-**২. SSH Key Authentication:** পাসওয়ার্ডের চেয়ে SSH Key অনেক বেশি নিরাপদ। এটি একটি cryptographic key pair:
-- **Private Key:** এটি আপনার নিজের চাবির মতো, যা শুধু আপনার নিজের কম্পিউটারে থাকবে। কাউকে এটি দেবেন না।
-- **Public Key:** এটি একটি তালার মতো, যা আমরা সার্ভারে রেখে দেব।
+- Server-এ কে কী করেছে **জানার উপায় থাকে না** — log-এ সবাই একই `root`
+- কেউ team ছেড়ে গেলে password বদলে **বাকি সবাইকে** নতুন password জানাতে হয়
+- যেকোনো একজনের একটি ভুল command পুরো server মুছে দিতে পারে
+- একজনের laptop hack হলে attacker সরাসরি **root** পেয়ে যায়
 
-সার্ভারে লগিন করার সময় আপনার কম্পিউটার নিজের Private key দিয়ে সার্ভারের Public key-এর সাথে ম্যাচ করে। এটি পাসওয়ার্ডের চেয়ে অনেক শক্তিশালী এবং হ্যাকারদের পক্ষে ব্রেক করা প্রায় অসম্ভব।
+তাই কোনো team-এ root password share করা হয় না। বরং:
+
+> **প্রত্যেক মানুষের নিজের user, নিজের SSH key। Root login সম্পূর্ণ বন্ধ।**
+
+| | Root share করলে | প্রত্যেকের আলাদা user |
+|---|---|---|
+| কে কী করেছে | জানা যায় না | `auth.log`-এ নাম ধরে দেখা যায় |
+| কাউকে সরানো | সবার password বদলাতে হয় | শুধু তার user মুছে দিন |
+| ক্ষমতার সীমা | সবার হাতে সব | যাকে দরকার শুধু তাকে `sudo` |
+
+## The Golden Rule of SSH Keys
+
+Team member-দের access দেওয়ার সময় একটি নিয়ম কখনো ভাঙবেন না:
+
+> **Private key কখনো এক কম্পিউটার থেকে আরেক কম্পিউটারে যায় না।**
+
+প্রত্যেকে **নিজের** কম্পিউটারে key pair বানাবে এবং আপনাকে শুধু **public key** পাঠাবে (Slack, email — যেকোনো মাধ্যমে, এটি গোপন নয়)। আপনি সেটি server-এ বসিয়ে দেবেন।
+
+<Callout type="warning">
+  **আপনি key বানিয়ে member-কে দেবেন না।** সহজ মনে হলেও এতে private key আপনার হাত ঘুরে যায় — email বা Slack-এ থেকে যায়, আর তখন "কে কী করেছে" প্রমাণ করা অসম্ভব হয়ে পড়ে।
+
+  রাকিব যদি ভুল করে database মুছে ফেলে, সে বলতে পারে — "ওটা আমি না, key তো তোমার কাছেও ছিল।" এই যুক্তি ভাঙার কোনো উপায় থাকবে না।
+</Callout>
+
+<Callout type="default">
+  **`sudo` কী?** `sudo` group-এ থাকা user দরকারের সময় একটি নির্দিষ্ট command root-এর ক্ষমতায় চালাতে পারে — কিন্তু সবসময় root হয়ে বসে থাকে না। ভুলের সুযোগ কমে, আর প্রতিটি `sudo` command log-এ থেকে যায়।
+</Callout>
 
 ## Before You Start
 
 <Callout type="info">
-  নিচের ধাপগুলো **Contabo, DigitalOcean, AWS EC2 — সব provider-এর জন্যই এক**। শুধু **দুটি ধাপ** provider অনুযায়ী আলাদা: প্রথমে login করা, আর key copy করা। ওই দুটি ধাপে আপনার provider-এর অংশটুকু দেখে নেবেন।
+  ধাপগুলো সব provider-এর জন্যই এক। শুধু **প্রথম login** আলাদা — Contabo-তে `root` + password, AWS-এ `ubuntu` + `.pem` key।
 
-  পার্থক্যের মূল কারণ — Contabo-তে আপনি সরাসরি `root` হিসেবে password দিয়ে ঢোকেন, আর AWS-এ `ubuntu` user হিসেবে একটি `.pem` key দিয়ে ঢোকেন।
+  এই guide-এ owner-এর user ধরা হয়েছে `aladin`, আর team member-এর উদাহরণ `rakib`।
 </Callout>
 
 <Steps>
 
-### Login to Your Server
+### Login to the Server
 
-আপনার provider অনুযায়ী login করুন।
-
-**Contabo বা সাধারণ VPS** — server তৈরির সময় পাওয়া root password দিয়ে:
+**Contabo বা সাধারণ VPS:**
 
 ```bash filename="LOCAL — Terminal"
 ssh root@YOUR_SERVER_IP
 ```
 
-**AWS EC2** — download করা `.pem` key দিয়ে, user হবে `ubuntu`:
+**AWS EC2:**
 
 ```bash filename="LOCAL — Terminal"
 ssh -i ~/.ssh/myapp-key.pem ubuntu@YOUR_EC2_IP
 ```
 
-<Callout type="warning">
-  Contabo-তে আপনি এখন `root` — অর্থাৎ সব permission আছে এবং একটি ভুল command পুরো server নষ্ট করতে পারে। AWS-এ আপনি `ubuntu` user, যার `sudo` access আছে।
+### Update the System
 
-  এই পার্থক্যের কারণে নিচের কিছু command-এ Contabo-তে `sudo` লাগবে না, কিন্তু AWS-এ লাগবে। যেখানে দরকার সেখানে বলে দেওয়া আছে।
-</Callout>
-
-### Create the queen User
-
-সার্ভারে একটি নতুন ইউজার তৈরি করুন:
+যেকোনো কিছু করার আগে পুরনো package গুলো update করে নিন। একটি নতুন server-এর image প্রায়ই কয়েক মাসের পুরনো হয় এবং তাতে **known vulnerability** থাকতে পারে:
 
 ```bash filename="SERVER — Terminal"
-sudo adduser queen
+sudo apt update && sudo apt upgrade -y
 ```
 
-পাসওয়ার্ড সেট করুন এবং বাকি তথ্যগুলো Enter চেপে স্কিপ করুন। এখন এই ইউজারকে `sudo` পারমিশন দিন:
+### Create a User
+
+এই command-টি **প্রতিটি মানুষের জন্য একবার** চালাতে হয় — নিজের জন্য, এবং team-এ যে-ই যোগ দিক তার জন্য।
+
+**নিজের user:**
 
 ```bash filename="SERVER — Terminal"
-sudo usermod -aG sudo queen
+sudo adduser aladin
+sudo usermod -aG sudo aladin
+```
+
+**Team member যোগ দিলে** — ঠিক একই দুটি command, শুধু নাম বদলে:
+
+```bash filename="SERVER — Terminal"
+sudo adduser rakib
+sudo usermod -aG sudo rakib
 ```
 
 <Callout type="info">
-  **`usermod -aG` কী করছে?**
-  - `usermod` — User Modify, অর্থাৎ একটি বিদ্যমান user পরিবর্তন করা।
-  - `-aG` — Append to Group। `a` না দিলে user তার আগের সব group থেকে বাদ পড়ে যাবে, যা একটি বিপজ্জনক ভুল।
-
-  Contabo-তে আপনি root হিসেবে আছেন, তাই `sudo` ছাড়াও এই command চলবে। `sudo` থাকলে সমস্যা নেই — root-এর জন্য এটি উপেক্ষা করা হয়।
+  **`-aG`-তে `a` কেন জরুরি?** `-aG` মানে Append to Group — আগের group রেখে নতুন group-এ যোগ করা। শুধু `-G` লিখলে user তার **আগের সব group থেকে বাদ** পড়ে যাবে। এটি একটি বিপজ্জনক ভুল।
 </Callout>
-
-### Generate an SSH Key
-
-এই ধাপটি **আপনার নিজের কম্পিউটারে** করতে হবে, server-এ নয়।
 
 <Callout type="warning">
-  আগে থেকে key থাকলে নতুন করে বানাবেন না — `ls ~/.ssh/id_ed25519` দিয়ে দেখুন। ফাইলটি থাকলে এই ধাপ skip করে পরের ধাপে যান। নতুন key বানালে পুরনোটি overwrite হয়ে যেতে পারে এবং অন্য যেসব server-এ ওই key ব্যবহার করছেন সেগুলোতে আর ঢুকতে পারবেন না।
+  **সবাইকে `sudo` দেবেন না।** যার admin কাজের দরকার নেই — যেমন যে শুধু log দেখবে বা code deploy করবে — তাকে `usermod` ধাপটি দেবেন না। সে login করতে পারবে, কিন্তু system পরিবর্তন করতে পারবে না।
+
+  একে বলে **Principle of Least Privilege** — যতটুকু দরকার ঠিক ততটুকুই ক্ষমতা।
 </Callout>
+
+**Temporary access দিতে হলে** — যেমন একজন contractor তিন মাসের জন্য কাজ করবে, বা কেউ শুধু একটি নির্দিষ্ট সমস্যা দেখতে আসছে — user তৈরির সময়ই একটি **expiry date** দিয়ে দিন:
+
+```bash filename="SERVER — Terminal"
+sudo adduser --expiredate 2026-12-31 contractor
+```
+
+ওই তারিখের পর account নিজে থেকেই বন্ধ হয়ে যাবে — আপনার মনে রাখতে হবে না।
+
+বিদ্যমান কোনো user-এ পরে expiry বসাতে চাইলে:
+
+```bash filename="SERVER — Terminal"
+sudo chage -E 2026-12-31 rakib
+```
+
+কার account কবে শেষ হবে দেখুন:
+
+```bash filename="SERVER — Terminal"
+sudo chage -l rakib
+```
+
+Expiry তুলে নিতে (স্থায়ী করতে):
+
+```bash filename="SERVER — Terminal"
+sudo chage -E -1 rakib
+```
+
+<Callout type="info">
+  **এটি কেন গুরুত্বপূর্ণ?** বাস্তবে সবচেয়ে বড় ঝুঁকি হলো **ভুলে যাওয়া account** — যে contractor ছয় মাস আগে কাজ শেষ করেছে, কিন্তু তার access এখনো খোলা। কেউ খেয়ালই করে না, কারণ কোনো error দেখা যায় না।
+
+  Expiry date দিয়ে রাখলে এই সমস্যাটাই তৈরি হয় না। Security audit-এ এটি একটি standard প্রশ্ন — "নিষ্ক্রিয় account কতগুলো আছে?"
+</Callout>
+
+### Set Up the SSH Key
+
+এখানেই owner আর member-এর পথ আলাদা।
+
+**নিজের জন্য** — নিজের কম্পিউটারে key বানান (আগে থেকে থাকলে skip করুন, `ls ~/.ssh/id_ed25519` দিয়ে দেখুন):
 
 ```bash filename="LOCAL — Terminal"
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
 
-কোথায় save করবে জিজ্ঞেস করলে Enter চাপুন (default location)। Passphrase দিতে পারেন বা খালি রাখতে পারেন।
-
-**যা তৈরি হলো** — আপনার `~/.ssh/` folder-এ দুটি ফাইল:
-
-1. **`id_ed25519`** (Private Key) — আপনার গোপন চাবি। কখনো কাউকে দেবেন না, কোথাও upload করবেন না।
-2. **`id_ed25519.pub`** (Public Key) — এটিই আমরা server-এ পাঠাব।
-
-<Callout type="default">
-  **Pro Tip:** প্রফেশনাল environment-এ প্রতিটি developer-এর নিজস্ব আলাদা SSH key থাকে। এতে কে কখন server-এ login করেছে তা track করা যায়, এবং কারো access বাতিল করতে হলে শুধু তার key সরালেই হয়।
-</Callout>
-
-### Copy Your Key to queen
-
-এবার আপনার Public Key `queen` user-এর কাছে পাঠাতে হবে। এই ধাপটি provider অনুযায়ী আলাদা।
-
-<Callout type="info">
-  **`ssh-copy-id` কী?** এটি আপনার public key-টি স্বয়ংক্রিয়ভাবে server-এর `~/.ssh/authorized_keys` ফাইলে যোগ করে দেয় — সঠিক permission সহ। হাতে করলে permission ভুল হওয়ার সম্ভাবনা থাকে, তাই এই tool ব্যবহার করাই ভালো।
-</Callout>
-
-**Contabo বা সাধারণ VPS** — সরাসরি `queen` user-এ key পাঠান:
+এরপর `ssh-copy-id` দিয়ে key-টি server-এ পাঠান:
 
 ```bash filename="LOCAL — Terminal"
-ssh-copy-id -i ~/.ssh/id_ed25519.pub queen@YOUR_SERVER_IP
+ssh-copy-id -i ~/.ssh/id_ed25519.pub aladin@YOUR_SERVER_IP
 ```
-
-পাসওয়ার্ড চাইলে `queen`-এর পাসওয়ার্ড দিন। এই ধাপ শেষ, পরের ধাপে যান।
-
-**AWS EC2** — আপনি `.pem` key দিয়ে connect আছেন, তাই `ssh-copy-id`-কে বলে দিতে হবে কোন key ব্যবহার করবে:
 
 <Callout type="warning">
-  নিচের command-এ `-o IdentityFile=` লেখায় **সমান চিহ্ন (`=`)** আছে — এটি বাধ্যতামূলক। `-o "IdentityFile ~/..."` (space দিয়ে) লিখলে SSH এটি বুঝবে না এবং `garbage at end of line` error দেবে।
+  **AWS-এ একটি বাড়তি option লাগবে**, কারণ আপনি `.pem` key দিয়ে connect আছেন। `-o IdentityFile=`-এ **সমান চিহ্ন (`=`)** বাধ্যতামূলক — space দিলে `garbage at end of line` error দেবে:
+
+  ```bash filename="LOCAL — Terminal"
+  ssh-copy-id -i ~/.ssh/id_ed25519.pub -o IdentityFile=~/.ssh/myapp-key.pem aladin@YOUR_EC2_IP
+  ```
 </Callout>
 
-```bash filename="LOCAL — Terminal"
-ssh-copy-id -i ~/.ssh/id_ed25519.pub -o IdentityFile=~/.ssh/myapp-key.pem ubuntu@YOUR_EC2_IP
+**Team member-এর জন্য** — রাকিব **তার নিজের** কম্পিউটারে key বানাবে:
+
+```bash filename="RAKIB'S COMPUTER — Terminal"
+ssh-keygen -t ed25519 -C "rakib@example.com"
+cat ~/.ssh/id_ed25519.pub
 ```
 
-এখন key-টি `ubuntu` user-এর কাছে আছে। সেটি `queen`-এর জন্য সেট করুন:
+`cat`-এর output-টুকু সে আপনাকে পাঠাবে। দেখতে এরকম এক লাইন:
 
-<Callout type="info">
-  এখানে `ubuntu`-এর পুরো `authorized_keys` ফাইল copy না করে **শুধু আপনার নিজের key**-টি নিচ্ছি। কারণ ওই ফাইলে AWS-এর "master key"-ও আছে — সেটি `queen`-এ copy করলে নিজস্ব key ব্যবহারের উদ্দেশ্যই নষ্ট হয়ে যায়।
-</Callout>
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... rakib@example.com
+```
+
+এবার **আপনি server-এ** সেটি বসিয়ে দিন:
 
 ```bash filename="SERVER — Terminal"
-# queen-এর জন্য .ssh ফোল্ডার তৈরি করুন
-sudo mkdir -p /home/queen/.ssh
-
-# শুধু আপনার নিজের key (শেষ লাইনটি) queen-এ যোগ করুন
-sudo tail -n 1 /home/ubuntu/.ssh/authorized_keys | sudo tee /home/queen/.ssh/authorized_keys
-
-# মালিকানা queen ইউজারকে দিন
-sudo chown -R queen:queen /home/queen/.ssh
-
-# সিকিউর পারমিশন সেট করুন
-sudo chmod 700 /home/queen/.ssh
-sudo chmod 600 /home/queen/.ssh/authorized_keys
+sudo mkdir -p /home/rakib/.ssh
+echo "রাকিবের পাঠানো পুরো লাইনটি এখানে" | sudo tee /home/rakib/.ssh/authorized_keys
+sudo chown -R rakib:rakib /home/rakib/.ssh
+sudo chmod 700 /home/rakib/.ssh
+sudo chmod 600 /home/rakib/.ssh/authorized_keys
 ```
 
 <Callout type="info">
-  **`chmod 700` ও `600` কেন?** SSH ইচ্ছাকৃতভাবে কড়া। `.ssh` ফোল্ডার বা `authorized_keys` ফাইল অন্য কেউ পড়তে পারলে SSH সেটিকে ঝুঁকি ধরে নিয়ে key-টি **সম্পূর্ণ উপেক্ষা করে** — কোনো error message ছাড়াই। "key কাজ করছে না" সমস্যার এটি সবচেয়ে common কারণ।
+  **`chmod 700` ও `600` কেন?** `.ssh` folder বা `authorized_keys` অন্য কেউ পড়তে পারলে SSH key-টি **সম্পূর্ণ উপেক্ষা করে** — কোনো error message ছাড়াই। "key কাজ করছে না" সমস্যার এটিই সবচেয়ে common কারণ।
+
+  আরেকজনের key পরে যোগ করতে হলে `tee`-র বদলে `tee -a` ব্যবহার করবেন, নইলে আগের key মুছে যাবে।
 </Callout>
 
-### Verify Key Login Works
+### Verify Before Locking Down
 
-Provider যেটিই হোক, এখন নিজের কম্পিউটার থেকে `queen` হিসেবে login করে দেখুন:
+পরের ধাপে password login বন্ধ হয়ে যাবে। তার আগে নিশ্চিত করুন key দিয়ে login কাজ করছে:
 
 ```bash filename="LOCAL — Terminal"
-ssh queen@YOUR_SERVER_IP
+ssh aladin@YOUR_SERVER_IP
 ```
 
 <Callout type="warning">
-  পাসওয়ার্ড ছাড়া login **কাজ করছে কিনা এখনই নিশ্চিত করুন**। পরের ধাপে আমরা password login সম্পূর্ণ বন্ধ করে দেব — key যদি তখনো কাজ না করে, আপনি নিজের server থেকেই বের হয়ে যাবেন।
+  **এই ধাপ skip করবেন না।** Key কাজ না করা অবস্থায় password login বন্ধ করলে আপনি নিজের server থেকেই স্থায়ীভাবে বের হয়ে যাবেন। Team member-দের ক্ষেত্রেও তাদের login কাজ করছে কিনা আগে জেনে নিন।
 </Callout>
 
-### Disable Password Login
-
-পাসওয়ার্ড লগিন বন্ধ করা অত্যন্ত জরুরি। কিন্তু এখানে একটি ফাঁদ আছে যা অনেক tutorial-এ বলা হয় না।
+### Disable Password and Root Login
 
 <Callout type="warning">
-  Ubuntu 24.04-এর `/etc/ssh/sshd_config` ফাইলের **শুরুতে** এই লাইনটি থাকে:
+  এখানে একটি ফাঁদ আছে যা অনেক tutorial-এ বলা হয় না।
 
-  ```
-  Include /etc/ssh/sshd_config.d/*.conf
-  ```
+  Ubuntu 24.04-এর `/etc/ssh/sshd_config`-এর **শুরুতে** থাকে `Include /etc/ssh/sshd_config.d/*.conf`, আর অধিকাংশ cloud server-এ `50-cloud-init.conf` ফাইলে `PasswordAuthentication yes` লেখা থাকে।
 
-  এবং অধিকাংশ cloud server-এ `/etc/ssh/sshd_config.d/50-cloud-init.conf` ফাইলে `PasswordAuthentication yes` লেখা থাকে।
-
-  SSH-এর নিয়ম হলো **প্রথম যে setting পায় সেটিই মানে** (first match wins)। তাই আপনি যদি শুধু মূল ফাইলে `PasswordAuthentication no` লেখেন, ওই include করা ফাইলটি আগে পড়া হবে এবং আপনার setting কাজ করবে **না**। Server অরক্ষিত থেকে যাবে, অথচ আপনি ভাববেন secure করেছেন।
+  SSH **প্রথম যে setting পায় সেটিই মানে**। তাই শুধু মূল ফাইলে `no` লিখলে include করা ফাইলটি জিতে যাবে এবং আপনার setting কাজ করবে **না** — অথচ আপনি ভাববেন server secure।
 </Callout>
 
-প্রথমে দেখুন আপনার server-এ কোথায় কি সেট করা আছে:
+প্রথমে দেখুন কোথায় কী সেট করা আছে:
 
 ```bash filename="SERVER — Terminal"
 sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
 ```
 
-যদি output-এ `50-cloud-init.conf`-এ `PasswordAuthentication yes` দেখেন, সেই ফাইলটি এডিট করে লাইনটি `#` দিয়ে comment করে দিন:
+`50-cloud-init.conf`-এ `yes` দেখলে সেটি `#` দিয়ে comment করুন:
 
 ```bash filename="SERVER — Terminal"
 sudo nano /etc/ssh/sshd_config.d/50-cloud-init.conf
 ```
 
-এবার নিজের hardening config ফাইল তৈরি করুন:
+এবার নিজের config ফাইল তৈরি করুন:
 
 ```bash filename="SERVER — Terminal"
 sudo nano /etc/ssh/sshd_config.d/99-hardening.conf
 ```
-
-নিচের লাইন দুটি লিখুন:
 
 ```bash filename="SERVER — /etc/ssh/sshd_config.d/99-hardening.conf"
 PasswordAuthentication no
 PermitRootLogin no
 ```
 
-`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হয়ে আসুন।
-
-এখন config-এ কোনো ভুল আছে কিনা **test করুন**। ভুল থাকলে SSH restart-এ আপনি নিজেই server থেকে বাহির হয়ে যেতে পারেন:
+Config test করে restart দিন:
 
 ```bash filename="SERVER — Terminal"
 sudo sshd -t
-```
-
-কোনো output না এলে config ঠিক আছে। এবার SSH restart দিন:
-
-<Callout type="info">
-  Ubuntu-তে service-টির নাম `ssh`, `sshd` নয়। অনেক tutorial-এ `systemctl restart sshd` লেখা থাকে — সেটি Ubuntu-তে কাজ নাও করতে পারে।
-</Callout>
-
-```bash filename="SERVER — Terminal"
 sudo systemctl restart ssh
 ```
 
-<Callout type="warning">
-  **এখনই current terminal বন্ধ করবেন না।** একটি **নতুন** terminal খুলে login হচ্ছে কিনা দেখুন। যদি key কাজ না করে, পুরনো terminal-টি খোলা থাকলে আপনি ভুল ঠিক করতে পারবেন। এটি একটি প্রফেশনাল অভ্যাস — প্রতিটি sysadmin এভাবেই কাজ করেন।
+<Callout type="info">
+  Ubuntu-তে service-এর নাম `ssh`, `sshd` নয়। অনেক tutorial-এ `restart sshd` লেখা থাকে — সেটি Ubuntu-তে কাজ নাও করতে পারে।
+</Callout>
 
-  Password login সত্যিই বন্ধ হয়েছে কিনা verify করুন:
+<Callout type="warning">
+  **current terminal বন্ধ করার আগে** নতুন একটি terminal খুলে login করে দেখুন। ভুল হলে পুরনো terminal দিয়ে ঠিক করতে পারবেন — প্রতিটি sysadmin এভাবেই কাজ করেন।
+
+  Password login সত্যিই বন্ধ হয়েছে কিনা:
 
   ```bash filename="LOCAL — Terminal"
-  ssh -o PubkeyAuthentication=no queen@YOUR_SERVER_IP
+  ssh -o PubkeyAuthentication=no aladin@YOUR_SERVER_IP
   ```
 
   `Permission denied (publickey)` দেখলে সফল।
 </Callout>
 
-### Configure the Firewall
+### Turn On the Firewall
 
-শুধু প্রয়োজনীয় পোর্টগুলো (২২, ৮০, ৪৪৩) ওপেন রাখুন — বাকি সব বন্ধ:
+শুধু প্রয়োজনীয় port (22, 80, 443) খোলা রাখুন:
 
 ```bash filename="SERVER — Terminal"
-# SSH allow নিশ্চিত করুন (এটি আগে না দিলে নিজেই আটকে যাবেন)
 sudo ufw allow OpenSSH
-
-# Web traffic
 sudo ufw allow 80
 sudo ufw allow 443
-
-# Firewall চালু করুন
 sudo ufw enable
-```
-
-Status দেখে নিন:
-
-```bash filename="SERVER — Terminal"
 sudo ufw status
 ```
 
-**AWS EC2 ব্যবহার করলে একটি বাড়তি ধাপ** — AWS Console-এ গিয়ে Security Group-এ port 22, 80, 443 allow করা আছে কিনা দেখুন (server তৈরির সময় এটি সেট করেছিলেন)। বাদ পড়লে "Edit inbound rules"-এ গিয়ে যোগ করুন।
-
-<Callout type="info">
-  **UFW বনাম Security Group — দুই জায়গায় কেন?**
-
-  - **AWS Security Group** হলো আপনার server-এর "বাইরের গেট" (Cloud Level)।
-  - **UFW** হলো server-এর "নিজের দরজা" (OS Level)।
-
-  প্রফেশনাল নিরাপত্তার জন্য উভয় স্তরেই firewall থাকা জরুরি। একে বলা হয় **Defense in Depth** — যেকোনো একটি স্তরে ত্রুটি থাকলেও অন্যটি আপনার server-কে সুরক্ষিত রাখে।
+<Callout type="warning">
+  `ufw allow OpenSSH` **সবার আগে** দিন। এটি বাদ দিয়ে `ufw enable` করলে নিজের SSH connection কেটে যাবে এবং আর ঢুকতে পারবেন না।
 </Callout>
 
-সার্ভার এখন নিরাপদ।
+**AWS EC2-তে একটি বাড়তি ধাপ** — AWS Console-এ Security Group-এ port 22, 80, 443 allow আছে কিনা দেখুন।
+
+<Callout type="info">
+  **দুই জায়গায় firewall কেন?** AWS Security Group হলো "বাইরের গেট" (Cloud level), UFW হলো "নিজের দরজা" (OS level)। একে বলে **Defense in Depth** — এক স্তরে ত্রুটি থাকলেও অন্যটি রক্ষা করে।
+</Callout>
+
+### Enable Automatic Security Updates
+
+Server চালু থাকা অবস্থায় নতুন security patch বের হতে থাকে। হাতে update করার ভরসায় না থেকে Ubuntu-কে নিজে থেকেই security update নিতে বলুন:
+
+```bash filename="SERVER — Terminal"
+sudo apt install unattended-upgrades -y
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+প্রশ্ন এলে **Yes** বেছে নিন। এখন থেকে security update নিজে নিজেই install হবে।
 
 </Steps>
 
+## Removing Someone's Access
+
+কেউ team ছেড়ে গেলে এক command-এ তার access শেষ:
+
+```bash filename="SERVER — Terminal"
+sudo deluser rakib
+```
+
+তার home folder-সহ মুছতে চাইলে:
+
+```bash filename="SERVER — Terminal"
+sudo deluser --remove-home rakib
+```
+
+<Callout type="info">
+  এটাই individual user রাখার সবচেয়ে বড় সুবিধা। Root password share করা থাকলে একজন চলে গেলে password বদলে **বাকি সবাইকে** নতুন করে জানাতে হতো — এবং কেউ পুরনো password মনে রেখে দিলে বোঝার উপায় থাকত না।
+</Callout>
+
+শুধু `sudo` ক্ষমতা সরাতে চান, কিন্তু login রাখতে চান:
+
+```bash filename="SERVER — Terminal"
+sudo deluser rakib sudo
+```
+
+## Who Did What
+
+Individual user রাখার ফল এখানেই দেখা যায় — কে কখন login করেছে:
+
+```bash filename="SERVER — Terminal"
+sudo grep "Accepted publickey" /var/log/auth.log | tail -20
+```
+
+কে `sudo` দিয়ে কী চালিয়েছে:
+
+```bash filename="SERVER — Terminal"
+sudo grep "sudo:" /var/log/auth.log | tail -20
+```
+
+Root share করা থাকলে এই দুটি command-ই অর্থহীন হতো — সব লাইনে একই নাম থাকত।
+
+## Where This Goes at Scale
+
+আপনি যা শিখলেন — প্রত্যেকের নিজের user, নিজের key, root login বন্ধ — এটিই **CIS Benchmark**-এর official সুপারিশ এবং ছোট থেকে মাঝারি team-এর industry standard।
+
+তবে server আর মানুষের সংখ্যা অনেক বেড়ে গেলে এই পদ্ধতিতে একটি সমস্যা দেখা দেয়: ৫০০টি server-এ ২০০ জন engineer-এর key হাতে যোগ-বিয়োগ করা অসম্ভব হয়ে পড়ে। তাই বড় কোম্পানিগুলো পরের ধাপে যায় — **SSH Certificate**:
+
+- **Netflix** — SSO দিয়ে login করলে একটি certificate দেওয়া হয় যা **কয়েক মিনিটেই expire** করে
+- **Uber** — employee-এর role অনুযায়ী certificate-এর মেয়াদ ঠিক হয়
+- **Google** — বেশিরভাগ engineer-এর production server-এ SSH access-ই নেই, সব কাজ automation-এর মাধ্যমে
+
+এখানে server কোনো `authorized_keys` ফাইল রাখে না — সে শুধু একটি কেন্দ্রীয় authority-কে বিশ্বাস করে।
+
+<Callout type="default">
+  লক্ষ্য করুন, এই পরিবর্তনের কারণ **নিরাপত্তা নয়, scale**। মূল নীতি একই থেকে যায় — প্রত্যেকের আলাদা পরিচয়, যতটুকু দরকার ততটুকু ক্ষমতা, আর কে কী করেছে তার হিসাব।
+
+  আপনার client project বা ছোট team-এর জন্য এই page-এ যা শিখলেন সেটিই সঠিক গন্তব্য। Certificate-এর জটিলতা তখনই দরকার যখন key manage করা নিজেই একটি সমস্যা হয়ে দাঁড়ায়।
+</Callout>
+
 ## Quick Check
 
-- [ ] `queen` user তৈরি হয়েছে এবং `sudo` group-এ আছে?
-- [ ] SSH key দিয়ে `queen` user হিসেবে পাসওয়ার্ড ছাড়াই লগিন হচ্ছে?
-- [ ] `sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config.d/` দেখাচ্ছে কোথাও `yes` নেই?
-- [ ] `ssh -o PubkeyAuthentication=no queen@YOUR_SERVER_IP` দিলে `Permission denied (publickey)` আসছে?
+- [ ] প্রত্যেক মানুষের **আলাদা** user আছে, কেউ user share করছে না?
+- [ ] প্রত্যেকে **নিজের** কম্পিউটারে key বানিয়েছে, private key কোথাও পাঠানো হয়নি?
+- [ ] যাদের admin কাজের দরকার নেই, তারা `sudo` group-এর বাইরে?
+- [ ] `sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config.d/` কোথাও `yes` দেখাচ্ছে না?
+- [ ] `ssh -o PubkeyAuthentication=no aladin@YOUR_SERVER_IP` দিলে `Permission denied (publickey)`?
 - [ ] `sudo ufw status` দেখাচ্ছে port 22, 80, 443 open?
-- [ ] AWS ব্যবহারকারী: Security Group-এও এই রুলগুলো আছে?
 
 ## Real-World Note
 
 <Callout type="warning">
-  এই পেজে আপনি যা করলেন তাকে বলে **Server Hardening**। এটি একটি স্ট্যান্ডার্ড সিকিউরিটি প্র্যাকটিস। পেনিট্রেশন টেস্টাররা যখন কোনো সার্ভারে অ্যাটাক করার চেষ্টা করেন, তারা প্রথমেই দেখেন কোনো ভুল কনফিগারেশন আছে কিনা — যেমন root login খোলা রাখা বা weak password।
+  এই পেজে আপনি যা করলেন তাকে বলে **Server Hardening**।
 
-  আপনি এই ধাপগুলো সম্পন্ন করার মধ্য দিয়ে সবচেয়ে common attack path-গুলো বন্ধ করে দিয়েছেন। TryHackMe-র **"Linux Privilege Escalation"** room-এ দেখবেন attackers ঠিক এই misconfiguration-গুলোই খোঁজে।
+  একটি নতুন server internet-এ আসার কয়েক মিনিটের মধ্যেই automated bot SSH port scan শুরু করে এবং `root`, `admin` জাতীয় common username দিয়ে হাজার হাজার password চেষ্টা করে। কতগুলো চেষ্টা হয়েছে দেখুন:
+
+  ```bash filename="SERVER — Terminal"
+  sudo grep "Failed password" /var/log/auth.log | wc -l
+  ```
+
+  Password login বন্ধ করার পর এই আক্রমণগুলো অর্থহীন হয়ে যায় — অনুমান করার মতো কোনো password আর নেই।
+
+  TryHackMe-র **"Linux Privilege Escalation"** room-এ দেখবেন attackers ঠিক এই ভুলগুলোই খোঁজে — খোলা root login, দুর্বল password, আর প্রয়োজনের বেশি `sudo` পাওয়া user।
 </Callout>
 
 **পরবর্তী →** [Install Node.js](/docs/server-deployment/foundation/install-node)
 
 <span style={{ display: 'none' }}>
-  server hardening bangla, ssh key setup bangla, ufw firewall bangla, aws security group bangla, disable password login ssh, queen user linux bangla, server security bangla tutorial, contabo ubuntu setup, sshd_config include bangla
+  server hardening bangla, ssh key setup bangla, ufw firewall bangla, team server access bangla, add user server bangla, deluser bangla, sudo user bangla, root login disable bangla, sshd_config include bangla, devops user management bangla
 </span>
