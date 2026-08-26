@@ -96,7 +96,7 @@ Version number দেখলে সফল।
 <Callout type="warning">
   **NVM এবং PM2-এর একটি গুরুত্বপূর্ণ সমস্যা।**
 
-  NVM দিয়ে install করা Node একটি নির্দিষ্ট folder-এ থাকে, যেমন `/home/aladin/.nvm/versions/node/v22.11.0/bin`। এই path-এ **version number লেখা আছে**।
+  NVM দিয়ে install করা Node একটি নির্দিষ্ট folder-এ থাকে, যেমন `/home/ubuntu/.nvm/versions/node/v22.11.0/bin`। এই path-এ **version number লেখা আছে**।
 
   পরের কোনো এক সময় আপনি যখন `nvm install --lts` দিয়ে Node upgrade করবেন, নতুন folder তৈরি হবে (`v22.14.0`) এবং পুরনোটি মুছে যেতে পারে। তখন PM2-র auto-start setting পুরনো path খুঁজবে, পাবে না — এবং **server reboot হলে আপনার app আর চালু হবে না**।
 

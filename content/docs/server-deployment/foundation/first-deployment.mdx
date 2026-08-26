@@ -67,7 +67,7 @@ Push করার আগে `.gitignore`-এ `.env` আছে কিনা দ�
 ### Prepare the Server
 
 - [ ] Ubuntu 24.04 LTS server তৈরি — [Choose a Server](/docs/server-deployment/foundation/choose-server)
-- [ ] `aladin` user, SSH key, password login বন্ধ, UFW firewall — [Secure the Server](/docs/server-deployment/foundation/secure-server)
+- [ ] SSH key দিয়ে login, password ও root login বন্ধ, UFW firewall — [Secure the Server](/docs/server-deployment/foundation/secure-server)
 - [ ] Git এবং Node.js (NVM দিয়ে) — [Install Node.js](/docs/server-deployment/foundation/install-node)
 
 <Callout type="warning">
@@ -123,7 +123,7 @@ Deploy শেষে আপনার server-এর গঠন এরকম হব�
 
 <FileTree>
   <FileTree.Folder name="home" defaultOpen>
-    <FileTree.Folder name="aladin" defaultOpen>
+    <FileTree.Folder name="ubuntu" defaultOpen>
       <FileTree.Folder name="myapp" defaultOpen>
         <FileTree.Folder name=".next" />
         <FileTree.Folder name="public" />
