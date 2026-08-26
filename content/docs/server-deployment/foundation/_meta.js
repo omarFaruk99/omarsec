@@ -2,6 +2,7 @@ export default {
   index: 'Introduction',
   'choose-server': 'Choose a Server',
   'secure-server': 'Secure the Server',
+  'install-node': 'Install Node.js',
   'nginx': 'Nginx & Reverse Proxy',
   'ssl-https': 'SSL & HTTPS',
   'github-setup': 'GitHub Setup',

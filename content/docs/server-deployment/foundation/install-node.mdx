@@ -1,0 +1,117 @@
+---
+title: Install Node.js
+description: Install Git and Node.js on your server using NVM, and understand why the system package version is not enough for a production Next.js app.
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Install Node.js
+
+<Callout type="info">
+  এই page-এ server-এ Git এবং Node.js install করবেন। এই দুটি tool ছাড়া পরের কোনো step কাজ করবে না — code আনা যাবে না, app build করা যাবে না।
+</Callout>
+
+## Why Not `apt install nodejs`?
+
+Ubuntu-র নিজস্ব package manager দিয়ে Node.js install করা যায়:
+
+```bash
+sudo apt install nodejs
+```
+
+কিন্তু production-এ এটি করা হয় না। কারণ Ubuntu-র repository-তে থাকা Node.js version সাধারণত **অনেক পুরনো**। Ubuntu 24.04-এ এটি Node 18 দিতে পারে, যেখানে Next.js 15-এর জন্য Node 18.18 বা তার উপরে দরকার।
+
+আরেকটি সমস্যা — `apt` দিয়ে install করলে Node version পরিবর্তন করা কঠিন। একটি client project-এ Node 20 লাগে, অন্যটিতে Node 22 — তখন কী করবেন?
+
+**NVM (Node Version Manager)** এই দুটি সমস্যাই সমাধান করে। এটি আপনাকে যেকোনো Node version install করতে দেয় এবং প্রয়োজনে version পরিবর্তন করতে দেয়।
+
+<Steps>
+
+### Install Git
+
+Server-এ code আনার জন্য Git দরকার। বেশিরভাগ Ubuntu image-এ এটি আগে থেকেই থাকে, তবু নিশ্চিত করুন:
+
+```bash filename="SERVER — Terminal"
+sudo apt update
+sudo apt install git -y
+```
+
+Version দেখে confirm করুন:
+
+```bash filename="SERVER — Terminal"
+git --version
+```
+
+### Install NVM
+
+NVM install করার script-টি download করে চালান:
+
+```bash filename="SERVER — Terminal"
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+```
+
+<Callout type="warning">
+  Internet থেকে script নামিয়ে সরাসরি `bash`-এ পাঠানো (`curl | bash`) একটি ঝুঁকিপূর্ণ অভ্যাস — কারণ আপনি না দেখেই একটি script চালাচ্ছেন। NVM-এর ক্ষেত্রে এটি official এবং widely used, তাই গ্রহণযোগ্য।
+
+  তবে অচেনা কোনো site থেকে এভাবে script চালাবেন না। আগে `curl URL | less` দিয়ে script-টি পড়ে দেখুন।
+</Callout>
+
+Install হওয়ার পর NVM-কে current terminal-এ চালু করতে হবে:
+
+```bash filename="SERVER — Terminal"
+source ~/.bashrc
+```
+
+<Callout type="info">
+  **`source ~/.bashrc` কেন?** NVM installer আপনার `~/.bashrc` ফাইলে কিছু লাইন যোগ করে। কিন্তু ওই ফাইলটি শুধু নতুন terminal খুললে পড়া হয়। `source` command দিয়ে আমরা current terminal-কেই ফাইলটি আবার পড়তে বলছি — তাই নতুন করে login করতে হয় না।
+</Callout>
+
+NVM কাজ করছে কিনা দেখুন:
+
+```bash filename="SERVER — Terminal"
+nvm --version
+```
+
+### Install Node.js LTS
+
+LTS (Long Term Support) version install করুন — production-এ সবসময় LTS ব্যবহার করতে হয়:
+
+```bash filename="SERVER — Terminal"
+nvm install --lts
+```
+
+Install শেষ হলে verify করুন:
+
+```bash filename="SERVER — Terminal"
+node -v
+npm -v
+```
+
+Version number দেখলে সফল।
+
+</Steps>
+
+## Real-World Note
+
+<Callout type="warning">
+  **NVM এবং PM2-এর একটি গুরুত্বপূর্ণ সমস্যা।**
+
+  NVM দিয়ে install করা Node একটি নির্দিষ্ট folder-এ থাকে, যেমন `/home/queen/.nvm/versions/node/v22.11.0/bin`। এই path-এ **version number লেখা আছে**।
+
+  পরের কোনো এক সময় আপনি যখন `nvm install --lts` দিয়ে Node upgrade করবেন, নতুন folder তৈরি হবে (`v22.14.0`) এবং পুরনোটি মুছে যেতে পারে। তখন PM2-র auto-start setting পুরনো path খুঁজবে, পাবে না — এবং **server reboot হলে আপনার app আর চালু হবে না**।
+
+  এটি একটি নীরব সমস্যা — কোনো error দেখা যায় না, শুধু reboot-এর পর site down হয়ে যায়। তাই Node upgrade করার পর সবসময় PM2-র startup setting আবার সেট করবেন। এই বিষয়ে বিস্তারিত [PM2 — Process Manager](/docs/server-deployment/foundation/pm2) page-এ আছে।
+</Callout>
+
+## Quick Check
+
+- [ ] `git --version` version number দেখাচ্ছে?
+- [ ] `nvm --version` কাজ করছে?
+- [ ] `node -v` Node 20 বা তার উপরে দেখাচ্ছে?
+- [ ] `npm -v` কাজ করছে?
+
+**পরবর্তী →** [Nginx & Reverse Proxy](/docs/server-deployment/foundation/nginx)
+
+<span style={{ display: 'none' }}>
+  nodejs install server bangla, nvm bangla tutorial, node version manager bangla, ubuntu nodejs install bangla, git install server bangla, nvm vs apt nodejs, production nodejs setup bangla
+</span>

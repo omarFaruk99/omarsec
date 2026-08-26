@@ -73,6 +73,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
     }
 }
 ```
@@ -117,7 +122,13 @@ sudo certbot renew --dry-run
 
 ## Verify
 
-Browser-এ `https://yourdomain.com` visit করুন। URL bar-এ তালার চিহ্ন (padlock icon) দেখালে HTTPS সফলভাবে চালু হয়েছে।
+Browser-এ `https://yourdomain.com` visit করুন। URL bar-এ **তালার চিহ্ন (padlock icon)** দেখলে SSL সফলভাবে বসেছে।
+
+<Callout type="info">
+  Padlock দেখা যাচ্ছে কিন্তু পাতায় **502 Bad Gateway** লেখা — এটাই এখন সঠিক অবস্থা।
+
+  Padlock মানে HTTPS কাজ করছে (certificate ঠিক আছে), আর 502 মানে app এখনো চালু হয়নি। App চালু হবে PM2 page-এ। তখন 502 চলে যাবে।
+</Callout>
 
 `http://` দিয়ে গেলে Certbot automatically `https://`-এ redirect করবে।
 
@@ -134,7 +145,7 @@ Browser-এ `https://yourdomain.com` visit করুন। URL bar-এ তাল
 ## Quick Check
 
 - [ ] `nslookup yourdomain.com` আপনার server IP দেখাচ্ছে?
-- [ ] `https://yourdomain.com` browser-এ padlock দেখাচ্ছে?
+- [ ] `https://yourdomain.com` browser-এ padlock দেখাচ্ছে? (পাতায় 502 থাকলেও ঠিক আছে)
 - [ ] `http://` দিয়ে গেলে `https://`-এ redirect হচ্ছে?
 - [ ] `sudo certbot renew --dry-run` সফল হচ্ছে?
 

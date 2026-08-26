@@ -34,7 +34,7 @@ Next.js-এ environment variable-এর নাম `NEXT_PUBLIC_` দিয়ে
 সার্ভারে repository clone করার আগে নিশ্চিত করুন আপনার project-এ `.gitignore` ফাইলে `.env` listed আছে। **Local machine-এ** চেক করুন:
 
 ```bash filename="LOCAL — Terminal"
-cat .gitignore | grep .env
+grep "\.env" .gitignore
 ```
 
 Output-এ `.env` দেখলে ঠিক আছে। না দেখলে `.gitignore`-এ যোগ করুন:
@@ -54,7 +54,7 @@ Output-এ `.env` দেখলে ঠিক আছে। না দেখলে 
 Server-এ আপনার project folder-এ যান এবং `.env` ফাইল তৈরি করুন:
 
 ```bash filename="SERVER — Terminal"
-cd ~/YOUR_REPO
+cd ~/myapp
 nano .env
 ```
 
@@ -67,9 +67,6 @@ DATABASE_URL=postgresql://user:password@localhost:5432/mydb
 # Authentication
 NEXTAUTH_SECRET=your-long-random-secret-here
 NEXTAUTH_URL=https://yourdomain.com
-
-# Environment
-NODE_ENV=production
 
 # Third-party APIs
 STRIPE_SECRET_KEY=sk_live_xxxxx
@@ -105,15 +102,25 @@ chmod 600 .env
   Output-এ `-rw-------` দেখলে সঠিক।
 </Callout>
 
-### Verify Variables Load
+### Verify the File
 
-Next.js সঠিকভাবে variable পাচ্ছে কিনা test করুন:
+`.env` ফাইলটি সঠিকভাবে তৈরি হয়েছে কিনা দেখুন:
 
 ```bash filename="SERVER — Terminal"
-node -e "require('dotenv').config(); console.log(process.env.NODE_ENV)"
+cat .env
 ```
 
-`production` দেখলে `.env` সঠিকভাবে load হচ্ছে।
+আপনার লেখা variable-গুলো দেখতে পাবেন।
+
+<Callout type="info">
+  **Next.js কখন `.env` পড়ে?** Next.js নিজে থেকেই project root-এর `.env` ফাইল পড়ে — কোনো extra package (যেমন `dotenv`) install করতে হয় না। এটি `next build` এবং `next start` — দুই সময়েই কাজ করে।
+
+  তাই এখানে আলাদা করে test করার দরকার নেই। পরের page-এ PM2 দিয়ে app চালু করার পর `pm2 logs myapp` দেখলেই বুঝবেন variable ঠিকমতো load হয়েছে কিনা।
+</Callout>
+
+<Callout type="warning">
+  **`NODE_ENV` কখনো `.env`-এ লিখবেন না।** Next.js এটি নিজে সেট করে — `npm run dev` দিলে `development`, `npm run build` ও `npm run start` দিলে `production`। `.env`-এ লিখলে Next.js সেটি উপেক্ষা করে এবং একটি warning দেখায়।
+</Callout>
 
 </Steps>
 

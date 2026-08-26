@@ -40,12 +40,29 @@ Installation verify করুন:
 pm2 --version
 ```
 
-### Start the App
+### Build the App First
 
-আপনার project folder-এ গিয়ে PM2 দিয়ে app চালু করুন:
+PM2 দিয়ে app চালু করার আগে অবশ্যই **build** করতে হবে।
+
+<Callout type="warning">
+  `npm run start` কোনো code compile করে না — এটি শুধু `.next` folder-এ থাকা তৈরি করা production build চালায়। Build না করে `pm2 start` দিলে app চালু হবে না এবং PM2-তে `errored` status দেখাবে।
+
+  Error টি হবে: `Could not find a production build in the '.next' directory`
+</Callout>
 
 ```bash filename="SERVER — Terminal"
-cd ~/YOUR_REPO
+cd ~/myapp
+npm install
+npm run build
+```
+
+`npm install` আপনার project-এর সব dependency নামিয়ে আনে, আর `npm run build` source code-কে optimized production bundle-এ রূপান্তর করে `.next` folder-এ রাখে।
+
+### Start the App
+
+এবার PM2 দিয়ে app চালু করুন:
+
+```bash filename="SERVER — Terminal"
 pm2 start npm --name "myapp" -- start
 ```
 
@@ -61,7 +78,7 @@ App-এর status দেখুন:
 pm2 list
 ```
 
-`status` column-এ `online` দেখলে app সফলভাবে চলছে।
+`status` column-এ `online` দেখলে app সফলভাবে চলছে। `errored` দেখলে বা `restart` count বাড়তে থাকলে `pm2 logs myapp` দিয়ে কারণ দেখুন।
 
 ### Enable Auto-Restart on Reboot
 
@@ -90,6 +107,12 @@ sudo env PATH=$PATH:/home/queen/.nvm/versions/node/v20.x.x/bin pm2 startup syste
 
 <Callout type="warning">
   `pm2 startup` শুধু command print করে — নিজে execute করে না। আপনাকে সেই command manually run করতে হবে। অনেকে এই ধাপ মিস করেন।
+</Callout>
+
+<Callout type="warning">
+  উপরের output-এ লক্ষ্য করুন path-এ Node-এর **version number** লেখা আছে (`v20.x.x`)। ভবিষ্যতে `nvm install --lts` দিয়ে Node upgrade করলে এই path বদলে যাবে এবং পুরনো path আর থাকবে না।
+
+  ফলে server reboot হলে PM2 আপনার app চালু করতে পারবে না — কোনো error ছাড়াই site down হয়ে যাবে। **Node upgrade করার পর সবসময়** `pm2 unstartup` দিয়ে পুরনো setting মুছে আবার `pm2 startup` চালাবেন।
 </Callout>
 
 ### View Logs
@@ -134,7 +157,7 @@ pm2 monit                 # real-time CPU ও memory দেখুন
 নতুন code deploy করার সময় full workflow:
 
 ```bash filename="SERVER — Terminal"
-cd ~/YOUR_REPO
+cd ~/myapp
 git pull
 npm install        # নতুন package যোগ হলে
 npm run build

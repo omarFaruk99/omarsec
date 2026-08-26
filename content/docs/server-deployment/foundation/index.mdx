@@ -27,13 +27,13 @@ Manual deployment শিখলে আপনি জানবেন:
 এই সেকশন শেষে আপনার কাছে থাকবে:
 
 <FileTree>
-  <FileTree.Folder name="Your Server (Ubuntu 22.04)" defaultOpen>
+  <FileTree.Folder name="Your Server (Ubuntu 24.04 LTS)" defaultOpen>
     <FileTree.Folder name="Running Services">
       <FileTree.File name="Nginx — handles incoming requests" />
       <FileTree.File name="PM2 — keeps your app alive" />
       <FileTree.File name="Certbot — manages SSL certificate" />
     </FileTree.Folder>
-    <FileTree.Folder name="/var/www/myapp">
+    <FileTree.Folder name="/home/queen/myapp">
       <FileTree.File name="Your Next.js app (built & running)" />
     </FileTree.Folder>
   </FileTree.Folder>
@@ -61,20 +61,26 @@ Manual deployment শিখলে আপনি জানবেন:
 ### Secure the Server
 Non-root user তৈরি করুন, SSH key setup করুন এবং firewall চালু করুন।
 
+### Install Node.js
+Git এবং NVM দিয়ে Node.js install করুন — বাকি সব step-এর জন্য এটি দরকার।
+
 ### Set Up Nginx
 Nginx install করুন এবং reverse proxy configure করুন।
 
 ### Enable HTTPS
 Domain connect করুন এবং free SSL certificate নিন।
 
+### Connect to GitHub
+Server-কে GitHub-এর সাথে যুক্ত করুন এবং code clone করুন।
+
 ### Configure Environment Variables
 Server-এ `.env` file তৈরি করুন।
 
 ### Set Up PM2
-PM2 দিয়ে app চালু করুন এবং auto-restart configure করুন।
+App build করুন, PM2 দিয়ে চালু করুন এবং auto-restart configure করুন।
 
 ### Deploy Your First App
-`create-next-app` থেকে শুরু করে live পর্যন্ত — পুরো walkthrough।
+পুরো প্রক্রিয়ার একটি সংক্ষিপ্ত checklist — শুরু থেকে শেষ পর্যন্ত।
 
 </Steps>
 

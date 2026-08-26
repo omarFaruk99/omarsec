@@ -85,6 +85,14 @@ server {
 
         # proxy chain-এর সব IP রাখো
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # HTTP না HTTPS — সেটি অ্যাপকে জানাও
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket connection কাজ করার জন্য
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
     }
 }
 ```
@@ -100,7 +108,7 @@ server {
 sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
 
 # default config সরিয়ে দিন যা conflict করতে পারে
-sudo rm /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/default
 ```
 
 ### Test and Reload
@@ -121,10 +129,18 @@ sudo systemctl reload nginx
 
 ## Verify
 
-এখন আপনার browser থেকে `http://YOUR_SERVER_IP` visit করুন। যদি Next.js অ্যাপ চালু থাকে, তবে সেটি দেখতে পাবেন।
+এখন আপনার browser থেকে `http://YOUR_SERVER_IP` visit করুন।
+
+<Callout type="info">
+  আপনি এখন **502 Bad Gateway** দেখবেন — এবং এটাই এই মুহূর্তে **সঠিক ফলাফল**।
+
+  502-এর অর্থ হলো Nginx ঠিকমতো কাজ করছে, request গ্রহণ করছে এবং সেটি `localhost:3000`-এ পাঠানোর চেষ্টা করছে — কিন্তু ওখানে এখনো কোনো app চলছে না। অর্থাৎ আপনার config সঠিক।
+
+  পরের page-গুলোতে code আনা, `.env` তৈরি করা এবং PM2 দিয়ে app চালু করার পর এই 502 চলে যাবে এবং আপনার site দেখা যাবে।
+</Callout>
 
 <Callout type="warning">
-  Next.js অ্যাপ এখনো চালু না হলে Nginx একটি error দেখাবে। চিন্তা করবেন না — পরের page-এ আমরা PM2 দিয়ে অ্যাপটি background-এ চালু করব।
+  যদি 502-এর বদলে **connection timeout** আসে বা কিছুই না আসে, তাহলে সমস্যা অন্য জায়গায় — firewall। `sudo ufw status` দিয়ে port 80 open আছে কিনা দেখুন। AWS ব্যবহার করলে Security Group-ও check করুন।
 </Callout>
 
 ## Real-World Note
@@ -138,7 +154,7 @@ sudo systemctl reload nginx
 - [ ] `sudo systemctl status nginx` দেখাচ্ছে `active (running)`?
 - [ ] `sudo nginx -t` দেখাচ্ছে `syntax is ok`?
 - [ ] `sites-enabled`-এ আপনার config-এর symlink আছে?
-- [ ] `http://YOUR_SERVER_IP` visit করলে connection হচ্ছে?
+- [ ] `http://YOUR_SERVER_IP` visit করলে **502 Bad Gateway** দেখাচ্ছে? (এই ধাপে এটাই সঠিক)
 
 **পরবর্তী →** [SSL & HTTPS](/docs/server-deployment/foundation/ssl-https)
 

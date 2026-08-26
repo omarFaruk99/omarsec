@@ -90,24 +90,74 @@ ssh queen@YOUR_SERVER_IP
 
 ### Disable Password Login
 
-পাসওয়ার্ড লগিন বন্ধ করা অত্যন্ত জরুরি। সার্ভারে থাকাকালীন নিচের ফাইলটি এডিট করুন:
+পাসওয়ার্ড লগিন বন্ধ করা অত্যন্ত জরুরি। কিন্তু এখানে একটি ফাঁদ আছে যা অনেক tutorial-এ বলা হয় না।
+
+<Callout type="warning">
+  Ubuntu 24.04-এর `/etc/ssh/sshd_config` ফাইলের **শুরুতে** এই লাইনটি থাকে:
+
+  ```
+  Include /etc/ssh/sshd_config.d/*.conf
+  ```
+
+  এবং অধিকাংশ cloud server-এ `/etc/ssh/sshd_config.d/50-cloud-init.conf` ফাইলে `PasswordAuthentication yes` লেখা থাকে।
+
+  SSH-এর নিয়ম হলো **প্রথম যে setting পায় সেটিই মানে** (first match wins)। তাই আপনি যদি শুধু মূল ফাইলে `PasswordAuthentication no` লেখেন, ওই include করা ফাইলটি আগে পড়া হবে এবং আপনার setting কাজ করবে **না**। Server অরক্ষিত থেকে যাবে, অথচ আপনি ভাববেন secure করেছেন।
+</Callout>
+
+প্রথমে দেখুন আপনার server-এ কোথায় কি সেট করা আছে:
 
 ```bash filename="SERVER — Terminal"
-sudo nano /etc/ssh/sshd_config
+sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
 ```
 
-নিচের লাইন দুটি খুঁজে বের করুন এবং পরিবর্তন করুন:
+যদি output-এ `50-cloud-init.conf`-এ `PasswordAuthentication yes` দেখেন, সেই ফাইলটি এডিট করে লাইনটি `#` দিয়ে comment করে দিন:
 
-```bash filename="SERVER — /etc/ssh/sshd_config"
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config.d/50-cloud-init.conf
+```
+
+এবার নিজের একটি hardening config ফাইল তৈরি করুন:
+
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config.d/99-hardening.conf
+```
+
+নিচের লাইন দুটি লিখুন:
+
+```bash filename="SERVER — /etc/ssh/sshd_config.d/99-hardening.conf"
 PasswordAuthentication no
 PermitRootLogin no
 ```
 
-`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হয়ে আসুন। এরপর SSH রিস্টার্ট দিন:
+`Ctrl+O`, `Enter` দিয়ে সেভ করুন এবং `Ctrl+X` দিয়ে বের হয়ে আসুন।
+
+এখন config-এ কোনো ভুল আছে কিনা **test করুন**। ভুল থাকলে SSH restart-এ আপনি নিজেই server থেকে বাহির হয়ে যেতে পারেন:
 
 ```bash filename="SERVER — Terminal"
-sudo systemctl restart sshd
+sudo sshd -t
 ```
+
+কোনো output না এলে config ঠিক আছে। এবার SSH restart দিন:
+
+<Callout type="info">
+  Ubuntu-তে service-টির নাম `ssh`, `sshd` নয়। অনেক tutorial-এ `systemctl restart sshd` লেখা থাকে — সেটি Ubuntu-তে কাজ নাও করতে পারে।
+</Callout>
+
+```bash filename="SERVER — Terminal"
+sudo systemctl restart ssh
+```
+
+<Callout type="warning">
+  **এখনই current terminal বন্ধ করবেন না।** একটি **নতুন** terminal খুলে login হচ্ছে কিনা দেখুন। যদি key কাজ না করে, পুরনো terminal-টি খোলা থাকলে আপনি ভুল ঠিক করতে পারবেন। এটি একটি প্রফেশনাল অভ্যাস — প্রতিটি sysadmin এভাবেই কাজ করেন।
+
+  Password login সত্যিই বন্ধ হয়েছে কিনা verify করুন:
+
+  ```bash filename="LOCAL — Terminal"
+  ssh -o PubkeyAuthentication=no queen@YOUR_SERVER_IP
+  ```
+
+  `Permission denied (publickey)` দেখলে সফল।
+</Callout>
 
 ### Configure Firewall (UFW)
 
@@ -169,38 +219,46 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 
 ### Setup SSH Key Authentication
 
-AWS-এ `ssh-copy-id` সরাসরি কাজ করে না কারণ আপনি `.pem` ফাইল দিয়ে কানেক্ট আছেন। তবে কিছু ফ্ল্যাগ ব্যবহার করে আমরা এটি করতে পারি। প্রথমে আপনার তৈরি করা **Public Key (`id_ed25519.pub`)** `ubuntu` ইউজারের কাছে পাঠান:
+আপনি এখন `.pem` ফাইল দিয়ে connect আছেন। তাই `ssh-copy-id`-কে বলে দিতে হবে যে কোন key দিয়ে সে server-এ ঢুকবে — এর জন্য `-o IdentityFile=` option ব্যবহার করতে হয়।
 
 <Callout type="default">
-  **প্রশ্ন হতে পারে:** AWS তো নিজেই একটি `.pem` ফাইল দেয়, তাহলে নতুন কী কেন?
-  **উত্তর:** AWS-এর `.pem` ফাইলটি অনেকটা "মাস্টার কি"-র মতো। কিন্তু প্রোডাকশনে সিকিউরিটির খাতিরে আমরা সেটি সব ইউজারকে দিই না। আপনার নিজস্ব জেনারেট করা কী ব্যবহার করা একটি ইন্ডাস্ট্রি স্ট্যান্ডার্ড এবং অনেক বেশি নিরাপদ।
+  **প্রশ্ন হতে পারে:** AWS তো নিজেই একটি `.pem` ফাইল দেয়, তাহলে নতুন key কেন?
+
+  **উত্তর:** AWS-এর `.pem` ফাইলটি অনেকটা "মাস্টার কি"-র মতো — পুরো server-এর access। প্রোডাকশনে প্রতিটি developer-এর নিজস্ব key থাকে, যাতে কে কখন login করেছে তা track করা যায় এবং কারো access বাতিল করতে হলে শুধু তার key সরালেই হয়। এটি industry standard।
 </Callout>
 
-<Callout type="info">
-  এখানে `ssh-copy-id` ব্যবহার করা হচ্ছে যাতে ম্যানুয়ালি কী কপি করার ঝামেলা পোহাতে না হয়। এটি আপনার লোকাল পাবলিক কী-কে সার্ভারের `ubuntu` ইউজারের অনুমোদিত তালিকার শুরুতে যোগ করে দেবে।
+<Callout type="warning">
+  নিচের command-এ `-o IdentityFile=` লেখায় **সমান চিহ্ন (`=`)** আছে — এটি বাধ্যতামূলক। `-o "IdentityFile ~/..."` (space দিয়ে) লিখলে SSH এটি বুঝবে না এবং `garbage at end of line` error দেবে।
 </Callout>
 
 ```bash filename="LOCAL — Terminal"
-# আপনার local public key copy করুন
-ssh-copy-id -i ~/.ssh/id_ed25519.pub -o "IdentityFile ~/.ssh/myapp-key.pem" ubuntu@YOUR_EC2_IP
+ssh-copy-id -i ~/.ssh/id_ed25519.pub -o IdentityFile=~/.ssh/myapp-key.pem ubuntu@YOUR_EC2_IP
 ```
 
-এখন সার্ভারের ভেতর থেকে ওই কী-টি `queen` ইউজারের হোমে কপি করতে হবে:
+এখন আপনার নিজের key `ubuntu` user-এর কাছে পৌঁছেছে। পরের ধাপে এটি `queen` user-এর জন্য সেট করব।
+
+<Callout type="info">
+  এখানে আমরা `ubuntu` user-এর পুরো `authorized_keys` ফাইল copy না করে **শুধু আপনার নিজের key**-টি নেব। কারণ `ubuntu`-এর ফাইলে AWS-এর "master key"-ও আছে — সেটি `queen`-এ copy করলে উপরের নিরাপত্তার যুক্তিটাই নষ্ট হয়ে যায়।
+</Callout>
 
 ```bash filename="SERVER — Terminal"
 # queen-এর জন্য .ssh ফোল্ডার তৈরি করুন
 sudo mkdir -p /home/queen/.ssh
 
-# ubuntu ইউজার থেকে অলরেডি অথরাইজড কী-গুলো queen-এ কপি করুন
-sudo cp ~/.ssh/authorized_keys /home/queen/.ssh/
+# শুধু আপনার নিজের key (শেষ লাইনটি) queen-এ যোগ করুন
+sudo tail -n 1 /home/ubuntu/.ssh/authorized_keys | sudo tee /home/queen/.ssh/authorized_keys
 
-# ফোল্ডার ও ফাইলের মালিকানা queen ইউজারকে দিয়ে দিন
+# ফোল্ডার ও ফাইলের মালিকানা queen ইউজারকে দিন
 sudo chown -R queen:queen /home/queen/.ssh
 
-# ফোল্ডার এবং ফাইলের সিকিউর পারমিশন সেট করুন (নইলে SSH কাজ করবে না)
+# সিকিউর পারমিশন সেট করুন (নইলে SSH কাজ করবে না)
 sudo chmod 700 /home/queen/.ssh
 sudo chmod 600 /home/queen/.ssh/authorized_keys
 ```
+
+<Callout type="info">
+  **`chmod 700` ও `600` কেন?** SSH ইচ্ছাকৃতভাবে কড়া। যদি `.ssh` ফোল্ডার বা `authorized_keys` ফাইল অন্য কেউ পড়তে পারে, SSH সেটিকে নিরাপত্তা ঝুঁকি ধরে নিয়ে key-টি সম্পূর্ণ উপেক্ষা করে — কোনো error message ছাড়াই। এটি একটি খুব common সমস্যা।
+</Callout>
 
 এখন আপনার লোকাল কম্পিউটার থেকে সরাসরি `queen` হিসেবে লগিন চেক করুন:
 
@@ -210,17 +268,39 @@ ssh queen@YOUR_EC2_IP
 
 ### Disable Password Login
 
-AWS-এ ডিফল্টভাবে পাসওয়ার্ড অফ থাকলেও, নতুন ইউজার `queen`-এর জন্য এটি নিশ্চিত করা প্রয়োজন:
+AWS-এ ডিফল্টভাবে password login বন্ধ থাকে, কিন্তু নতুন user `queen`-এর জন্য এটি নিশ্চিত করা প্রয়োজন।
+
+<Callout type="warning">
+  Contabo সেকশনে যে **Include ফাঁদের** কথা বলা হয়েছে, AWS-এও ঠিক একই সমস্যা। `/etc/ssh/sshd_config.d/50-cloud-init.conf` ফাইলে `PasswordAuthentication yes` থাকে এবং সেটি মূল ফাইলের setting-কে হারিয়ে দেয়।
+</Callout>
+
+প্রথমে দেখুন কোথায় কি সেট করা আছে:
 
 ```bash filename="SERVER — Terminal"
-sudo nano /etc/ssh/sshd_config
+sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
 ```
 
-নিচে পরিবর্তন করুন:
-- `PasswordAuthentication no`
-- `PermitRootLogin no`
+`50-cloud-init.conf`-এ `PasswordAuthentication yes` থাকলে সেটি `#` দিয়ে comment করে দিন, তারপর নিজের config ফাইল তৈরি করুন:
 
-এরপর SSH রিস্টার্ট দিন: `sudo systemctl restart sshd`।
+```bash filename="SERVER — Terminal"
+sudo nano /etc/ssh/sshd_config.d/99-hardening.conf
+```
+
+```bash filename="SERVER — /etc/ssh/sshd_config.d/99-hardening.conf"
+PasswordAuthentication no
+PermitRootLogin no
+```
+
+Config test করে তারপর restart দিন:
+
+```bash filename="SERVER — Terminal"
+sudo sshd -t
+sudo systemctl restart ssh
+```
+
+<Callout type="warning">
+  Restart দেওয়ার পর current terminal বন্ধ করার **আগে** একটি নতুন terminal থেকে login করে দেখুন। কোনো ভুল হলে পুরনো terminal দিয়ে ঠিক করতে পারবেন।
+</Callout>
 
 ### Configure Firewall (UFW + Security Group)
 
@@ -240,7 +320,7 @@ sudo ufw enable
   আপনার মনে প্রশ্ন আসতে পারে—উভয় জায়গায় কেন পোর্ট ওপেন করছি? 
   - **AWS Security Group** হলো আপনার সার্ভারের "বাইরের গেট" (Cloud Level)। 
   - **UFW** হলো আপনার সার্ভারের "নিজের দরজা" (OS Level)। 
-  প্রফেশনাল সিকিউরিটির জন্য উভয় স্তরেই ফায়ারওয়াল থাকা জরুরি। একে বলা হয় **"Defense in Depth"**। এর ফলে হাগের কোনো সিকিউরিটি লেভেলে ত্রুটি থাকলেও অন্যটি আপনার সার্ভারকে সুরক্ষিত রাখে।
+  প্রফেশনাল সিকিউরিটির জন্য উভয় স্তরেই ফায়ারওয়াল থাকা জরুরি। একে বলা হয় **"Defense in Depth"**। এর ফলে যেকোনো একটি স্তরে ত্রুটি থাকলেও অন্যটি আপনার সার্ভারকে সুরক্ষিত রাখে।
 </Callout>
 
 যদি কোনো পোর্ট আগের ধাপে বাদ পড়ে থাকে, তবে এখনই "Edit inbound rules"-এ গিয়ে সেগুলো যোগ করে নিন। 
@@ -249,9 +329,10 @@ sudo ufw enable
 
 ## Quick Check
 
-- [ ] `queen` user তৈরি হয়েছে এবং `sudo` group-এ আছে?
-- [ ] SSH key দিয়ে `queen` user হিসেবে পাসওয়ার্ড ছাড়াই লগিন হচ্ছে?
-- [ ] পাসওয়ার্ড দিয়ে লগিন করার চেষ্টায় `Permission denied` আসছে?
+- [ ] `queen` user তৈরি হয়েছে এবং `sudo` group-এ আছে?
+- [ ] SSH key দিয়ে `queen` user হিসেবে পাসওয়ার্ড ছাড়াই লগিন হচ্ছে?
+- [ ] `sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config.d/` দেখাচ্ছে কোথাও `yes` নেই?
+- [ ] `ssh -o PubkeyAuthentication=no queen@YOUR_SERVER_IP` দিলে `Permission denied (publickey)` আসছে?
 - [ ] `sudo ufw status` দেখাচ্ছে port 22, 80, 443 open?
 - [ ] AWS ব্যবহারকারী: Security Group-এও এই রুলগুলো আছে?
 
@@ -261,7 +342,7 @@ sudo ufw enable
   এই পেজে আপনি যা করলেন তাকে বলে **Server Hardening**। এটি একটি স্ট্যান্ডার্ড সিকিউরিটি প্র্যাকটিস। পেনিট্রেশন টেস্টাররা যখন কোনো সার্ভারে অ্যাটাক করার চেষ্টা করেন, তারা প্রথমেই দেখেন কোনো ভুল কনফিগারেশন আছে কিনা (যেমন: রুট লগিন অন রাখা বা উইক পাসওয়ার্ড)। আপনি এই ধাপগুলো সম্পন্ন করার মধ্য দিয়ে আপনার সার্ভারের সিকিউরিটি লেভেল অনেক বাড়িয়ে নিয়েছেন।
 </Callout>
 
-**পরবর্তী →** [Nginx & Reverse Proxy](/docs/server-deployment/foundation/nginx)
+**পরবর্তী →** [Install Node.js](/docs/server-deployment/foundation/install-node)
 
 <span style={{ display: 'none' }}>
   server hardening bangla, ssh key setup bangla, ufw firewall bangla, aws security group bangla, disable password login ssh, queen user linux bangla, server security bangla tutorial, contabo ubuntu setup
