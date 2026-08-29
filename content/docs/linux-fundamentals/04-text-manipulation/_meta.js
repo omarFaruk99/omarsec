@@ -2,5 +2,5 @@ export default {
   index: 'Overview',
   'reading-files': 'Reading Files',
   'searching': 'Searching',
-  'editing': 'Text Editors',
+  'text-editors': 'Text Editors',
 }

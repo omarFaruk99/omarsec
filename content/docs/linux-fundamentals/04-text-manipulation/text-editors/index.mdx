@@ -1,0 +1,71 @@
+---
+title: Text Editors
+description: Terminal-এ file edit করার জন্য nano আর vim — কেন দরকার, কোনটা কখন।
+---
+
+import { Callout } from 'nextra/components'
+
+# Text Editors
+
+<Callout type="info">
+  Server-এ কাজ করতে গেলে GUI editor (VS Code, Notepad-এর মতো) থাকে না — শুধু terminal। তাই terminal-এর ভেতর থেকেই file তৈরি, edit, আর save করতে জানতে হয়। এই section-এ দুটো সবচেয়ে common tool শেখানো হবে — **nano** আর **vim**।
+</Callout>
+
+## কেন GUI editor ছাড়া কাজ চালাতে হয়
+
+তোমার নিজের ল্যাপটপে VS Code বা Sublime দিয়ে কাজ করা normal। কিন্তু production server, cloud VM (AWS EC2, DigitalOcean droplet), বা Docker container-এ ঢুকলে বেশিরভাগ সময় কোনো desktop/GUI-ই থাকে না — শুধু একটা terminal, SSH-এর মাধ্যমে connected। ওখানে file edit করতে চাইলে টার্মিনালের ভেতরের editor ছাড়া উপায় নেই।
+
+এটা শুধু "নিরুপায় হয়ে" শেখা কিছু না — বাস্তবে এটা DevOps আর Software Engineer-দের প্রতিদিনের কাজ:
+
+- Server-এর কোনো config file (যেমন `/etc/nginx/nginx.conf`) quick fix করা
+- `crontab -e` চালালে ডিফল্টভাবে একটা terminal editor খোলে
+- `git commit` করলে commit message লেখার জন্য default editor খোলে
+- Minimal Docker image বা fresh cloud VM-এ প্রায়ই শুধু `vi`/`vim` preinstalled থাকে — আর কিছু install করার সময়ও অনেক সময় থাকে না
+
+## nano vs vim
+
+| | nano | vim |
+|-|------|-----|
+| শেখার সময় | কম — সাথে সাথে শুরু করা যায় | বেশি — মোড-ভিত্তিক, প্র্যাকটিস লাগে |
+| Screen-এ shortcut দেখায়? | হ্যাঁ, নিচে সবসময় দেখা যায় | না, মুখস্থ রাখতে হয় |
+| ক্ষমতা | ছোটখাটো quick edit-এর জন্য যথেষ্ট | অনেক দ্রুত, powerful — heavy editing-এর জন্য ভালো |
+| সব জায়গায় থাকে? | Ubuntu-তে default, কিন্তু সব Linux distro/minimal image-এ নাও থাকতে পারে | প্রায় সব Linux/Unix system-এ `vi` হিসেবে অন্তত থাকে |
+
+<Callout type="default">
+  **কোনটা দিয়ে শুরু করবো?** `nano` দিয়ে শুরু করো — এটা তাৎক্ষণিকভাবে ব্যবহারযোগ্য। কিন্তু `vim`-এর basics অবশ্যই শেখো, কারণ অনেক minimal server/container-এ শুধু vim (বা `vi`) থাকে, nano থাকে না।
+</Callout>
+
+## Linux আর Windows-এ পার্থক্য আছে কি
+
+nano বা vim-এর ভেতরের shortcut/command (যেমন `Ctrl + O`, `i`, `:wq`, `dd`) **সব OS-এ একই থাকে** — কারণ সেগুলো editor নিজের interface-এর অংশ, OS-এর না। একবার editor-এর ভেতরে ঢুকলে তুমি Linux-এ আছো, macOS-এ আছো নাকি Windows-এ আছো তাতে কিছু আসে যায় না।
+
+পার্থক্যটা হয় **editor-টা আদৌ পাওয়া যাচ্ছে কিনা** তার জায়গায়:
+
+- **Linux (Ubuntu)**: `nano` সাধারণত default হিসেবেই থাকে। `vim` অনেক সময় আলাদা করে install করতে হয় — `sudo apt install vim`।
+- **macOS**: দুটোই আগে থেকে থাকে (vim-এর একটু পুরনো ভার্সন)।
+- **Windows**: plain PowerShell বা Command Prompt-এ nano/vim কোনোটাই native ভাবে থাকে না। এগুলো ব্যবহার করতে হলে **WSL (Windows Subsystem for Linux)** ইনস্টল করে একটা আসল Ubuntu environment চালাতে হয়, অথবা Git Bash ব্যবহার করলে সেখানে vim পাওয়া যায়।
+
+<Callout type="info">
+  বাস্তবে এই পার্থক্যটা খুব একটা মাথাব্যথার কারণ হয় না — কারণ SSH দিয়ে যখনই কোনো remote Linux server-এ ঢোকো, তুমি যে OS থেকেই connect করো না কেন (Windows, macOS, Linux — যেকোনো জায়গা থেকে), তুমি ওই server-এর Linux shell-এর ভেতরেই থাকো। তাই সেখানে nano/vim ব্যবহার করাটা সবসময় একই রকম।
+</Callout>
+
+## এই Section-এ কী শিখবে
+
+- [nano](/docs/linux-fundamentals/04-text-manipulation/text-editors/nano) — beginner-friendly editor, quick edit-এর জন্য
+- [vim](/docs/linux-fundamentals/04-text-manipulation/text-editors/vim) — modal editor, professional/server কাজে সবচেয়ে বেশি ব্যবহৃত
+
+## Real-World Note
+
+<Callout type="warning">
+  Security আর pentesting-এর দৃষ্টিকোণ থেকেও editor জানা জরুরি:
+
+  - CTF challenge বা real engagement-এ প্রায়ই কোনো config file (`/etc/hosts`, `/etc/crontab`, কোনো script) সরাসরি server-এর ভেতর থেকেই edit করতে হয়
+  - Reverse shell script লেখার জন্য terminal editor লাগে
+  - `sudoedit`/vim misconfiguration privilege escalation-এর একটা পরিচিত পথ (GTFOBins-এ documented) — এটা vim পেজে বিস্তারিত দেখানো হয়েছে
+</Callout>
+
+**পরবর্তী →** [nano](/docs/linux-fundamentals/04-text-manipulation/text-editors/nano)
+
+<span style={{ display: 'none' }}>
+  linux text editor bangla, nano vs vim, terminal editor tutorial, why no gui editor on server, wsl vim windows, linux vs windows editor commands
+</span>

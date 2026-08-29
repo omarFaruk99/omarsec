@@ -1,0 +1,92 @@
+---
+title: nano
+description: nano দিয়ে file open, write, edit, save, আর delete করা — শুরু থেকে শেষ।
+---
+
+import { Callout } from 'nextra/components'
+
+# nano
+
+<Callout type="info">
+  `nano` হলো সবচেয়ে সহজ terminal text editor। খুললেই সাথে সাথে লেখা শুরু করা যায়, আর সব দরকারি shortcut স্ক্রিনের নিচে সবসময় দেখা যায় — তাই মুখস্থ করার দরকার হয় না।
+</Callout>
+
+## কেন nano দিয়ে শুরু করা ভালো
+
+`vim`-এর মতো editor-এ ঢুকলে প্রথমেই "mode" বোঝার একটা ধাপ পেরোতে হয় — normal mode, insert mode ইত্যাদি। `nano`-তে সেটা নেই। `nano` খোলার সাথে সাথে সরাসরি লেখা যায়, ঠিক Notepad-এর মতো, শুধু পার্থক্য হলো এটা মাউস ছাড়া, শুধু keyboard দিয়ে চলে। এই কারণে একদম নতুন কেউ, বা কেউ যার শুধু একটা config file-এ একটা লাইন বদলাতে হবে, তার জন্য `nano` সবচেয়ে দ্রুত রাস্তা।
+
+## File Open করা
+
+`nano` কমান্ডের পর file-এর নাম দিলেই সেটা খুলে যায়। File আগে থেকে থাকলে সেটার content নিয়ে খোলে, না থাকলে নতুন খালি file হিসেবে খোলে (save করলে তখন তৈরি হবে)।
+
+```bash filename="Terminal"
+# আগে থেকে থাকা file open করো
+nano notes.txt
+
+# এই নামে file না থাকলে, save করলে নতুন তৈরি হবে
+nano newfile.txt
+
+# root permission লাগে এমন file (system config) edit করতে
+sudo nano /etc/hosts
+```
+
+## লেখা (Write)
+
+`nano` খোলার সাথে সাথেই তুমি লিখতে পারো — কোনো আলাদা মোডে যেতে হয় না। Keyboard-এ যা টাইপ করবে তাই screen-এ লেখা হবে, ঠিক একটা সাধারণ text box-এর মতো। Arrow key দিয়ে cursor move করা যায়, `Enter` দিয়ে নতুন লাইন।
+
+## Screen-এর নিচের Shortcuts চেনা
+
+`nano` খুললে নিচে কয়েকটা shortcut সবসময় দেখা যায়। ওখানে `^` চিহ্নটা মানে `Ctrl` কী চেপে ধরা। যেমন `^O` মানে `Ctrl + O`।
+
+| Shortcut | কাজ |
+|---------|------|
+| `Ctrl + O` | Save (nano-র ভাষায় "Write Out") |
+| `Ctrl + X` | Exit |
+| `Ctrl + W` | Text খোঁজা (search) |
+| `Ctrl + K` | পুরো current line কেটে ফেলা (cut) |
+| `Ctrl + U` | কাটা লাইন আবার বসানো (paste) |
+| `Alt + U` | Undo — শেষ change বাতিল |
+| `Ctrl + G` | Help দেখা |
+
+## Edit করা — Delete, Copy, Search
+
+- **একটা character মুছতে**: cursor-কে ওই character-এর পাশে নিয়ে `Backspace` বা `Delete` চাপো — normal typing-এর মতোই।
+- **পুরো একটা লাইন মুছতে**: cursor ওই লাইনে রেখে `Ctrl + K` চাপো। এটা লাইনটাকে "কেটে" (cut) মেমোরিতে রাখে।
+- **কাটা লাইন অন্য জায়গায় বসাতে (paste)**: cursor যেখানে বসাতে চাও সেখানে নিয়ে `Ctrl + U` চাপো। একাধিকবার `Ctrl + K` করলে সব লাইন জমা হতে থাকে, আর একবারে `Ctrl + U` দিয়ে সব বসানো যায়।
+- **কোনো শব্দ খুঁজতে**: `Ctrl + W` চাপো, যা খুঁজছো তা টাইপ করো, `Enter` চাপো। `nano` প্রথম match-এ নিয়ে যাবে।
+- **ভুল হলে ফিরিয়ে নিতে (undo)**: `Alt + U`।
+
+## Save করা
+
+লেখা শেষ হলে `Ctrl + O` চাপো (এটা "Write Out", অর্থাৎ file-এ লেখাটা সেভ করা)। নিচে file-এর নাম দেখাবে confirm করার জন্য — সাধারণত `Enter` চাপলেই সেই নামে save হয়ে যাবে।
+
+## Exit করা
+
+Save করার পর `Ctrl + X` চাপলে `nano` বন্ধ হয়ে টার্মিনালে ফিরে আসবে। যদি না-সেভ করা change থাকা অবস্থায় সরাসরি `Ctrl + X` চাপো, `nano` জিজ্ঞেস করবে save করবে কিনা — `Y` চাপলে save হয়ে exit হবে, `N` চাপলে change বাদ দিয়ে exit হবে।
+
+## পুরো Workflow একসাথে
+
+```bash filename="Terminal"
+# ১. File open করো
+nano config.txt
+
+# ২. লেখো / edit করো (সরাসরি typing)
+
+# ৩. Save করো
+# Ctrl + O চাপো, তারপর Enter
+
+# ৪. Exit করো
+# Ctrl + X
+```
+
+## Real-World Note
+
+<Callout type="info">
+  DevOps-এর কাজে `nano` সবচেয়ে বেশি ব্যবহার হয় ছোটখাটো, দ্রুত fix-এর জন্য — যেমন কোনো `.env` file-এ একটা variable বদলানো, বা একটা nginx config-এ এক লাইন uncomment করা। বড় বা জটিল edit-এর জন্য বেশিরভাগ engineer `vim` বা local editor (VS Code দিয়ে SSH extension) ব্যবহার করে, কিন্তু "শুধু একটা লাইন বদলাতে হবে" — এই ধরনের কাজে `nano`-ই সবচেয়ে দ্রুত।
+</Callout>
+
+**পরবর্তী →** [vim](/docs/linux-fundamentals/04-text-manipulation/text-editors/vim)
+
+<span style={{ display: 'none' }}>
+  nano editor tutorial bangla, nano save exit shortcut, nano cut paste line, how to use nano linux, nano ctrl o ctrl x
+</span>

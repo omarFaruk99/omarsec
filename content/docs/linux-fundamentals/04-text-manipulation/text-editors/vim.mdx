@@ -1,0 +1,184 @@
+---
+title: vim
+description: vim দিয়ে file open, write, edit, search-replace, save, আর delete করা — daily-use basics।
+---
+
+import { Callout, Tabs } from 'nextra/components'
+
+# vim
+
+<Callout type="info">
+  `vim` একটা "modal" editor — মানে typing আর command চালানো আলাদা আলাদা মোডে হয়। শুরুতে এটা অস্বাভাবিক লাগে, কিন্তু একবার অভ্যাস হয়ে গেলে `nano`-র চেয়ে অনেক দ্রুত কাজ করা যায় — কারণ মাউস বা arrow key ছাড়াই পুরো keyboard দিয়ে সব edit করা যায়।
+</Callout>
+
+## কেন vim আলাদা রকম কাজ করে
+
+`nano`-তে তুমি খুললেই সরাসরি লিখতে পারো। `vim`-এ সেটা হয় না — কারণ `vim` ধরে নেয় বেশিরভাগ সময় তুমি টাইপ করছো না, বরং **নেভিগেট, ডিলিট, কপি, সার্চ** করছো। তাই ডিফল্ট মোডে (Normal mode) keyboard-এর অক্ষরগুলো টেক্সট না হয়ে command হিসেবে কাজ করে। লেখার জন্য আলাদা করে একটা মোডে (Insert mode) যেতে হয়। এই আলাদা করাটাই vim-কে দ্রুত করে তোলে — একবার শিখে ফেললে।
+
+## দুটো মোড: Normal আর Insert
+
+<Tabs items={['Normal Mode', 'Insert Mode']}>
+  <Tabs.Tab>
+    `vim` খুললে তুমি সবসময় প্রথমে **Normal mode**-এ থাকো। এখানে keyboard-এ কিছু চাপলে সেটা লেখা হয় না — command হিসেবে চলে। যেমন `d` চাপলে delete-সংক্রান্ত কিছু হবে, টাইপ হবে না "d" অক্ষরটা।
+
+    Normal mode থেকে যা করা যায়:
+    - Cursor move করা (navigate)
+    - Line/word delete, copy, paste করা
+    - Search করা, search-replace করা
+    - Save করা, exit করা
+
+    Confuse হলে মনে রাখো: **Normal mode = commands-এর জায়গা, লেখার জায়গা না।**
+  </Tabs.Tab>
+  <Tabs.Tab>
+    টেক্সট লেখার জন্য **Insert mode**-এ যেতে হয়। Normal mode থেকে এই key গুলো দিয়ে insert mode-এ ঢোকা যায়:
+
+    | Key | কাজ |
+    |-----|-----|
+    | `i` | Cursor যেখানে আছে ঠিক তার আগে থেকে লেখা শুরু |
+    | `a` | Cursor-এর ঠিক পরে থেকে লেখা শুরু |
+    | `o` | নিচে একটা নতুন লাইন খুলে সেখানে লেখা শুরু |
+    | `I` | লাইনের শুরু থেকে লেখা শুরু |
+    | `A` | লাইনের শেষ থেকে লেখা শুরু |
+
+    Insert mode-এ ঢুকলে স্ক্রিনের নিচে সাধারণত `-- INSERT --` লেখা দেখা যায় — এটা দেখেই বোঝা যায় তুমি এখন লিখতে পারবে।
+
+    **Insert mode থেকে আবার Normal mode-এ ফিরতে: `Esc` চাপো।**
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="default">
+  সহজ নিয়ম: **লেখার আগে `i`, লেখা শেষ হলে `Esc`।** এই দুটো মনে রাখলেই vim-এ আটকে যাওয়ার সম্ভাবনা অনেক কমে যায়।
+</Callout>
+
+## File Open করা
+
+```bash filename="Terminal"
+vim notes.txt
+
+# root permission লাগে এমন file
+sudo vim /etc/hosts
+```
+
+File খুললেই তুমি Normal mode-এ থাকবে — লেখা শুরু করতে হলে আগে `i` চাপতে হবে।
+
+## Navigate করা (Normal Mode)
+
+Arrow key কাজ করে, কিন্তু vim-এর নিজস্ব navigation key দিয়ে হাত keyboard-এর মূল জায়গা থেকে সরাতে হয় না:
+
+| Key | কাজ |
+|-----|-----|
+| `h` `j` `k` `l` | যথাক্রমে Left, Down, Up, Right |
+| `0` | লাইনের শুরুতে |
+| `$` | লাইনের শেষে |
+| `gg` | পুরো file-এর শুরুতে |
+| `G` | পুরো file-এর শেষে |
+
+## Delete আর Change করা (Normal Mode)
+
+`nano`-তে শুধু পুরো লাইন কাটা যেত। `vim`-এ delete/change অনেক বেশি সুনির্দিষ্ট — লাইন, শব্দ, বা এক character, যেকোনো লেভেলে করা যায়:
+
+| Key | কাজ |
+|-----|-----|
+| `x` | Cursor-এর নিচের একটা character delete |
+| `dd` | পুরো current line delete |
+| `dw` | Cursor থেকে শুরু করে বর্তমান শব্দের বাকি অংশ delete |
+| `D` | Cursor থেকে লাইনের শেষ পর্যন্ত delete |
+| `cw` | বর্তমান শব্দ delete করে সাথে সাথে Insert mode-এ চলে যাওয়া (change word) |
+| `yy` | Current line copy (vim-এ একে বলে "yank") |
+| `p` | সবশেষ delete/copy করা অংশ cursor-এর পরে paste |
+| `u` | Undo — শেষ change বাতিল |
+| `Ctrl + r` | Redo — undo করা change আবার ফিরিয়ে আনা |
+
+<Callout type="default">
+  প্যাটার্নটা লক্ষ করো: `d` (delete) বা `c` (change) এর পরে **কতটুকু** সেটা বলা হয় — `d` + `d` (পুরো লাইন), `d` + `w` (একটা শব্দ)। এই প্যাটার্ন মনে রাখলে vim-এর আরও অনেক command অনুমান করে বোঝা যায়।
+</Callout>
+
+## Search করা
+
+```
+/pattern       Enter চাপলে "pattern" খুঁজে পরের match-এ যাবে
+n              পরের match-এ যাও
+N              আগের match-এ যাও
+```
+
+## Search আর Replace একসাথে
+
+একটা শব্দ পুরো file জুড়ে বদলাতে চাইলে প্রতিটা occurrence হাতে খুঁজে বদলানোর দরকার নেই — Normal mode থেকে এই command চালাও:
+
+```
+:%s/old/new/g
+```
+
+এখানে `%` মানে পুরো file, `s` মানে substitute, `old` যেটা খুঁজবে, `new` যেটা বসাবে, আর শেষের `g` মানে একই লাইনে একাধিকবার থাকলেও সব বদলাবে। যেমন, file-এর সব জায়গায় `dev` কে `production` করতে চাইলে:
+
+```
+:%s/dev/production/g
+```
+
+## Save আর Exit করা
+
+সব save/exit command Normal mode থেকে `:` দিয়ে শুরু হয় (colon চেপে টাইপ করতে হয়, তারপর `Enter`):
+
+```bash filename="vim Normal mode"
+:w          # save করো (এখনো exit না)
+:q          # exit করো (unsaved change থাকলে এটা কাজ করবে না)
+:wq         # save করে exit করো
+:q!         # save না করেই জোর করে exit — সব change বাদ
+ZZ          # save করে exit (shortcut, colon লাগে না)
+```
+
+<Callout type="warning">
+  **vim-এ আটকে গেলে কী করবে?**
+
+  vim প্রথমবার খুলে বের হতে না পারাটা প্রায় সবার সাথেই হয়। সমাধান:
+  1. `Esc` চাপো — এতে তুমি নিশ্চিতভাবে Normal mode-এ চলে যাবে
+  2. `:q!` টাইপ করো (কোলন সহ)
+  3. `Enter` চাপো
+
+  এটা সব change বাদ দিয়ে বের করে দেবে। Change save করে বের হতে চাইলে `:wq` ব্যবহার করো।
+</Callout>
+
+## পুরো Workflow একসাথে
+
+```
+vim file.txt       → file open করো (Normal mode-এ শুরু)
+i                   → Insert mode-এ যাও, লেখা শুরু করো
+Esc                 → লেখা শেষ হলে Normal mode-এ ফিরে যাও
+dd                  → কোনো লাইন মুছতে চাইলে
+:%s/old/new/g       → পুরো file-এ কিছু বদলাতে চাইলে
+:wq                 → save করে বের হও
+```
+
+## Real-World Note
+
+<Callout type="warning">
+  **CTF আর real-world security-তে editor knowledge কেন লাগে:**
+
+  - Server-এর config file (`/etc/hosts`, `/etc/crontab`, কোনো script) সরাসরি edit করতে হয়
+  - Reverse shell script লিখতে হয় target বা attack machine-এ
+  - Log file বিশ্লেষণ বা (defensive analysis-এ) সংশোধন করতে হতে পারে
+  - `sudo` দিয়ে vim চালানোর permission থাকলে privilege escalation সম্ভব — এটা GTFOBins-এ documented:
+
+  ```bash filename="Terminal"
+  # যদি sudo দিয়ে vim চালানোর অনুমতি থাকে
+  sudo vim /etc/hosts
+
+  # vim-এর ভেতর থেকে shell বের করা যায়
+  :!/bin/bash
+  # এখন root shell পাওয়া গেলো!
+  ```
+</Callout>
+
+## Quick Check
+
+- [ ] Normal mode আর Insert mode-এর মধ্যে পার্থক্য কী?
+- [ ] Insert mode থেকে Normal mode-এ ফিরতে কোন key চাপবে?
+- [ ] একটা শব্দ (পুরো লাইন না) delete করতে কোন command?
+- [ ] পুরো file জুড়ে কোনো শব্দ বদলাতে কোন command ব্যবহার করবে?
+- [ ] Save না করেই vim থেকে বের হতে কী টাইপ করবে?
+
+**পরবর্তী Section →** [Users & Permissions](/docs/linux-fundamentals/05-users-permissions)
+
+<span style={{ display: 'none' }}>
+  vim editor tutorial bangla, vim normal insert mode, how to exit vim, vim search replace, vim delete word line, vim save quit, vim privilege escalation gtfobins
+</span>
