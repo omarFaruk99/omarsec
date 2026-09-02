@@ -1,12 +1,13 @@
 ---
 title: Real Scenarios
+description: Team project, production hotfix আর open source contribution — তিনটা বাস্তব পরিস্থিতিতে Git ও GitHub-এর পূর্ণ ব্যবহার।
 ---
 
 import { Callout, Steps, Tabs, FileTree } from "nextra/components";
 
 # Real Scenarios
 
-<Callout type="info" emoji="⚡">
+<Callout type="info">
 **Essential** | Estimated time: 90–120 minutes
 
 এই সেকশনে সরাসরি প্র্যাকটিক্যাল ব্যবহার দেখানো হয়েছে। এখানে তুমি দেখবে — এতক্ষণ যা শিখেছ সেটা real life-এ কীভাবে কাজ করে। তিনটা আলাদা situation, তিনটা আলাদা walkthrough।
@@ -124,6 +125,10 @@ git commit -m "Sync with develop branch"
 git push
 ```
 
+<Callout type="info">
+এখানে `merge` ব্যবহার করা হয়েছে — সহজ আর নিরাপদ। কিন্তু এতে তোমার branch-এ একটা merge commit ঢুকে যায়। Team যদি PR-এ merge commit না চায়, তাহলে এই একই কাজ `git rebase origin/develop` দিয়ে করবে। পার্থক্য আর নিয়মগুলো [Rebase & History](/docs/git-github/rebase-and-history)-তে দেখেছ।
+</Callout>
+
 ### Create PR
 
 কাজ শেষ করে রিভিউয়ের জন্য একটি পরিষ্কার এবং বিস্তারিত পুল রিকোয়েস্ট (PR) তৈরি করো।
@@ -231,7 +236,7 @@ Local-এ test করো — payment কাজ করছে কিনা।
 
 ### Stage Deploy
 
-লাইভ করার আগে ক্লায়েন্টকে স্টেজলিং সার্ভারে পরিবর্তনগুলো দেখিয়ে নাও।
+লাইভ করার আগে ক্লায়েন্টকে স্টেজিং সার্ভারে পরিবর্তনগুলো দেখিয়ে নাও।
 
 ```bash filename="Terminal"
 # staging-এ merge করো
@@ -279,10 +284,19 @@ git push origin --delete hotfix/payment-button-broken
 </Steps>
 
 <Callout type="info">
-  **Timeline Summary:** রাত ১১:০০ — Client call রাত ১১:০৫ — hotfix branch বানানো
-  রাত ১১:২০ — Bug found and fixed রাত ১১:২৫ — Staging-এ deploy রাত ১১:৩০ —
-  Client confirmed রাত ১১:৩৫ — Production-এ deploy রাত ১১:৪০ — Develop-এ merge,
-  cleanup
+  **পুরো ঘটনার সময়রেখা:**
+
+  | সময় | কী হলো |
+  | :--- | :--- |
+  | ১১:০০ | Client call |
+  | ১১:০৫ | `main` থেকে hotfix branch বানানো |
+  | ১১:২০ | Bug খুঁজে বের করে fix করা |
+  | ১১:২৫ | Staging-এ deploy |
+  | ১১:৩০ | Client confirm করল |
+  | ১১:৩৫ | Production-এ deploy, tag করা |
+  | ১১:৪০ | `develop`-এ merge, branch cleanup |
+
+  মোট ৪০ মিনিট। এতটা দ্রুত হয়েছে কারণ প্রতিটা ধাপ আগে থেকেই ঠিক করা ছিল — মাঝরাতে বসে ভাবতে হয়নি।
 </Callout>
 
 ## Open Source
@@ -438,7 +452,7 @@ git push origin --delete fix/dark-mode-code-block-text
 >
   <Tabs.Tab>
     ```bash filename="Terminal"
-    # ❌ এটা করো না
+    # এটা করো না
     git switch main
     git add .
     git commit -m "quick fix"
@@ -453,35 +467,74 @@ git push origin --delete fix/dark-mode-code-block-text
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash filename="Terminal"
-    # ❌ কখনো করো না shared branch-এ
+    # কখনো করো না shared branch-এ
     git push --force origin main
     ```
-    এটা teammates-এর history নষ্ট করে। `--force` শুধু নিজের personal branch-এ।
+    এটা teammates-এর history নষ্ট করে। Force push শুধু নিজের personal branch-এ, আর সেখানেও `--force` নয় — `--force-with-lease`। কেন, সেটা [Rebase & History](/docs/git-github/rebase-and-history)-তে আছে।
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash filename="Terminal"
-    # ❌ খারাপ
+    # খারাপ
     git commit -m "did everything"  # 47 files changed
     ```
     ছোট commits মানে — bug হলে কোথায় হয়েছে সহজে খুঁজে পাওয়া যায়।
   </Tabs.Tab>
 </Tabs>
 
+## Real-World Note
+
+<Callout type="warning">
+  **Deploy করার আগে ঠিক করে রাখো, ভুল হলে কীভাবে ফিরবে।**
+
+  উপরের hotfix-টা ঠিকঠাক গিয়েছিল। কিন্তু রাত ১১টায় তাড়াহুড়ো করা fix অনেক সময় সমস্যা আরও বাড়িয়ে দেয় — এক জায়গা ঠিক করতে গিয়ে আরেক জায়গা ভাঙে। তখন যদি ফেরার পথ ঠিক করা না থাকে, একটা ৪০ মিনিটের ঘটনা সারারাতের ঘটনা হয়ে যায়।
+
+  তাই deploy চাপার আগে দুটো জিনিস হাতে রাখো:
+
+  **শেষ ভালো version-এর নাম জানো।** এজন্যই উপরে tag করা হয়েছে। Tag থাকলে ফেরা সহজ:
+
+  ```bash filename="Terminal"
+  git tag                       # কোনটা শেষ ভালো release দেখো
+  git log --oneline v1.2.0..HEAD   # তারপর থেকে কী কী গেছে
+  ```
+
+  **ফেরার কমান্ডটা আগেই লিখে রাখো।** Hotfix যদি অবস্থা খারাপ করে, তাহলে নতুন করে debug করতে বসবে না — আগে site ঠিক করো, তারপর কারণ খুঁজো:
+
+  ```bash filename="Terminal"
+  git switch main
+  git revert <hotfix-commit-hash>
+  git push
+  ```
+
+  `reset --hard` নয়, `revert` — কারণ `main` shared branch, আর ওই commit teammate-রা ইতিমধ্যে টেনে নিয়েছে। কেন, সেটা [Undo & Recovery](/docs/git-github/undo-and-recovery)-তে আছে।
+
+  আর একটা ধাপ কখনো বাদ দেবে না — **`develop`-এ sync করা।** এটাই সবচেয়ে বেশি ভুলে যাওয়া কাজ। Hotfix শুধু `main`-এ থেকে গেলে পরের release `develop` থেকে যাবে, আর তাতে fix-টা থাকবে না। একই bug কয়েক সপ্তাহ পরে আবার live হবে, আর কেউ বুঝবে না কেন। Cleanup-এর আগে sync করো, পরে না — কারণ branch delete করে ফেললে কাজটা মনে থাকবে না।
+</Callout>
+
 ## What's Next?
 
-আমাদের কোর ফাউন্ডেশন (Core Foundations) এখানেই শেষ। তুমি এখন জানো: Setup, Core loop, Branching, GitHub essentials, Real Scenarios.
+Git & GitHub সেকশন এখানেই শেষ। তুমি এখন জানো: Setup, Core Loop, Branching, GitHub Essentials, Undo & Recovery, Rebase & History, আর তিনটা real workflow.
 
 ### এরপর কী শিখবে? (Advanced Track)
 
-| Topic                   | কেন দরকার                             |
-| ----------------------- | ------------------------------------- |
-| `git rebase -i`         | Messy commits clean করতে              |
-| `git bisect`            | কোন commit-এ bug এসেছে খুঁজে বের করতে |
-| GitHub Actions          | Auto test, auto deploy                |
-| Branch protection rules | Team-এর code quality enforce করতে     |
-| Conventional Commits    | Standard commit message format        |
-| `git cherry-pick`       | অন্য branch থেকে specific commit নিতে |
-| Signed commits (GPG)    | Commit authenticity prove করতে        |
+| Topic                   | কেন দরকার                                  |
+| ----------------------- | ------------------------------------------ |
+| GitHub Actions          | Auto test, auto deploy                     |
+| Branch protection rules | Team-এর code quality enforce করতে          |
+| Conventional Commits    | Standard commit message format             |
+| Signed commits (GPG)    | Commit authenticity prove করতে             |
+| `git worktree`          | একই repo-র দুই branch একসাথে খোলা রাখতে    |
+| `git blame`             | কোনো লাইন কে, কখন, কেন লিখেছিল খুঁজতে      |
+| Shallow clone           | CI-তে `--depth 1` দিয়ে clone দ্রুত করতে    |
+
+GitHub Actions দিয়ে auto test আর auto deploy শেখা শুরু করতে পারো এখনই।
+
+<Callout type="info">
+**→ CI/CD**
+
+Pipeline কীভাবে কাজ করে, প্রথম workflow file লেখা, আর production pipeline — সব এক জায়গায়।
+</Callout>
+
+**পরবর্তী →** [CI/CD](/docs/ci-cd)
 
 
 <span style={{ display: 'none' }}>

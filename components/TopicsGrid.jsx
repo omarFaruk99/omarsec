@@ -75,7 +75,7 @@ const TOPICS = [
     Icon: TerminalIcon,
     title: 'Linux Fundamentals',
     description: 'Terminal, file systems, permissions, processes, and networking — the ground truth every tech role stands on.',
-    meta: '35 lessons · 10 modules',
+    meta: '36 lessons · 10 modules',
     href: '/docs/linux-fundamentals',
   },
   {
@@ -102,7 +102,7 @@ const TOPICS = [
     Icon: ServerIcon,
     title: 'Server Deployment',
     description: 'VPS setup, Nginx, SSL, and shipping apps to production.',
-    meta: '8 lessons',
+    meta: '9 lessons',
     href: '/docs/server-deployment',
   },
   {
@@ -110,8 +110,8 @@ const TOPICS = [
     size: 'md',
     Icon: GitBranchIcon,
     title: 'Git & GitHub',
-    description: 'Version control and collaboration workflows done right.',
-    meta: '6 lessons',
+    description: 'Branching, pull requests, undoing mistakes, and rewriting history without breaking the team.',
+    meta: '8 lessons',
     href: '/docs/git-github',
   },
   {
@@ -129,7 +129,7 @@ const TOPICS = [
     Icon: EnvelopeIcon,
     title: 'AWS SES',
     description: 'AWS, domain, and DNS setup for bulk email — ready to hand off to a developer.',
-    meta: '6 lessons',
+    meta: '7 lessons',
     href: '/docs/aws-ses',
   },
 ]

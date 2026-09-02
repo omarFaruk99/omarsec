@@ -1,13 +1,16 @@
 ---
 title: Cheatsheet
+description: Git ও GitHub-এর সব প্রয়োজনীয় কমান্ড এক পাতায় — setup থেকে rebase, reflog আর cherry-pick পর্যন্ত।
 ---
 
-import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+import { Callout, Steps, Tabs } from 'nextra/components'
 
 # Git & GitHub — Cheatsheet
 
-<Callout type="info" emoji="🔖">
+<Callout type="info">
 সব important commands এক জায়গায়। Bookmark করো, print করো, দেওয়ালে লাগাও।
+
+এটা reference — শেখার জায়গা না। কোনো কমান্ড কেন কাজ করে সেটা জানতে সংশ্লিষ্ট page-এ যাও।
 </Callout>
 
 ## Initial Setup
@@ -87,9 +90,11 @@ git merge --abort                          # Merge cancel করো (conflict-�
 
 ```bash filename="Terminal"
 git stash                                  # Current changes সরিয়ে রাখো
-git stash pop                              # Stash ফিরিয়ে আনো
+git stash -u                               # নতুন (untracked) file-সহ stash করো
+git stash push -u -m "half-done filter"    # নাম দিয়ে stash করো
+git stash pop                              # ফিরিয়ে আনো, stash থেকে মুছে যাবে
+git stash apply stash@{1}                  # ফিরিয়ে আনো, stash-এ থেকে যাবে
 git stash list                             # সব stash দেখো
-git stash apply stash@{1}                  # Specific stash apply করো
 git stash drop                             # Latest stash delete করো
 git stash clear                            # সব stash delete করো
 ```
@@ -120,26 +125,103 @@ git show a1b2c3d                           # Specific commit দেখো
     ```bash filename="Terminal"
     git restore filename.txt                   # File-এর changes undo করো
     git restore --staged filename.txt          # Unstage করো
+    git restore --source=HEAD~3 file.js        # ৩ commit আগের version আনো
+    git clean -n -d                            # কোন untracked file মুছবে দেখো
+    git clean -f -d                            # untracked file মুছে ফেলো
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash filename="Terminal"
     git commit --amend -m "New message"        # Last commit message fix করো
-    git reset HEAD~1                           # Last commit undo, changes রাখো
-    git reset --hard HEAD~1                    # Last commit undo, changes মুছে দাও
+    git reset --soft HEAD~3                    # ৩ commit খোলো, কাজ staged থাকবে
+    git reset HEAD~1                           # commit খোলো, কাজ unstaged (default)
+    git reset --hard HEAD~1                    # commit আর কাজ — সব মুছে দাও
+    git reset --hard origin/main               # local branch = remote branch
+    git reset --hard main                      # এই branch = main
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash filename="Terminal"
     git revert a1b2c3d                         # Specific commit reverse করো (safe)
+    git revert -m 1 a1b2c3d                    # Merge commit reverse করো
     ```
   </Tabs.Tab>
 </Tabs>
 
+| Mode | Commit | Staging | Working Directory |
+| :--- | :--- | :--- | :--- |
+| `--soft` | পিছোয় | কাজ এখানে থাকে | অপরিবর্তিত |
+| `--mixed` (default) | পিছোয় | খালি | কাজ এখানে থাকে |
+| `--hard` | পিছোয় | খালি | কাজ মুছে যায় |
+
 <Callout type="warning">
-- `reset --hard` সাবধানে — changes permanently মুছে যায়।
+- `reset --hard` সাবধানে — uncommitted changes permanently মুছে যায়।
 - Push করার পর `reset` করবে না — `revert` ব্যবহার করো।
+- `reset --hard origin/main` দেওয়ার আগে `git fetch` করো।
+
+পুরো ব্যাখ্যা: [Undo & Recovery](/docs/git-github/undo-and-recovery)
 </Callout>
+
+## Recovery
+
+হারিয়ে যাওয়া commit বা branch ফিরিয়ে আনার কমান্ড।
+
+```bash filename="Terminal"
+git reflog                                 # HEAD কোথায় কোথায় গিয়েছিল দেখো
+git show 1e5a7b8                           # ফেরানোর আগে commit যাচাই করো
+git reset --hard 1e5a7b8                   # ওই commit-এ ফিরে যাও
+git switch -c recovery 1e5a7b8             # নিরাপদভাবে নতুন branch-এ ফেরাও
+git switch -c old-branch 1e5a7b8           # delete করা branch ফিরিয়ে আনো
+```
+
+<Callout type="info">
+reflog শুধু তোমার মেশিনে থাকে, আর commit না করা কাজ ওখানে নেই।
+</Callout>
+
+## Rebase
+
+Branch আপডেট রাখা আর history পরিষ্কার করার কমান্ড।
+
+```bash filename="Terminal"
+git fetch origin                           # আগে latest আনো
+git rebase origin/main                     # main-এর উপরে branch তুলে আনো
+git rebase -i HEAD~5                       # শেষ ৫ commit নিয়ে কাজ করো
+git pull --rebase origin main              # merge commit ছাড়া pull
+
+# Conflict এলে (commit লিখবে না)
+git add .
+git rebase --continue                      # পরের commit-এ এগোও
+git rebase --skip                          # এই commit বাদ দাও
+git rebase --abort                         # সব বাতিল, আগের অবস্থায় ফেরো
+
+git push --force-with-lease                # rebase-এর পর push
+```
+
+Interactive rebase-এর command: `pick`, `reword`, `squash`, `fixup`, `drop`.
+
+<Callout type="warning">
+`main`, `develop`, `staging` — shared branch কখনো rebase করবে না। `git push -f` নয়, সবসময় `--force-with-lease`।
+
+পুরো ব্যাখ্যা: [Rebase & History](/docs/git-github/rebase-and-history)
+</Callout>
+
+## Cherry-pick & Bisect
+
+নির্দিষ্ট commit কপি করা আর bug কোন commit-এ এসেছে খোঁজা।
+
+```bash filename="Terminal"
+git cherry-pick 4a1f9c2                    # ওই commit এই branch-এ কপি করো
+git cherry-pick -x 4a1f9c2                 # সাথে উৎস commit লিখে রাখো
+git cherry-pick a1b2c3d..9f2c1a4           # একটা range কপি করো
+git cherry-pick --continue                 # conflict fix করার পর
+git cherry-pick --abort                    # বাতিল করো
+
+git bisect start
+git bisect bad                             # এখন ভাঙা
+git bisect good v2.3.0                     # এখানে ঠিক ছিল
+git bisect run npm test                    # নিজে থেকেই খুঁজে দেবে
+git bisect reset                           # কাজ শেষে অবশ্যই
+```
 
 ## Tags
 
@@ -197,7 +279,7 @@ git push
 git tag -a v1.0.1 -m "Hotfix: critical bug"
 git push origin v1.0.1
 
-# ৬. Develop ব্রাঞ্চেও ფিক্সটি সিঙ্ক করো (অত্যন্ত জরুরি)
+# ৬. Develop ব্রাঞ্চেও ফিক্সটি সিঙ্ক করো (অত্যন্ত জরুরি)
 git switch develop
 git merge hotfix/critical-bug-fix
 git push
@@ -247,7 +329,7 @@ chore/short-description        → Cleanup, update
 জরুরি মুহূর্তে ভুল ফিক্স করার জন্য কিছু কমন সলিউশন।
 
 
-<Tabs items={['ভুল branch', '.env push হয়ে গেছে', 'Push rejected', 'Merge conflict', 'আগের commit-এ ফেরা']}>
+<Tabs items={['ভুল branch', '.env push হয়ে গেছে', 'Push rejected', 'Merge conflict', 'আগের commit-এ ফেরা', 'কাজ হারিয়ে ফেলেছি']}>
   <Tabs.Tab>
     "আমি ভুল branch-এ commit করেছি!"
     
@@ -262,16 +344,19 @@ chore/short-description        → Cleanup, update
     "আমি `.env` file push করে ফেলেছি!"
     
     ```bash filename="Terminal"
-    # ১. .env কে .gitignore-এ যোগ করো
+    # ১. সবার আগে key rotate করো — AWS, Stripe, database
+    #    এটাই একমাত্র আসল সুরক্ষা। commit মুছলেও key ফাঁস হয়ে গেছে।
+
+    # ২. .env কে .gitignore-এ যোগ করো
     echo ".env" >> .gitignore
 
-    # ২. Git tracking থেকে বাদ দাও
+    # ৩. Git tracking থেকে বাদ দাও
     git rm --cached .env
-    git commit -m "Remove .env from tracking"
+    git commit -m "chore: remove .env from tracking"
     git push
-
-    # ৩. GitHub-এ গিয়ে secrets immediately rotate করো (API keys, passwords)
     ```
+
+    `reset --hard` আর force push দিয়ে secret মোছা যায় না — commit-টা URL দিয়ে এখনো পড়া যায়। কেন, সেটা [Undo & Recovery](/docs/git-github/undo-and-recovery)-তে আছে।
   </Tabs.Tab>
   <Tabs.Tab>
     "Push করতে পারছি না — rejected!"
@@ -294,11 +379,32 @@ chore/short-description        → Cleanup, update
   </Tabs.Tab>
   <Tabs.Tab>
     "পুরো কাজ নষ্ট করে ফেলেছি, আগের commit-এ ফিরতে চাই!"
-    
+
+    Push করোনি — তাহলে সরাসরি ওই commit-এ ফিরে যাও:
+
     ```bash filename="Terminal"
     git log --oneline                          # কোন commit-এ ফিরবে দেখো
-    git revert a1b2c3d                         # সেই commit reverse করো (safe)
+    git reset --hard a1b2c3d                   # ওই অবস্থায় ফিরে যাও
     ```
+
+    Push করে ফেলেছ — তাহলে history পাল্টাবে না, উল্টো commit বানাও:
+
+    ```bash filename="Terminal"
+    git revert a1b2c3d                         # ওই commit-এর উল্টো কাজ করো
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    "`reset --hard` করে কয়েক দিনের commit হারিয়ে ফেলেছি!"
+
+    হারায়নি। reflog-এ সব আছে।
+
+    ```bash filename="Terminal"
+    git reflog                                 # reset-এর আগের লাইনটা খুঁজো
+    git show 1e5a7b8                           # নিশ্চিত হও এটাই ঠিক commit
+    git switch -c recovery 1e5a7b8             # নিরাপদে নতুন branch-এ ফেরাও
+    ```
+
+    Branch delete করে ফেললেও একইভাবে ফিরিয়ে আনা যায়। শুধু `git commit` না করা কাজ ফেরানো যায় না।
   </Tabs.Tab>
 </Tabs>
 
@@ -335,6 +441,20 @@ git branch -d feature/your-task
 </Steps>
 
 
+## Real-World Note
+
+<Callout type="warning">
+  এই page-এর তিনটা কমান্ড কাজ ফিরিয়ে দেওয়া যায় না এমনভাবে মুছে দিতে পারে। চালানোর আগে থামো।
+
+  - `git reset --hard` — commit না করা কাজ চিরতরে যায়
+  - `git clean -f -d` — untracked file চিরতরে যায় (`-n` দিয়ে আগে দেখো)
+  - `git push --force` — remote-এ অন্যের কাজ মুছে দিতে পারে (`--force-with-lease` ব্যবহার করো)
+
+  Cheatsheet থেকে কমান্ড copy করার আগে নিশ্চিত হও তুমি জানো এটা কী করে। না জানলে সংশ্লিষ্ট page-টা পড়ে নাও।
+</Callout>
+
+**পরবর্তী →** [Git & GitHub Overview](/docs/git-github)
+
 <span style={{ display: 'none' }}>
-  Search Keywords: git commands, git aliases, undo commit, reset hard, revert commit, git tag, cheat sheet
+  Search Keywords: git commands cheatsheet bangla, git aliases, undo commit, git reset hard, git revert, git reflog, git rebase continue, git cherry pick, git stash untracked, force with lease, git tag, git cheat sheet bengali
 </span>

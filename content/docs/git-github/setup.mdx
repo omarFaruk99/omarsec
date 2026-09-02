@@ -3,9 +3,9 @@ title: Setup
 description: Install Git, create GitHub account, and configure SSH keys.
 ---
 
-import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+import { Callout, Steps, Tabs } from 'nextra/components'
 
-# Setup (Once & Done)
+# Setup
 
 <Callout type="info">
 **Essential** | Estimated time: 30–45 minutes
@@ -22,7 +22,7 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
 - SSH key দিয়ে GitHub-এর সাথে secure connection করবে
 - VS Code-এ Git integration দেখবে
 
-## Step 1: Install Git
+## Install Git
 
 <Tabs items={['Windows', 'macOS', 'Linux']}>
   <Tabs.Tab>
@@ -81,7 +81,7 @@ git version 2.43.0
 **Pro Tip:** Version যেকোনো `2.x` হলেই চলবে। Exact number নিয়ে চিন্তা নেই।
 </Callout>
 
-## Step 2: Git Identity
+## Git Identity
 
 Git প্রতিটা commit-এ তোমার নাম আর email যোগ করে।
 এটা **globally** set করতে হবে — মানে তোমার সব project-এ একবারেই কাজ করবে।
@@ -121,7 +121,7 @@ user.email=you@example.com
 init.defaultBranch=main
 ```
 
-## Step 3: GitHub Account
+## GitHub Account
 
 <Steps>
 ### Visit GitHub
@@ -144,7 +144,7 @@ Free plan select করো
 - পরে change করা যায় কিন্তু ঝামেলা হয়
 </Callout>
 
-## Step 4: SSH Key
+## SSH Key
 
 SSH key হলো তোমার **digital identity card**। এটা দিয়ে GitHub বুঝবে যে তুমিই push করছ — password ছাড়াই।
 
@@ -165,20 +165,12 @@ Terminal জিজ্ঞেস করবে `Enter file in which to save the key
 তৈরি করা কী-টি তোমার সিস্টেমের SSH এজেন্টে যুক্ত করো।
 
 
-<Tabs items={['macOS / Linux', 'Windows (Git Bash)']}>
-  <Tabs.Tab>
-    ```bash filename="Terminal"
-    eval "$(ssh-agent -s)"
-    ssh-add ~/.ssh/id_ed25519
-    ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-    ```bash filename="Terminal"
-    eval "$(ssh-agent -s)"
-    ssh-add ~/.ssh/id_ed25519
-    ```
-  </Tabs.Tab>
-</Tabs>
+তিন OS-এ কমান্ড একই। Windows-এ Git Bash খুলে চালাবে, PowerShell-এ না।
+
+```bash filename="Terminal"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
 
 ### Copy Public Key
 
@@ -228,7 +220,7 @@ ssh -T git@github.com
 তারপর `Hi your-username! You've successfully authenticated...` দেখালে বুঝবে SSH connection সফল!
 </Steps>
 
-## Step 5: VS Code
+## VS Code
 
 VS Code-এ Git already built-in আছে। কিছু extensions install করলে কাজ আরও সহজ হবে।
 
@@ -263,7 +255,7 @@ ssh -vT git@github.com
 ```
 
 সাধারণত কারণ: key সঠিকভাবে agent-এ add হয়নি।
-**Fix:** Step 4.2 আবার করো।
+**Fix:** উপরের **Add to Agent** ধাপটা আবার করো।
 
 ### Problem: Commits-এ নাম দেখাচ্ছে না
 
@@ -282,17 +274,40 @@ Windows-এ `pbcopy` নেই। `clip` use করো:
 cat ~/.ssh/id_ed25519.pub | clip
 ```
 
+## Real-World Note
+
+<Callout type="warning">
+  **তোমার private key কখনো কোথাও পাঠাবে না।**
+
+  `ssh-keygen` দুটো file বানায়, আর অনেকে দুটোর পার্থক্য বোঝে না:
+
+  - `id_ed25519.pub` — **public key**। এটাই GitHub-এ দিতে হয়। এটা শেয়ার করা নিরাপদ।
+  - `id_ed25519` — **private key**, `.pub` ছাড়া। এটা তোমার মেশিন ছাড়া আর কোথাও যাবে না।
+
+  Private key যার হাতে যাবে, সে তোমার নাম দিয়ে code push করতে পারবে। Private repo পড়তে পারবে। তোমার commit-এ তোমার নাম বসবে। তাই এটা কখনো Slack-এ পাঠাবে না, Google Drive-এ রাখবে না, আর screenshot নেবে না। Git repository-তে তো একেবারেই না — `.ssh` folder পুরোটা `.gitignore`-এর বাইরে রাখো।
+
+  দুটো অভ্যাস করে নাও:
+
+  - **Passphrase দাও।** key generate করার সময় Enter চেপে skip করা সহজ, কিন্তু passphrase থাকলে কেউ তোমার laptop চুরি করলেও key ব্যবহার করতে পারবে না।
+  - **প্রতিটা মেশিনের জন্য আলাদা key।** Laptop আর office desktop-এ আলাদা key বানাও, GitHub-এ দুটোই যোগ করো। একটা মেশিন হারালে GitHub থেকে শুধু ওই key মুছে দিলেই হবে — বাকিগুলো চলতে থাকবে।
+
+  কোন key গুলো এখন active আছে দেখতে GitHub-এ **Settings → SSH and GPG keys** খোলো। অচেনা কিছু থাকলে সাথে সাথে মুছে দাও।
+
+  আগে থেকে একটা key থাকলে `ssh-keygen` জিজ্ঞেস করবে `Overwrite (y/n)?`। না বুঝে `y` দিলে পুরনো key মুছে যাবে, আর সেটা দিয়ে যেসব server-এ ঢুকতে — সব বন্ধ হয়ে যাবে। আগে `ls ~/.ssh` দিয়ে দেখে নাও কী আছে।
+</Callout>
+
 ## What's Next?
 
-Setup শেষ! এখন Git-এর আসল কাজ শুরু হবে।
+Setup শেষ। এখন Git-এর আসল কাজ শুরু হবে।
 
 <Callout type="info">
 **→ The Core Loop**
 
-তুমি এখন সেই ৫টা command শিখবে যেগুলো ছাড়া Git-এ এক কদমও এগোনো যায় না।
+তুমি এখন সেই কয়েকটা command শিখবে যেগুলো ছাড়া Git-এ এক কদমও এগোনো যায় না।
 </Callout>
 
+**পরবর্তী →** [The Core Loop](/docs/git-github/core-loop)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: install git, github account, generate ssh key, setup ssh, vs code git config
+  Search Keywords: install git bangla, github account, generate ssh key bangla, ssh key setup github, ed25519 key, ssh private key security, vs code git config, git config global user name email
 </span>

@@ -1,0 +1,401 @@
+---
+title: Undo & Recovery
+description: restore, reset, revert আর reflog — Git-এ ভুল হলে কোন কমান্ড দিয়ে কীভাবে ফিরে আসবে।
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Undo & Recovery
+
+<Callout type="info">
+Git-এ ভুল করা সমস্যা না — ভুল কমান্ড দিয়ে সেটা ঠিক করার চেষ্টা করাই আসল সমস্যা। এই page-এ শিখবে কোন পরিস্থিতিতে `restore`, কোথায় `reset`, কোথায় `revert`, আর সব হারিয়ে গেলে `reflog`।
+</Callout>
+
+## What You'll Learn
+
+- তোমার change কোন ধাপে আটকে আছে সেটা দেখে সঠিক কমান্ড বেছে নেওয়া
+- `git reset`-এর তিনটা mode — `--soft`, `--mixed`, `--hard`
+- `git reset --hard main` আর `origin/main` দিয়ে পুরো branch রিসেট করা
+- Push করা commit নিরাপদে বাতিল করা
+- `git reflog` দিয়ে হারানো commit আর delete করা branch ফিরিয়ে আনা
+
+## The Real Question
+
+ভুল হলে সবাই খোঁজে "how to undo git commit"। কিন্তু উত্তর একটা না — নির্ভর করে **ভুলটা কোথায় আটকে আছে** তার উপর।
+
+তোমার কাজ চার জায়গায় থাকতে পারে। এটা [The Core Loop](/docs/git-github/core-loop)-এ দেখেছ:
+
+| জায়গা | মানে |
+| :--- | :--- |
+| Working Directory | file-এ লিখেছ, `git add` করোনি |
+| Staging Area | `git add` করেছ, `git commit` করোনি |
+| Local Repository | `git commit` করেছ, `git push` করোনি |
+| GitHub Remote | `git push` করে ফেলেছ |
+
+তোমার change এখন কোন ধাপে — সেটাই ঠিক করে দেয় কোন কমান্ড লাগবে।
+
+## Choosing the Right Tool
+
+কোনো কমান্ড চালানোর আগে এই table-টা দেখে নাও।
+
+| পরিস্থিতি | কমান্ড | History বদলায়? |
+| :--- | :--- | :--- |
+| File-এর পরিবর্তন ফেলে দিতে চাই | `git restore` | না |
+| Staging থেকে বাদ দিতে চাই | `git restore --staged` | না |
+| আগের কোনো commit থেকে একটা file আনতে চাই | `git restore --source` | না |
+| একাধিক commit একসাথে করতে চাই | `git reset --soft` | হ্যাঁ |
+| Commit বাদ, কাজ রাখতে চাই | `git reset --mixed` | হ্যাঁ |
+| Commit আর কাজ — সব বাদ | `git reset --hard` | হ্যাঁ |
+| Push করা commit বাতিল করতে চাই | `git revert` | না — নতুন commit যোগ হয় |
+| সব নষ্ট করেছি, কিছু খুঁজে পাচ্ছি না | `git reflog` | না |
+
+<Callout type="warning">
+একটা নিয়ম মুখস্থ রাখো: **push করার আগে `reset`, push করার পরে `revert`।**
+
+Push করা commit `reset` করলে তোমার history আর teammate-দের history মিলবে না। তখন তারা pull করলে অদ্ভুত conflict পাবে।
+</Callout>
+
+## `git restore --source`
+
+`restore` মানে "file-কে কোনো একটা অবস্থায় ফিরিয়ে দাও"। কমান্ডটা কোথা থেকে file নেবে সেটা `--source` ঠিক করে। কিছু না লিখলে Git staging area থেকে নেয় — অর্থাৎ শেষবার `add` করা অবস্থায় ফেরায়।
+
+কিন্তু `--source` দিয়ে তুমি history-র যেকোনো commit বেছে নিতে পারো। এখানেই এর আসল শক্তি।
+
+Real case: তুমি `next.config.js` অনেকবার বদলেছ, এখন build ভাঙছে। তিন দিন আগে ঠিক ছিল। পুরো project পিছিয়ে নেওয়ার দরকার নেই — শুধু ওই একটা file চাই।
+
+```bash filename="Terminal"
+# ৩ commit আগের version-টা working directory-তে আনো
+git restore --source=HEAD~3 next.config.js
+```
+
+File এখন পুরনো অবস্থায়, বাকি সব কোড অপরিবর্তিত। এখন দেখো build ঠিক হলো কিনা।
+
+নির্দিষ্ট commit থেকেও আনা যায়:
+
+```bash filename="Terminal"
+# ওই file-টা কোন কোন commit-এ বদলেছে দেখো
+git log --oneline -- next.config.js
+
+# পছন্দের commit থেকে file আনো
+git restore --source=a1b2c3d next.config.js
+```
+
+<Callout type="default">
+`git restore --staged` দিয়ে unstage করা আগেই দেখেছ — [The Core Loop](/docs/git-github/core-loop)-এ আছে।
+</Callout>
+
+## `git reset`
+
+`reset` মানে "HEAD-কে পিছিয়ে দাও"। HEAD হলো একটা pointer, যেটা বলে তুমি এখন কোন commit-এ আছ।
+
+কিন্তু pointer পিছিয়ে দিলে তোমার লেখা কোড কোথায় যাবে? এটাই তিনটা mode ঠিক করে দেয়।
+
+| Mode | Commit | Staging Area | Working Directory |
+| :--- | :--- | :--- | :--- |
+| `--soft` | পিছিয়ে যায় | কাজ এখানে জমা থাকে | অপরিবর্তিত |
+| `--mixed` (default) | পিছিয়ে যায় | খালি হয় | কাজ এখানে থাকে |
+| `--hard` | পিছিয়ে যায় | খালি হয় | কাজ মুছে যায় |
+
+<Callout type="warning">
+`git reset HEAD~1` লিখলে Git নিজে থেকে `--mixed` ধরে নেয়। তাই mode না লিখলে তোমার কাজ unstaged অবস্থায় থাকবে — মুছে যাবে না। অনেকে এটা না জেনে ভয় পায়।
+</Callout>
+
+### `--soft`
+
+Real case: তুমি feature শেষ করেছ, কিন্তু commit history দেখতে এলোমেলো।
+
+```
+git log --oneline
+
+9f2c1a4 typo
+7b3d8e1 fix again
+4a1f9c2 fix
+2c8b5d3 add price filter
+```
+
+Reviewer এই চারটা commit দেখলে বিরক্ত হবে। তুমি চাও একটা পরিষ্কার commit। `--soft` দিয়ে চারটা commit খুলে ফেলো — কাজ staging-এ জমা থাকবে:
+
+```bash filename="Terminal"
+git reset --soft HEAD~4
+git status                # সব change staged অবস্থায় দেখাবে
+git commit -m "feat(product): add price filter to listing"
+```
+
+একটা commit, পুরো কাজ। কিছুই হারায়নি।
+
+<Callout type="info">
+এই কাজটা `git rebase -i` দিয়েও হয়, আর সেখানে অনেক বেশি নিয়ন্ত্রণ পাওয়া যায় — পরের page-এ দেখবে। সব commit একসাথে করে একটা বানাতে চাইলে `--soft` সবচেয়ে দ্রুত উপায়।
+</Callout>
+
+### `--mixed`
+
+Real case: তুমি তাড়াহুড়োয় `git add .` করে commit করেছ। পরে `git show` দিয়ে দেখলে commit-এ `.env` আর `node_modules` ঢুকে গেছে। Push করোনি।
+
+Commit-টা খুলে ফেলো, কিন্তু কোড রেখে দাও:
+
+```bash filename="Terminal"
+git reset HEAD~1          # commit খুলে গেল, কাজ working directory-তে ফিরল
+
+# এখন .gitignore ঠিক করো
+echo ".env" >> .gitignore
+echo "node_modules/" >> .gitignore
+
+git add src/ .gitignore   # শুধু যা দরকার
+git commit -m "feat(auth): add login form"
+```
+
+### `--hard`
+
+Real case: তুমি একটা নতুন library দিয়ে দুই ঘণ্টা পরীক্ষা করেছ, তিনটা commit হয়েছে, কাজ করছে না। Push করোনি। সব ফেলে দিতে চাও।
+
+```bash filename="Terminal"
+git reset --hard HEAD~3
+```
+
+<Callout type="warning">
+`--hard` তোমার uncommitted কাজ কোনো প্রশ্ন ছাড়াই মুছে দেয়। চালানোর আগে `git status` দিয়ে দেখে নাও কী কী আছে।
+
+Commit করা কাজ পরে `git reflog` দিয়ে ফেরানো যায় (নিচে দেখবে)। কিন্তু **কখনো commit না করা কাজ ফেরানো যায় না।**
+</Callout>
+
+### Untracked Files
+
+একটা জিনিস অনেকে ভুল বোঝে: `reset --hard` untracked file-এ হাত দেয় না। Git যে file গুলো কখনো track করেনি, সেগুলো reset-এর হিসাবের বাইরে। তাই `reset --hard` করার পরেও `git status` নোংরা দেখাতে পারে।
+
+সেগুলো মোছার আলাদা কমান্ড আছে — `git clean`। এটা সরাসরি চালাবে না, আগে দেখে নেবে:
+
+```bash filename="Terminal"
+git clean -n -d           # কী কী মুছবে শুধু দেখাবে, কিছু মুছবে না
+git clean -f -d           # নিশ্চিত হলে মুছে ফেলো
+```
+
+Real case (DevOps): server-এ বা CI runner-এ build চালানোর পর অনেক generated file তৈরি হয়েছে। পরের deploy script `git status` clean আশা করে, তাই আটকে যাচ্ছে। `git clean -f -d` দিয়ে পরিবেশটা আবার পরিষ্কার করা হয়।
+
+<Callout type="warning">
+`git clean -f -d` untracked file মুছে দেয়, কিন্তু `.gitignore`-এ থাকা file-এ হাত দেয় না। `-x` যোগ করলে সেগুলোও মুছে যায় — অর্থাৎ `git clean -f -d -x` তোমার `.env` আর local build cache-ও মেরে দেবে। `-x` তখনই ব্যবহার করবে যখন সত্যিই একদম শূন্য থেকে শুরু করতে চাও।
+</Callout>
+
+## Reset to a Branch
+
+এখন পর্যন্ত তুমি `HEAD~3` দিয়ে পিছিয়েছ। কিন্তু `reset` যেকোনো branch বা remote branch-এর নামও নিতে পারে। বাস্তব কাজে এই দুটো সবচেয়ে বেশি লাগে।
+
+### Matching the Remote
+
+Real case: তোমার local `main` এলোমেলো হয়ে গেছে। ভুল merge, নাকি অর্ধেক rebase — বুঝতে পারছ না। তুমি চাও local `main` হুবহু GitHub-এর মতো হয়ে যাক।
+
+```bash filename="Terminal"
+git fetch origin              # আগে remote-এর latest তথ্য আনো
+git switch main
+git reset --hard origin/main  # local main এখন remote main-এর মতো
+```
+
+`git fetch` না করলে `origin/main` তোমার কাছে পুরনো তথ্য দেখাবে, আর তুমি ভুল জায়গায় reset করবে। এই ধাপটা কখনো বাদ দেবে না।
+
+<Callout type="info">
+এই একই কমান্ড fork sync করতেও ব্যবহার হয় — [GitHub Essentials](/docs/git-github/github-essentials)-এ `upstream/main` দিয়ে দেখেছ।
+</Callout>
+
+### Matching Another Branch
+
+Real case: তুমি `feature/checkout` branch-এ পাঁচটা commit করেছ, তারপর বুঝলে পুরো approach ভুল ছিল। Branch delete করে নতুন বানানোর দরকার নেই — একই branch-কে `main`-এর অবস্থায় ফিরিয়ে দাও:
+
+```bash filename="Terminal"
+git switch feature/checkout
+git reset --hard main         # এই branch এখন main-এর মতো, তোমার ৫টা commit বাদ
+```
+
+Branch-এর নাম, খোলা PR, আর CI setup সব একই থাকল — শুধু কাজটা মুছে গেল।
+
+<Callout type="warning">
+Branch-টা যদি আগেই push করা থাকে, তাহলে reset করার পর সাধারণ `git push` কাজ করবে না — Git বলবে তোমার branch পিছিয়ে আছে। ওখানে `--force-with-lease` লাগে, যেটা পরের page-এ দেখবে।
+</Callout>
+
+## `git revert`
+
+`reset` history পাল্টে দেয়। কিন্তু commit যদি GitHub-এ চলে গিয়ে থাকে, teammate-রা সেটা pull করে ফেলেছে। এখন history পাল্টালে সবার repo ভাঙবে।
+
+`revert` অন্যভাবে কাজ করে। এটা পুরনো commit মুছে না — বরং **ঠিক উল্টো কাজ করা একটা নতুন commit** বানায়। History সামনের দিকেই এগোয়, তাই কারো কিছু ভাঙে না।
+
+Real case: শুক্রবার সন্ধ্যায় তোমার commit production-এ deploy হয়েছে। এখন checkout page কাজ করছে না। আসল কারণ খুঁজতে দুই ঘণ্টা লাগবে, কিন্তু site এখনই ঠিক করতে হবে।
+
+```bash filename="Terminal"
+git log --oneline -5
+git revert 4a1f9c2            # ওই commit-এর উল্টো একটা নতুন commit বানাবে
+git push
+```
+
+History-তে দুটো commit-ই থেকে যাবে — মূলটা আর revert-টা। এটাই সঠিক আচরণ, কারণ পরে audit করলে দেখা যাবে কী ভেঙেছিল আর কখন ঠিক করা হয়েছিল।
+
+### Reverting a Merge
+
+Real case: একটা PR `main`-এ merge commit হিসেবে merge হয়েছে, আর সেটা staging ভেঙে দিয়েছে। এখানে সাধারণ `git revert` চলবে না — merge commit-এর দুটো parent থাকে, তাই Git জানে না কোন দিকের history রাখতে হবে।
+
+```bash filename="Terminal"
+git revert -m 1 <merge-commit-hash>
+```
+
+`-m 1` মানে "প্রথম parent-কে মূল ধরো" — অর্থাৎ `main`-এর নিজের history রাখো, আর merge হয়ে আসা কাজটুকু বাদ দাও। PR revert করতে হলে প্রায় সবসময় `-m 1` লাগবে।
+
+## `git reflog`
+
+এখন সবচেয়ে গুরুত্বপূর্ণ অংশ। বেশিরভাগ মানুষ এই কমান্ডটার নামই জানে না, অথচ এটাই Git-এর সেফটি নেট।
+
+Git একটা আলাদা log রাখে: **HEAD কখন কোথায় গিয়েছিল**। প্রতিটা commit, switch, merge, reset, rebase — সব সেখানে লেখা হয়।
+
+পার্থক্যটা মনে রাখো:
+
+- `git log` দেখায় **branch-এর** history
+- `git reflog` দেখায় **তোমার নিজের যাতায়াতের** history
+
+এর মানে দাঁড়ায়: `reset --hard` করে যে commit "হারিয়ে গেছে" বলে ভাবছ, সেটা আসলে মুছে যায়নি। শুধু কোনো branch আর ওটাকে দেখাচ্ছে না, তাই `git log`-এ আসছে না।
+
+```bash filename="Terminal"
+git reflog
+```
+
+```
+9f2c1a4 HEAD@{0}: reset: moving to HEAD~3
+1e5a7b8 HEAD@{1}: commit: add payment retry logic
+c3d9f21 HEAD@{2}: commit: add stripe webhook handler
+8b2e4a6 HEAD@{3}: commit: add checkout validation
+9f2c1a4 HEAD@{4}: checkout: moving from main to feature/payment
+```
+
+প্রতিটা লাইনে একটা `HEAD@{n}` আছে — মানে "n ধাপ আগে তুমি এখানে ছিলে"।
+
+### Recovering a Hard Reset
+
+Real case: তুমি `git reset --hard HEAD~3` চালিয়েছ, ভেবেছিলে পরীক্ষামূলক কাজ মুছছ। এক মিনিট পরে বুঝলে ওই তিনটা commit-এ দুই দিনের আসল কাজ ছিল।
+
+<Steps>
+### Find the Lost Commit
+
+reflog-এ দেখো reset করার ঠিক আগে তুমি কোথায় ছিলে।
+
+```bash filename="Terminal"
+git reflog
+```
+
+উপরের output-এ `HEAD@{0}` হলো reset কাজটা নিজেই। তার আগের লাইন `HEAD@{1}` — অর্থাৎ `1e5a7b8`। এটাই তোমার হারানো কাজের শেষ commit।
+
+### Verify Before Restoring
+
+অন্ধভাবে reset করবে না। আগে নিশ্চিত হও এটাই ঠিক commit।
+
+```bash filename="Terminal"
+git show 1e5a7b8
+```
+
+### Restore
+
+ঠিক থাকলে branch-কে ওই commit-এ ফিরিয়ে দাও।
+
+```bash filename="Terminal"
+git reset --hard 1e5a7b8
+```
+
+তোমার তিনটা commit ফিরে এসেছে।
+</Steps>
+
+<Callout type="info">
+আরও নিরাপদ একটা পথ আছে। বর্তমান branch-এ হাত না দিয়ে হারানো commit থেকে নতুন branch বানাও, তারপর দেখে নাও সব ঠিক আছে কিনা:
+
+```bash filename="Terminal"
+git switch -c recovery 1e5a7b8
+```
+</Callout>
+
+### Recovering a Deleted Branch
+
+Real case: PR merge হয়েছে ভেবে তুমি `git branch -d feature/reports` চালিয়েছ। পরদিন জানলে PR আসলে merge হয়নি, close করা হয়েছিল। Branch-টা আর নেই।
+
+```bash filename="Terminal"
+git reflog                                    # branch-এর শেষ commit খুঁজে বের করো
+git switch -c feature/reports 1e5a7b8         # ওই commit থেকে branch ফিরিয়ে আনো
+```
+
+Branch delete করলে Git আসলে শুধু নামটা মুছে দেয়। Commit গুলো database-এ থেকেই যায় — শুধু কোনো নাম আর ওদের দেখাচ্ছে না।
+
+### Reflog Limits
+
+reflog সব সমস্যার সমাধান না। তিনটা সীমা জেনে রাখো।
+
+- **এটা শুধু তোমার মেশিনে থাকে।** GitHub-এ push হয় না, clone করলেও আসে না। অন্য কারো হারানো কাজ তোমার reflog-এ খুঁজে পাবে না।
+- **এটা চিরকাল থাকে না।** কোনো branch থেকে আর পৌঁছানো যায় না এমন entry ৩০ দিন পরে মুছে যায়। Branch থেকে পৌঁছানো যায় এমন entry থাকে ৯০ দিন।
+- **Commit না করা কাজ এখানে নেই।** reflog শুধু commit-এর হিসাব রাখে। তুমি যা লিখেছ কিন্তু `git commit` করোনি, `reset --hard` সেটা চিরতরে মুছে দেয়।
+
+<Callout type="default">
+তৃতীয় পয়েন্টটাই আসল শিক্ষা: **অর্ধেক কাজও commit করে রাখো।** Messy commit পরে `rebase -i` দিয়ে পরিষ্কার করা যায়, কিন্তু commit না করা কাজ কোনো কমান্ড দিয়ে ফেরানো যায় না।
+
+দিনের শেষে অন্তত `git commit -m "wip: checkout validation"` করে রাখো। WIP commit থাকা লজ্জার কিছু না — কাজ হারানো অনেক বেশি খারাপ।
+</Callout>
+
+## Wrong Branch Commit
+
+সবচেয়ে বেশি যে ভুলটা হয়, সেটা এখানে আলাদা করে রাখলাম। কারণ push করেছ কিনা, তার উপর সমাধান পুরো বদলে যায়।
+
+<Tabs items={['Push করিনি', 'Push করে ফেলেছি']}>
+  <Tabs.Tab>
+    তুমি `main`-এ বসে কাজ করে commit করে ফেলেছ, যদিও feature branch-এ করা উচিত ছিল।
+
+    ```bash filename="Terminal"
+    git reset HEAD~1              # commit খোলো, কাজ working directory-তে থাকবে
+    git switch -c feature/login   # সঠিক branch বানাও
+    git add .
+    git commit -m "feat(auth): add login form"
+    ```
+
+    একাধিক commit হলে সংখ্যা বদলাও — যেমন তিনটা commit হলে `HEAD~3`।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Push হয়ে গেলে `reset` দিয়ে ঠিক করা যাবে না, কারণ remote-এ commit-টা এখনো আছে। এখানে commit-টা সঠিক branch-এ কপি করে আনতে হয়। এটাই `cherry-pick`-এর কাজ — পরের page-এ পুরোটা দেখবে।
+
+    ```bash filename="Terminal"
+    git log --oneline -1               # commit hash নোট করো
+    git switch -c feature/login        # সঠিক branch বানাও
+    git cherry-pick <hash>             # commit-টা এখানে কপি করো
+    git push -u origin feature/login
+    ```
+
+    এখন `main` থেকে commit-টা সরাতে হবে। Shared branch হলে সবসময় `git revert` ব্যবহার করবে — `reset` আর force push নয়।
+  </Tabs.Tab>
+</Tabs>
+
+## Real-World Note
+
+<Callout type="warning">
+**`reset --hard` দিয়ে ফাঁস হওয়া secret মোছা যায় না।**
+
+মনে করো তুমি ভুলে `.env` commit করে push করেছ। সবচেয়ে সাধারণ ভুল প্রতিক্রিয়া হলো `git reset --hard HEAD~1` করে force push করা, তারপর ভাবা যে file-টা চলে গেছে।
+
+যায়নি। GitHub-এ ওই commit object তখনো থেকে যায় এবং সরাসরি URL দিয়ে পড়া যায় — `github.com/user/repo/commit/<hash>`। Fork, PR, আর GitHub-এর নিজের cache-এও copy থাকে। Automated scanner bot গুলো public repository-র নতুন commit কয়েক সেকেন্ডের মধ্যে পড়ে ফেলে। AWS key push করার কয়েক মিনিটের মধ্যে সেটা দিয়ে crypto miner চালু হয়ে যাওয়ার ঘটনা নিয়মিত ঘটে।
+
+তাই ধাপগুলো এই ক্রমে করো:
+
+```bash filename="Terminal"
+# ১. আগে key টা বাতিল করো — এটাই একমাত্র আসল সুরক্ষা
+#    AWS, Stripe, database — যেখানকার key, সেখানে গিয়ে rotate করো
+
+# ২. তারপর Git tracking থেকে বাদ দাও
+echo ".env" >> .gitignore
+git rm --cached .env
+git commit -m "chore: remove .env from tracking"
+git push
+```
+
+History থেকে file একেবারে মুছতে `git filter-repo` বা BFG লাগে, আর তারপর team-এর সবাইকে repo আবার clone করতে হয়। কিন্তু ততক্ষণে key ফাঁস হয়ে গেছে ধরে নিতেই হবে। **Rotate আগে, cleanup পরে।**
+</Callout>
+
+## Quick Check
+
+- [ ] `reset --soft`, `--mixed`, আর `--hard` — তিনটার ক্ষেত্রে তোমার কাজ কোথায় যায়, বলতে পারবে?
+- [ ] Push করা commit বাতিল করতে কেন `reset` নয়, `revert` লাগে?
+- [ ] `git reset --hard origin/main` চালানোর আগে কোন কমান্ড দিতে হয় এবং কেন?
+- [ ] `reset --hard` করে হারানো commit কীভাবে ফিরিয়ে আনবে?
+- [ ] reflog দিয়ে কোন কাজটা কোনোদিন ফেরানো যাবে না?
+
+**পরবর্তী →** [Rebase & History](/docs/git-github/rebase-and-history)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: git reset bangla, git restore bangla, git revert bangla, git reflog bangla, git reset hard origin main, git reset soft mixed hard difference, undo git commit bengali, recover deleted branch git, git clean untracked files, git revert merge commit, remove env from git history bangla
+</span>

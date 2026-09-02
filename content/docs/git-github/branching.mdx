@@ -1,12 +1,13 @@
 ---
 title: Branching & Merging
+description: Branch বানানো, merge করা, conflict সমাধান আর git stash — একই project-এ একাধিক কাজ একসাথে চালানো।
 ---
 
-import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+import { Callout, Steps, Tabs } from 'nextra/components'
 
 # Branching & Merging
 
-<Callout type="info" emoji="⚡">
+<Callout type="info">
 **Essential** | Estimated time: 60–90 minutes
 
 Branch হলো Git-এর সবচেয়ে powerful feature। এটা বোঝার পর তুমি বুঝবে কেন পুরো দুনিয়া Git ব্যবহার করে।
@@ -123,7 +124,7 @@ Real company-তে branch-এর নাম দেখলেই বোঝা য�
 | `chore/`   | Code cleanup, dependency update | `chore/update-packages` |
 | `docs/`    | Documentation লিখছ              | `docs/api-guide`        |
 
-<Tabs items={["❌ খারাপ নাম", "✅ ভালো নাম"]}>
+<Tabs items={["খারাপ নাম", "ভালো নাম"]}>
   <Tabs.Tab>
     ```bash filename="Terminal"
     mybranch
@@ -359,6 +360,20 @@ git stash
 
 এখন তোমার working directory clean — যেন কিছু হয়নি।
 
+<Callout type="warning">
+**সাধারণ `git stash` নতুন file নেয় না।**
+
+তুমি যদি কাজের মাঝে নতুন file বানিয়ে থাকো আর সেটা `git add` করে না থাকো, তাহলে Git ওটাকে এখনো চেনে না। `git stash` শুধু চেনা file গুলো ড্রয়ারে রাখে — নতুন file গুলো working directory-তেই পড়ে থাকে।
+
+সেগুলোও একসাথে রাখতে `-u` যোগ করো:
+
+```bash filename="Terminal"
+git stash -u
+```
+
+`-u` কোনো file কে untrack করে না। এটা Git-কে বলে **"untracked file গুলোও সাথে নাও"** — অর্থাৎ stash-এর গণ্ডি বাড়িয়ে দেয়, কমায় না।
+</Callout>
+
 ### Emergency Work
 
 স্ট্যাশ করার পর তুমি এখন অন্য ব্রাঞ্চে জরুরি কাজ করতে পারো।
@@ -396,6 +411,21 @@ git stash apply stash@{1}     # Specific Stash Apply করো
 git stash drop                # সবচেয়ে latest stash delete
 git stash clear               # সব stash clear করো
 ```
+
+`pop` আর `apply` — দুটোই কাজ ফিরিয়ে আনে, কিন্তু পার্থক্য আছে:
+
+- `git stash pop` কাজ ফিরিয়ে এনে stash থেকে entry-টা **মুছে দেয়**
+- `git stash apply` কাজ ফিরিয়ে আনে, কিন্তু entry stash-এ **থেকে যায়**
+
+একই কাজ একাধিক branch-এ লাগালে `apply` ব্যবহার করো। নিশ্চিত না হলে `apply` দিয়ে শুরু করো, পরে `git stash drop` দিয়ে মুছে দেবে — তাহলে কাজ হারানোর ভয় থাকে না।
+
+<Callout type="info">
+Stash-এ একটা নাম দিয়ে রাখতে পারো, নাহয় তিন দিন পরে `stash@{2}`-এ কী ছিল মনে থাকবে না:
+
+```bash filename="Terminal"
+git stash push -u -m "half-done price filter UI"
+```
+</Callout>
 
 ## Team Workflow
 
@@ -451,7 +481,7 @@ git branch -d feature/search-bar
     — তারপর switch করো।
   </Tabs.Tab>
   <Tabs.Tab>
-    **Problem:** ভুল branch-এ commit করে ফেলেছি
+    **Problem:** ভুল branch-এ commit করে ফেলেছি (এখনো push করিনি)
 
     **Fix:** 
     ```bash filename="Terminal"
@@ -460,6 +490,10 @@ git branch -d feature/search-bar
     git add .
     git commit -m "message"
     ```
+
+    `git reset HEAD~1` commit-টা খুলে দেয়, কিন্তু তোমার কোড working directory-তে থেকে যায় — তাই branch বদলালে কাজটা সাথে চলে আসে।
+
+    Push করে ফেললে এই উপায় চলবে না। সেই ক্ষেত্রটা [Undo & Recovery](/docs/git-github/undo-and-recovery)-তে আছে।
   </Tabs.Tab>
   <Tabs.Tab>
     **Problem:** Remote branch delete করার পর local-এ এখনো দেখাচ্ছে 
@@ -471,18 +505,48 @@ git branch -d feature/search-bar
   </Tabs.Tab>
 </Tabs>
 
+## Real-World Note
+
+<Callout type="warning">
+  **Conflict সমাধান করতে গিয়েই সবচেয়ে বেশি কোড হারিয়ে যায়।**
+
+  Conflict এলে Git তোমাকে দুটো version দেখায় আর জিজ্ঞেস করে কোনটা রাখবে। তুমি যেটা রাখবে না, সেটা **নিঃশব্দে মুছে যাবে** — কোনো warning আসবে না, test-ও fail করবে না।
+
+  বাস্তবে এভাবেই security fix হারায়। ধরো তোমার teammate `main`-এ একটা input validation যোগ করেছে:
+
+  ```js
+  if (!isValidEmail(input)) return res.status(400).send('Invalid')
+  ```
+
+  তুমি একই ফাইলে কাজ করছিলে। Merge করতে গিয়ে conflict এলো। তাড়াহুড়োয় তুমি "Accept Current Change" চাপলে — মানে তোমার version রাখলে। Validation-টা চলে গেল। Code চলে, test pass করে, PR merge হয়। ছয় মাস পর কেউ ওই endpoint দিয়ে ভাঙা data পাঠায়।
+
+  তাই conflict মিটিয়ে `git add` করার আগে সবসময় তিনটা কাজ করো:
+
+  ```bash filename="Terminal"
+  git status                # সব conflict মিটেছে কিনা দেখো
+  git diff                  # তুমি ঠিক কী রাখলে, কী বাদ দিলে
+  ```
+
+  তারপর **test চালাও** — merge করার পরের code কখনো আলাদাভাবে test করা হয়নি, কারণ এই সংমিশ্রণটা এর আগে কোথাও ছিল না।
+
+  আর "Accept Both Changes" button-টা নিয়ে সাবধান। এটা দুটো version-ই পাশাপাশি বসিয়ে দেয়। প্রায়ই এতে একই function বা import দুবার তৈরি হয় — যা হয়তো চলে যাবে, কিন্তু আচরণ অদ্ভুত হবে।
+
+  ভুল resolve করে ফেললে ভয়ের কিছু নেই। Merge শেষ হওয়ার আগে `git merge --abort` দিলে সব আগের অবস্থায় ফিরে যাবে। Commit হয়ে গেলে [Undo & Recovery](/docs/git-github/undo-and-recovery)-র `git reflog` আছে।
+</Callout>
+
 ## What's Next?
 
-Branch এবং merge শেখা হয়ে গেছে। এখন শিখবে GitHub-এর সাথে properly কাজ করা — SSH, remote, Pull Request সব।
+Branch এবং merge শেখা হয়ে গেছে। এখন শিখবে GitHub-এর সাথে properly কাজ করা — remote, Pull Request সব।
 
 <Callout type="info">
 **→ GitHub Essentials**
 
-তোমার local Git এবং GitHub-এর মধ্যে bridge কীভাবে কাজ করে, Pull Request কী এবং কীভাবে করতে হয় — সব এখানে।
+তোমার local Git এবং GitHub-এর মধ্যে সংযোগ কীভাবে কাজ করে, Pull Request কী এবং কীভাবে করতে হয় — সব এখানে।
 
 </Callout>
 
+**পরবর্তী →** [GitHub Essentials](/docs/git-github/github-essentials)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: create branch, switch branch, merge branch, delete branch, resolve merge conflicts, git stash
+  Search Keywords: create branch bangla, switch branch, merge branch, delete branch, resolve merge conflicts bangla, git stash bangla, git stash untracked, branch naming convention
 </span>

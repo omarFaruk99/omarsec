@@ -3,7 +3,7 @@ title: Introduction
 description: Git & GitHub — Foundations to Professional Workflow
 ---
 
-import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
+import { Callout } from 'nextra/components'
 
 # Git & GitHub — Foundations to Pro
 
@@ -11,7 +11,7 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
 মৌলিক ভিত্তি থেকে শুরু করে real software company-তে কাজ করার জন্য প্রয়োজনীয় প্রফেশনাল ওয়ার্কফ্লো — সব এক জায়গায়।
 </Callout>
 
-বাংলা ও ইংরেজিতে লেখা। Free। Open source।
+ব্যাখ্যা বাংলায়, কমান্ড ইংরেজিতে। Free। Open source।
 
 ## Why Git & GitHub?
 
@@ -59,12 +59,12 @@ GitHub হলো একটি **Cloud-based Hosting Service**। সহজ ক�
 এই ডকুমেন্টেশনটি কাদের জন্য সবচেয়ে বেশি কার্যকরী হবে।
 
 
-- 🎓 **Student** — Git শিখতে চাও, কোথা থেকে শুরু করবে বুঝছ না
-- 💼 **New Developer** — প্রথম চাকরিতে join করেছ, team-এর সাথে কাজ করতে হবে
-- 🧑‍💻 **Freelancer** — Client-এর project professionally handle করতে চাও
-- 🌍 **Contributor** — Open source-এ contribute করতে চাও
+- **Student** — Git শিখতে চাও, কোথা থেকে শুরু করবে বুঝছ না
+- **New Developer** — প্রথম চাকরিতে join করেছ, team-এর সাথে কাজ করতে হবে
+- **Freelancer** — Client-এর project professionally handle করতে চাও
+- **Contributor** — Open source-এ contribute করতে চাও
 
-<Callout emoji="💡">
+<Callout type="info">
 পেশাদারভাবে Git ব্যবহার শুরু করতে সরাসরি **Setup** সেকশন থেকে যাত্রা শুরু করো।
 </Callout>
 
@@ -79,10 +79,14 @@ GitHub হলো একটি **Cloud-based Hosting Service**। সহজ ক�
 | [The Core Loop](/docs/git-github/core-loop) | add, commit, push, pull, .gitignore | ৪৫–৬০ মিনিট |
 | [Branching & Merging](/docs/git-github/branching) | Branch, merge, conflict, stash | ৬০–৯০ মিনিট |
 | [GitHub Essentials](/docs/git-github/github-essentials) | Remote, Pull Request, Issues, Fork | ৬০–৯০ মিনিট |
+| [Undo & Recovery](/docs/git-github/undo-and-recovery) | restore, reset, revert, reflog | ৬০–৯০ মিনিট |
+| [Rebase & History](/docs/git-github/rebase-and-history) | rebase, squash, force-with-lease, cherry-pick | ৯০–১২০ মিনিট |
 | [Real Scenarios](/docs/git-github/real-scenarios) | Team project, Client hotfix, Open source | ৯০–১২০ মিনিট |
 | [Cheatsheet](/docs/git-github/cheatsheet) | সব commands এক পাতায় | Reference |
 
-**মোট সময়:** ৫–৭ ঘণ্টা (নিজের pace-এ)
+**মোট সময়:** ৮–১০ ঘণ্টা (নিজের pace-এ)
+
+প্রথম চারটা সেকশন দিয়ে তুমি team-এ কাজ শুরু করতে পারবে। পরের দুটো সেকশন সেই জিনিসগুলো, যেগুলো ছাড়া senior developer-দের সাথে তাল মেলানো কঠিন — ভুল হলে ফেরার উপায়, আর history পরিষ্কার রাখা।
 
 ## Learning Guide
 
@@ -105,14 +109,14 @@ Setup থেকে শুরু করো, ক্রমে এগিয়ে �
 অন্যান্য রিসোর্সের তুলনায় এই গাইডের প্রধান বৈশিষ্ট্যগুলো কী কী।
 
 
-**Bilingual** — প্রতিটা concept বাংলায় explain করা, commands ইংরেজিতে।
+**বাংলায় ব্যাখ্যা** — প্রতিটা concept বাংলায় explain করা, commands ইংরেজিতে।
 যারা বাংলায় ভাবেন তাদের জন্য technical concept বোঝা অনেক সহজ হয়।
 
 **Real-world focused** — শুধু commands না, real company-তে কীভাবে কাজ হয় সেটা দেখানো হয়েছে।
 
 **মৌলিক ভিত্তি (Strong Fundamentals)** — কোনো prior knowledge ধরে নেওয়া হয়নি। প্রতিটা বিষয়ের গভীর থেকে আলোচনা করা হয়েছে।
 
-**পেশাদার ওয়ার্কফ্লো** — দরকারি জিনিস আছে, বাড়তি নেই। ৫টি সেকশন পড়লেই job-ready।
+**পেশাদার ওয়ার্কফ্লো** — দরকারি জিনিস আছে, বাড়তি নেই। সেকশনগুলো শেষ করলেই job-ready।
 
 
 ## Quick Start
@@ -137,11 +141,13 @@ git --version
 
 - কোনো ভুল পেয়েছ? [Issue খোলো](https://github.com/omarsec/omarsec.com/issues)
 - কিছু যোগ করতে চাও? [PR পাঠাও](https://github.com/omarsec/omarsec.com/pulls)
-- কাজে লেগেছে? GitHub-এ ⭐ Star দাও
+- কাজে লেগেছে? GitHub-এ Star দাও
 
 
 
+
+**পরবর্তী →** [Setup](/docs/git-github/setup)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: git concept, what is github, version control basics, learn git, git roadmap
+  Search Keywords: git concept bangla, what is github, version control basics, learn git bengali, git roadmap, git shikha bangla, git github tutorial bangla
 </span>

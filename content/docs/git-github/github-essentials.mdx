@@ -1,12 +1,13 @@
 ---
 title: GitHub Essentials
+description: Remote, fetch vs pull, Pull Request, code review, Issue tracking আর fork workflow — GitHub-এ team-এর সাথে কাজ করা।
 ---
 
-import { Callout, Steps, Tabs, FileTree } from "nextra/components";
+import { Callout, Steps, Tabs } from "nextra/components";
 
 # GitHub Essentials
 
-<Callout type="info" emoji="⚡">
+<Callout type="info">
 **Essential** | Estimated time: 60–90 minutes
 
 এতক্ষণ তুমি Git শিখেছ — যেটা তোমার local machine-এ কাজ করে। এখন GitHub শিখবে — যেটা দিয়ে তোমার কাজ দুনিয়ার সাথে share হয় এবং team-এর সাথে collaborate করা যায়।
@@ -33,7 +34,7 @@ import { Callout, Steps, Tabs, FileTree } from "nextra/components";
 | **কোথায় থাকে**    | তোমার computer-এ          | Internet-এ                              |
 | **কাজ**            | Version history track করে | Code host করে, team collaboration করায় |
 | **Internet লাগে?** | না                        | হ্যাঁ                                   |
-| **বিকল্প আছে?**    | না (Git-ই standard)       | হ্যাঁ — GitLab, Bitbucket               |
+| **বিকল্প আছে?**    | আছে, তবে Git-ই industry standard | হ্যাঁ — GitLab, Bitbucket        |
 
 সহজ কথায়: **Git হলো engine, GitHub হলো garage।**
 তোমার গাড়ি (code) Git দিয়ে চলে, GitHub-এ রেখে দাও যাতে সবাই দেখতে পায়।
@@ -61,7 +62,7 @@ import { Callout, Steps, Tabs, FileTree } from "nextra/components";
     origin  git@github.com:username/my-project.git (fetch)
     origin  git@github.com:username/my-project.git (push)
     ```
-    `origin` হলো remote-এর **নাম** — এটা default নাম।
+    `origin` হলো ওই ঠিকানার একটা **ডাকনাম**, যেটা তুমি `git remote add origin ...` লেখার সময় নিজে দিয়েছিলে। Git এই নাম নিজে থেকে ঠিক করে না — `myserver` লিখলেও চলত। সবাই `origin` লেখে বলে এটাই প্রচলন হয়ে গেছে।
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash filename="Terminal"
@@ -121,8 +122,7 @@ git pull
 | Team-এর কাজ দেখতে চাও নিজের কাজ না ভেঙে       | `git fetch` |
 
 <Callout type="info">
-  **Daily life-এ** বেশিরভাগ সময় `git pull` ই ব্যবহার হয়। `git fetch` advanced
-  situation-এ কাজে আসে।
+  প্রতিদিনের কাজে বেশিরভাগ সময় `git pull` ব্যবহার হয়। কিন্তু `git fetch` বাদ দেওয়ার জিনিস না — `git reset --hard origin/main` বা `git rebase` চালানোর আগে fetch করা বাধ্যতামূলক, নাহয় তুমি পুরনো তথ্য নিয়ে কাজ করবে। এই দুটো পরে [Undo & Recovery](/docs/git-github/undo-and-recovery) আর [Rebase & History](/docs/git-github/rebase-and-history)-তে আসবে।
 </Callout>
 
 ## Pull Requests
@@ -322,18 +322,38 @@ git push origin main
   </Tabs.Tab>
 </Tabs>
 
+## Real-World Note
+
+<Callout type="warning">
+  **PR approve করা মানে দায়িত্ব নেওয়া।**
+
+  Code review-কে অনেকে আনুষ্ঠানিকতা মনে করে — কাজ চলছে দেখলেই Approve চেপে দেয়। কিন্তু PR হলো production-এ পৌঁছানোর আগে শেষ মানুষটির চোখ। এখানে যা পার হয়ে যায়, সেটা live server-এ চলে।
+
+  Review করার সময় শুধু "code কাজ করছে কিনা" দেখো না। এই জিনিসগুলোও দেখো:
+
+  - **নতুন dependency যোগ হয়েছে?** `package.json`-এ একটা অচেনা package যোগ হওয়া মানে অন্য কারো code তোমার server-এ চলবে। নামটা খুঁটিয়ে দেখো — জনপ্রিয় package-এর নামের সামান্য বানান বদলে ভুয়া package বানানো হয় (`lodash` বনাম `1odash`), এই কৌশলটার নাম typosquatting।
+  - **Secret ঢুকেছে?** API key, password, বা token কি সরাসরি code-এ লেখা? Environment variable-এ থাকা উচিত।
+  - **Workflow file বদলেছে?** `.github/workflows/` folder-এর কোনো পরিবর্তন খুব মনোযোগ দিয়ে পড়ো। ওই file গুলো তোমার সব secret-এর কাছে যেতে পারে।
+  - **Diff-টা কি PR-এর বর্ণনার সাথে মেলে?** "Fix typo" লেখা PR-এ যদি ৪০টা file বদলে থাকে, তাহলে কিছু একটা ঠিক নেই।
+
+  Fork থেকে আসা PR-এ বাড়তি সতর্কতা দরকার। যে কেউ তোমার public repo fork করে PR পাঠাতে পারে — সে তোমার team-এর কেউ না। Open source project-এ এটাই সবচেয়ে চেনা আক্রমণের পথ: প্রথমে কয়েকটা ভালো PR দিয়ে বিশ্বাস অর্জন, তারপর ক্ষতিকর কিছু ঢোকানো।
+
+  আরেকটা কথা মনে রাখো: **public repository-তে যা একবার push হয়েছে, তা স্থায়ী।** PR close করে দিলেও, branch delete করলেও, commit গুলো URL দিয়ে পড়া যায়। কোনো PR-এ secret দেখলে আগে সেটা বাতিল করো, তারপর PR নিয়ে ভাবো।
+</Callout>
+
 ## What's Next?
 
-Git এবং GitHub-এর core সব শেখা হয়ে গেছে। এখন real-world scenarios শিখবে।
+Git এবং GitHub-এর core সব শেখা হয়ে গেছে। এখন শিখবে ভুল হলে কী করতে হয়।
 
 <Callout type="info">
-**→ Real Scenarios**
+**→ Undo & Recovery**
 
-Team project, client project, এবং open source contribution — তিনটা আলাদা real situation-এ কীভাবে Git + GitHub ব্যবহার করতে হয়, সেটা A to Z দেখবে।
+`restore`, `reset`, `revert` — কখন কোনটা। আর `reflog` দিয়ে হারিয়ে যাওয়া কাজ ফিরিয়ে আনা।
 
 </Callout>
 
+**পরবর্তী →** [Undo & Recovery](/docs/git-github/undo-and-recovery)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: git remote, fetch vs pull, create pull request, code review, fork repository, squash merge
+  Search Keywords: git remote bangla, fetch vs pull bangla, create pull request, code review bangla, fork repository, squash merge, github issues, pr review checklist, upstream sync fork
 </span>

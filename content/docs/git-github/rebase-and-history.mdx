@@ -1,0 +1,468 @@
+---
+title: Rebase & History
+description: git rebase, interactive rebase, force-with-lease, cherry-pick আর bisect — পরিষ্কার history রাখা আর নির্দিষ্ট commit নিয়ে কাজ করা।
+---
+
+import { Callout, Steps } from 'nextra/components'
+
+# Rebase & History
+
+<Callout type="info">
+এই page-এ শিখবে কীভাবে history-কে নতুন আকার দেওয়া হয় — `rebase` দিয়ে branch আপডেট রাখা, `rebase -i` দিয়ে messy commit পরিষ্কার করা, আর `cherry-pick` দিয়ে একটা নির্দিষ্ট commit অন্য branch-এ নেওয়া। সাথে সেই নিয়মটাও, যেটা ভাঙলে পুরো team-এর repo ভাঙে।
+</Callout>
+
+## What You'll Learn
+
+- Merge আর rebase আসলে কীভাবে আলাদা, আর কখন কোনটা
+- `git rebase` দিয়ে branch-কে `main`-এর উপরে তুলে আনা
+- Rebase-এ conflict এলে `--continue`, `--skip`, `--abort`
+- `git rebase -i` দিয়ে commit squash আর reword করা
+- `git push --force-with-lease` — আর কেন `-f` নয়
+- `git cherry-pick` দিয়ে নির্দিষ্ট commit কপি করা
+- `git bisect` দিয়ে কোন commit-এ bug ঢুকেছে খুঁজে বের করা
+
+## Merge vs Rebase
+
+[Branching & Merging](/docs/git-github/branching)-এ তুমি `git merge` শিখেছ। Merge দুটো branch-এর কাজ একসাথে করে এবং তার প্রমাণ হিসেবে একটা **merge commit** রেখে দেয়।
+
+Rebase অন্য প্রশ্ন করে। এটা বলে: "তোমার commit গুলো যদি আজ, `main`-এর সর্বশেষ অবস্থার উপর, নতুন করে লেখা হতো — তাহলে কেমন দেখাত?"
+
+এই কাজটা করতে rebase তোমার প্রতিটা commit **একটা একটা করে নতুনভাবে বসায়**। ফলে history সোজা একটা লাইন হয়ে যায়, কোনো merge commit থাকে না।
+
+```
+merge করলে:
+
+main:     A --- B --- C --------- M
+                \                /
+feature:         D --- E --- F --
+
+rebase করলে:
+
+main:     A --- B --- C
+                       \
+feature:                D' --- E' --- F'
+```
+
+লক্ষ করো নিচের লাইনে `D'`, `E'`, `F'` লেখা — নামের পাশে একটা ছোট দাগ আছে। এই দাগটা বোঝায় এগুলো তোমার পুরনো commit না। একই পরিবর্তন, কিন্তু **নতুন commit, নতুন hash**। এই একটা কথা বুঝলে rebase-এর সব বিপদ আর সব নিয়ম নিজে থেকেই পরিষ্কার হয়ে যায়।
+
+| | Merge | Rebase |
+| :--- | :--- | :--- |
+| History | শাখা-প্রশাখা দেখা যায় | সোজা একটা লাইন |
+| Commit hash | অপরিবর্তিত | বদলে যায় |
+| Merge commit | তৈরি হয় | হয় না |
+| Shared branch-এ নিরাপদ? | হ্যাঁ | না |
+| কখন ব্যবহার | দুটো branch একসাথে করতে | নিজের branch গোছাতে |
+
+<Callout type="default">
+সহজ ভাগ: **`main`-এ কাজ ঢোকাতে merge, নিজের feature branch গোছাতে rebase।**
+</Callout>
+
+## Rebasing on Main
+
+Real case: তুমি `feature/price-filter` branch-এ চার দিন কাজ করেছ। এর মধ্যে team `develop`-এ ছয়টা PR merge করেছে। এখন তোমার PR-এ reviewer লিখেছে: "Please rebase on develop, we don't want merge commits in the PR."
+
+তোমার branch এখন পুরনো ভিত্তির উপর দাঁড়িয়ে। rebase সেই ভিত্তিটা বদলে দেবে।
+
+<Steps>
+### Get the Latest
+
+আগে remote-এর সর্বশেষ অবস্থা নামাও। এটা না করলে তুমি পুরনো `develop`-এর উপর rebase করবে, আর কাজটা বৃথা যাবে।
+
+```bash filename="Terminal"
+git fetch origin
+```
+
+### Rebase
+
+তোমার feature branch-এ থেকেই কমান্ড দাও।
+
+```bash filename="Terminal"
+git switch feature/price-filter
+git rebase origin/develop
+```
+
+Git এখন তোমার প্রতিটা commit `develop`-এর মাথার উপর একটা একটা করে বসাবে।
+
+### Verify
+
+History দেখে নাও — এখন সোজা একটা লাইন হওয়া উচিত।
+
+```bash filename="Terminal"
+git log --oneline --graph -10
+```
+
+### Push
+
+Branch-টা আগে push করা ছিল, আর এখন তার commit hash বদলে গেছে। তাই সাধারণ `push` কাজ করবে না — নিচের `--force-with-lease` অংশটা দেখো।
+
+```bash filename="Terminal"
+git push --force-with-lease
+```
+</Steps>
+
+<Callout type="info">
+`git pull` করলে Git default-ভাবে merge করে, ফলে তোমার branch-এ merge commit ঢুকে যায়। প্রতিবার rebase চাইলে এভাবে লেখো:
+
+```bash filename="Terminal"
+git pull --rebase origin develop
+```
+
+সবসময়ের জন্য চাইলে একবার config করে রাখো:
+
+```bash filename="Terminal"
+git config --global pull.rebase true
+```
+</Callout>
+
+## Rebase Conflicts
+
+Merge-এ conflict একবার আসে — দুটো branch-এর চূড়ান্ত অবস্থা তুলনা হয়, তুমি একবার fix করে `git commit` করো।
+
+Rebase আলাদা। এটা তোমার commit গুলো **একটা একটা করে** বসায়। তাই conflict একাধিকবার আসতে পারে — প্রতিটা commit-এর জন্য আলাদা করে।
+
+আর এখানেই সবচেয়ে বড় ভুলটা হয়। Rebase-এর মাঝে conflict fix করার পর **`git commit` লিখবে না।** Git ইতিমধ্যে জানে সে কোন commit বসাচ্ছে। তুমি শুধু `git add` করে বলবে "এবার এগোও"।
+
+<Callout type="warning">
+Rebase-এর মাঝে `git commit` লিখলে history-তে একটা বাড়তি commit ঢুকে যায় আর rebase-এর হিসাব গুলিয়ে যায়। সেখানে `git rebase --continue` লাগে।
+</Callout>
+
+### `--continue`
+
+Conflict এলে Git থেমে যায় আর বলে দেয় কোন file-এ সমস্যা।
+
+```
+CONFLICT (content): Merge conflict in src/components/Filter.jsx
+error: could not apply 4a1f9c2... add price range slider
+```
+
+তিন ধাপে এগোও:
+
+```bash filename="Terminal"
+# ১. file খুলে conflict marker গুলো ঠিক করো
+#    (marker চেনা আর ঠিক করা Branching page-এ দেখেছ)
+
+# ২. ঠিক করা file গুলো add করো
+git add src/components/Filter.jsx
+
+# ৩. rebase-কে এগিয়ে যেতে বলো
+git rebase --continue
+```
+
+পরের commit বসাতে গিয়ে আবার conflict হলে আবার একই তিন ধাপ। কতটা বাকি আছে যেকোনো সময় দেখতে পারো:
+
+```bash filename="Terminal"
+git status
+```
+
+### `--skip`
+
+Real case: তোমার branch-এ একটা commit আছে "fix typo in README"। কিন্তু এর মধ্যে অন্য কেউ একই typo ঠিক করে `develop`-এ merge করে ফেলেছে। এখন তোমার ওই commit বসানোর কিছু নেই — সব পরিবর্তন আগেই আছে।
+
+```bash filename="Terminal"
+git rebase --skip
+```
+
+এটা শুধু বর্তমান commit-টা বাদ দিয়ে পরেরটায় চলে যায়।
+
+<Callout type="warning">
+`--skip` কেবল তখনই দেবে যখন তুমি নিশ্চিত ওই commit-এর কাজ আর দরকার নেই। না বুঝে `--skip` দিলে চুপচাপ তোমার কোড হারিয়ে যাবে, কোনো error দেখাবে না।
+</Callout>
+
+### `--abort`
+
+Real case: rebase শুরু করার পর দেখলে দশটা commit-এ conflict আসছে, প্রতিটাই জটিল। এখন পুরো কাজটা বাতিল করে থামতে চাও।
+
+```bash filename="Terminal"
+git rebase --abort
+```
+
+তোমার branch rebase শুরু করার ঠিক আগের অবস্থায় ফিরে যাবে। কিছুই হারাবে না।
+
+<Callout type="default">
+`--abort` জানা থাকলে rebase নিয়ে ভয় কমে যায়। আটকে গেলে সবসময় ফেরার পথ আছে। আর যদি ভুলে `--abort`-এর বদলে অন্য কিছু করে ফেলো, তখনো [Undo & Recovery](/docs/git-github/undo-and-recovery)-র `git reflog` আছে।
+</Callout>
+
+## Interactive Rebase
+
+`git rebase -i` তোমাকে প্রতিটা commit নিয়ে আলাদা সিদ্ধান্ত নিতে দেয় — রাখবে, আগেরটার সাথে জুড়ে দেবে, নাম বদলাবে, নাকি ফেলে দেবে।
+
+Real case: PR পাঠানোর আগে তোমার history এমন —
+
+```
+git log --oneline
+
+9f2c1a4 fix lint
+7b3d8e1 oops forgot file
+4a1f9c2 add slider component
+2c8b5d3 wip
+8b2e4a6 add filter api endpoint
+```
+
+তুমি চাও reviewer দুটো পরিষ্কার commit দেখুক: একটা API-র, একটা UI-র।
+
+```bash filename="Terminal"
+git rebase -i HEAD~5
+```
+
+Editor খুলবে, এমন একটা list নিয়ে:
+
+```
+pick 8b2e4a6 add filter api endpoint
+pick 2c8b5d3 wip
+pick 4a1f9c2 add slider component
+pick 7b3d8e1 oops forgot file
+pick 9f2c1a4 fix lint
+```
+
+<Callout type="info">
+`git log` নতুন commit উপরে দেখায়, কিন্তু rebase-এর এই list-এ **পুরনো commit উপরে** থাকে। Git এই list উপর থেকে নিচে পড়ে কাজ করে। অনেকে এখানে গুলিয়ে ফেলে।
+</Callout>
+
+বাঁ দিকের শব্দটা বদলে তুমি কাজ ঠিক করে দাও:
+
+| Command | কাজ |
+| :--- | :--- |
+| `pick` | commit-টা যেমন আছে রাখো |
+| `reword` | কাজ রাখো, শুধু message বদলাও |
+| `squash` | উপরের commit-এর সাথে জুড়ে দাও, message দুটোই থাকবে |
+| `fixup` | উপরের commit-এর সাথে জুড়ে দাও, এই commit-এর message ফেলে দাও |
+| `drop` | commit-টা পুরো বাদ দাও |
+
+তোমার ক্ষেত্রে list-টা এভাবে লিখবে:
+
+```
+pick   8b2e4a6 add filter api endpoint
+fixup  2c8b5d3 wip
+pick   4a1f9c2 add slider component
+fixup  7b3d8e1 oops forgot file
+fixup  9f2c1a4 fix lint
+```
+
+Save করে editor বন্ধ করলে Git কাজটা করবে। ফলাফল দুটো commit। এখন message ও ঠিক করে নাও, তারপর push:
+
+```bash filename="Terminal"
+git log --oneline
+git push --force-with-lease
+```
+
+<Callout type="default">
+`squash` আর `fixup`-এর পার্থক্য শুধু message নিয়ে। "wip" বা "fix lint"-এর মতো অর্থহীন message রাখার দরকার নেই — ওখানে `fixup` ব্যবহার করো। দুটো message-ই কাজের হলে `squash`।
+</Callout>
+
+## `--force-with-lease`
+
+Rebase তোমার commit-এর hash বদলে দেয়। কিন্তু GitHub-এ পুরনো hash গুলোই আছে। তাই push করতে গেলে Git আটকে দেয়:
+
+```
+! [rejected]  feature/price-filter -> feature/price-filter (non-fast-forward)
+```
+
+এখান থেকে দুটো পথ আছে, আর পার্থক্যটা গুরুত্বপূর্ণ।
+
+`git push --force` (বা `-f`) বলে: "যা আছে মুছে দাও, আমার version বসাও।" এটা প্রশ্ন করে না। তোমার শেষ fetch-এর পর যদি teammate ওই branch-এ কিছু push করে থাকে, `--force` সেটা নিঃশব্দে মুছে দেবে।
+
+`git push --force-with-lease` আগে একটা পরীক্ষা করে: "remote branch এখন যেখানে আছে, আমি শেষবার দেখার সময়ও কি সেখানেই ছিল?" উত্তর যদি "না" হয়, তাহলে push আটকে যায়।
+
+```bash filename="Terminal"
+git push --force-with-lease
+```
+
+<Callout type="warning">
+`--force-with-lease` reject করলে সেটা error না, সেটা সতর্কবার্তা। মানে ওই branch-এ অন্য কেউ কাজ করেছে। আগে `git fetch` করে দেখো কী এসেছে, তারপর সিদ্ধান্ত নাও। জোর করে `--force` দিলে অন্যের কাজ মুছে যাবে।
+
+আরেকটা বিষয় মনে রাখো। `git fetch` করলে তোমার local হিসাব remote-এর সমান হয়ে যায়। তখন `--force-with-lease` আর কিছু ধরতে পারে না, কারণ তার কাছে দুটোই এক দেখায়। তাই fetch করে সাথে সাথে force করবে না — আগে `git log origin/your-branch` দিয়ে দেখো নতুন কী এসেছে।
+</Callout>
+
+## The Golden Rule
+
+এই একটা নিয়ম rebase-এর সব বিপদ ঢেকে দেয়।
+
+<Callout type="warning">
+**যে branch-এ অন্য কেউ কাজ করছে, সেটা কখনো rebase করবে না।**
+
+`main`, `develop`, `staging` — এগুলো কখনো rebase করবে না।
+
+কেন: rebase নতুন hash বানায়। তোমার teammate-এর কাছে পুরনো hash গুলো আছে। তুমি force push করার পর সে `git pull` করলে Git দুই সেট commit-ই রাখার চেষ্টা করবে। ফলে প্রতিটা কাজ history-তে দুবার দেখাবে, আর অসংখ্য conflict তৈরি হবে। ঠিক করতে গেলে সবাইকে `reset --hard origin/main` করতে হবে — মানে যার কাজ push করা ছিল না, তার কাজ চলে যাবে।
+
+নিরাপদ সীমা: **শুধু নিজের feature branch, যেটা তুমি একা ব্যবহার করছ।** সেটা push করা থাকলেও চলবে, কারণ কেউ ওখান থেকে pull করছে না।
+
+দুজন একই feature branch-এ কাজ করলে rebase-এর আগে অবশ্যই তাকে বলে নাও।
+</Callout>
+
+## `git cherry-pick`
+
+Rebase পুরো branch নিয়ে কাজ করে। কিন্তু মাঝে মাঝে তোমার দরকার শুধু **একটা commit** — অন্য branch থেকে।
+
+`cherry-pick` সেই commit-এর পরিবর্তনটা নিয়ে তোমার বর্তমান branch-এ **একটা নতুন commit** বানায়। মূল commit যেখানে ছিল সেখানেই থাকে।
+
+Real case: production-এ payment bug ছিল। তুমি `main` থেকে `hotfix/payment` বানিয়ে fix করে `main`-এ merge করে deploy করেছ। কাজ শেষ — কিন্তু না। `develop` branch-এ এখন আরও দশটা অসম্পূর্ণ feature আছে। ওখানেও এই fix দরকার, নাহয় পরের release-এ bug ফিরে আসবে। পুরো `main` কে `develop`-এ merge করা যাবে না, কারণ তাতে অন্য জিনিসও চলে আসবে।
+
+<Steps>
+### Find the Commit
+
+Fix-এর commit hash বের করো।
+
+```bash filename="Terminal"
+git log --oneline main -5
+```
+
+```
+4a1f9c2 fix(payment): handle null gateway response
+c3d9f21 chore: bump version to 2.4.1
+```
+
+### Switch and Pick
+
+যে branch-এ fix-টা দরকার সেখানে যাও, তারপর pick করো।
+
+```bash filename="Terminal"
+git switch develop
+git pull
+git cherry-pick 4a1f9c2
+```
+
+### Verify
+
+নতুন commit তৈরি হয়েছে — একই পরিবর্তন, কিন্তু আলাদা hash।
+
+```bash filename="Terminal"
+git log --oneline -2
+git push
+```
+</Steps>
+
+<Callout type="info">
+Public branch-এ cherry-pick করলে `-x` যোগ করার অভ্যাস করো:
+
+```bash filename="Terminal"
+git cherry-pick -x 4a1f9c2
+```
+
+এতে commit message-এ `(cherry picked from commit 4a1f9c2)` লেখা যোগ হয়। ছয় মাস পরে কেউ যখন খুঁজবে "এই fix কোথা থেকে এলো", তখন উত্তরটা history-তেই পেয়ে যাবে।
+</Callout>
+
+### Cherry-pick Conflicts
+
+Cherry-pick-এও conflict হয়, আর নিয়ম rebase-এর মতোই — `git add` করবে, `git commit` নয়।
+
+```bash filename="Terminal"
+# conflict fix করার পর
+git add .
+git cherry-pick --continue
+
+# পুরো কাজটা বাতিল করতে চাইলে
+git cherry-pick --abort
+```
+
+### Multiple Commits
+
+একাধিক commit একসাথেও নেওয়া যায়:
+
+```bash filename="Terminal"
+# তিনটা আলাদা commit
+git cherry-pick 4a1f9c2 c3d9f21 8b2e4a6
+
+# একটা টানা range (a1b2c3d বাদে, তার পরের সবগুলো)
+git cherry-pick a1b2c3d..9f2c1a4
+```
+
+<Callout type="warning">
+Cherry-pick-কে অভ্যাস বানাবে না। একটা branch থেকে বারবার commit তুলে আনতে হলে সেটা আসলে বলছে branch গুলোর কাঠামোই ঠিক নেই। তখন merge বা rebase-ই সঠিক উত্তর। Cherry-pick হলো hotfix-এর মতো ব্যতিক্রমের জন্য।
+</Callout>
+
+## `git bisect`
+
+Real case: QA বলল checkout page ভাঙা। তুমি জানো দুই সপ্তাহ আগের release-এ ঠিক ছিল। এর মধ্যে ২০০টা commit হয়েছে। একটা একটা করে দেখলে সারাদিন যাবে।
+
+`bisect` binary search চালায়। প্রতি ধাপে বাকি commit-এর অর্ধেক বাদ পড়ে, তাই ২০০ commit-এর মধ্যে খুঁজতে মাত্র ৮ বার পরীক্ষা করতে হয়।
+
+<Steps>
+### Start
+
+Bisect শুরু করো।
+
+```bash filename="Terminal"
+git bisect start
+```
+
+### Mark the Known Points
+
+Git-কে দুটো তথ্য দাও — কোথায় ভাঙা, আর কোথায় ঠিক ছিল।
+
+```bash filename="Terminal"
+git bisect bad                  # এখনকার অবস্থা ভাঙা
+git bisect good v2.3.0          # এই tag-এ ঠিক ছিল
+```
+
+Git এখন মাঝামাঝি একটা commit-এ তোমাকে নিয়ে যাবে।
+
+### Test and Answer
+
+App চালিয়ে দেখো, তারপর উত্তর দাও। Git পরের commit-এ নিয়ে যাবে।
+
+```bash filename="Terminal"
+# app চালিয়ে checkout page টেস্ট করো
+
+git bisect good     # এখানে ঠিক আছে
+# অথবা
+git bisect bad      # এখানেও ভাঙা
+```
+
+এটা ৮ বার করার পর Git বলে দেবে কোন commit-এ bug ঢুকেছে।
+
+### Reset
+
+কাজ শেষে অবশ্যই bisect বন্ধ করো। নাহয় তুমি detached HEAD অবস্থায় আটকে থাকবে — মানে কোনো branch-এ নেই, একটা নির্দিষ্ট commit-এর উপর দাঁড়িয়ে আছ। এই কমান্ড তোমাকে আগের branch-এ ফিরিয়ে দেবে।
+
+```bash filename="Terminal"
+git bisect reset
+```
+</Steps>
+
+<Callout type="info">
+তোমার একটা test script থাকলে পুরোটা নিজে থেকেই চলতে পারে। Script pass করলে `0` return করবে, fail করলে অন্য কিছু:
+
+```bash filename="Terminal"
+git bisect start
+git bisect bad
+git bisect good v2.3.0
+git bisect run npm test
+```
+
+Git নিজেই প্রতিটা ধাপে test চালিয়ে দোষী commit খুঁজে দেবে। এখানেই বোঝা যায় ছোট ছোট commit কেন দরকার — commit ছোট হলে bisect একদম ঠিক জায়গাটা দেখিয়ে দেয়। বড় commit হলে শুধু জানবে "এই ৪০টা file-এর কোথাও"।
+</Callout>
+
+## Real-World Note
+
+<Callout type="warning">
+**Force push আর branch protection একসাথে বুঝতে হবে।**
+
+Rebase শেখার পর force push করার ক্ষমতাও হাতে চলে আসে। সবচেয়ে বড় দুর্ঘটনাগুলো তখনই ঘটে। সবচেয়ে সাধারণ ঘটনা: একজন ভুলবশত `main`-এ থাকা অবস্থায় rebase করে force push দিয়ে দেয়, আর team-এর কয়েক দিনের commit history মুছে যায়।
+
+এটা শুধু ভুল না, এটা একটা attack path-ও। কারো GitHub token চুরি হলে সে `main`-এ force push করে audit trail মুছে দিতে পারে — যেমন কোন commit-এ backdoor ঢুকেছিল, সেই প্রমাণটা।
+
+তাই কোনো গুরুত্বপূর্ণ repository-তে শুধু নিয়ম বলে রাখা যথেষ্ট না, GitHub-এ সেটা enforce করতে হয়। Repository Settings, তারপর Branches, তারপর `main`-এর জন্য একটা rule:
+
+- Require a pull request before merging
+- Require status checks to pass
+- **Do not allow force pushes**
+- **Do not allow deletions**
+
+শেষ দুটো সবচেয়ে জরুরি। এগুলো চালু থাকলে ভুল করে force push করলেও GitHub নিজেই আটকে দেবে।
+
+নিজের ব্যক্তিগত repository-তেও `main` protect করে রাখো। মাত্র দুই মিনিটের কাজ, আর একদিন এটাই তোমাকে বাঁচাবে।
+</Callout>
+
+## Quick Check
+
+- [ ] Rebase-এর পর commit hash বদলে যায় কেন, আর তার ফল কী?
+- [ ] Rebase-এ conflict fix করার পর `git commit` না লিখে কী লিখবে?
+- [ ] `--force` আর `--force-with-lease`-এর পার্থক্য কী?
+- [ ] কোন কোন branch কখনো rebase করবে না, আর কেন?
+- [ ] `cherry-pick` কখন সঠিক পছন্দ, আর কখন merge/rebase?
+
+**পরবর্তী →** [Real Scenarios](/docs/git-github/real-scenarios)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: git rebase bangla, git rebase continue bangla, git rebase abort, interactive rebase squash bangla, git push force with lease, git cherry pick bangla, git bisect bangla, merge vs rebase bengali, clean git history, branch protection force push
+</span>

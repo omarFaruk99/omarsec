@@ -7,7 +7,7 @@ import { Callout, Steps, Tabs, FileTree } from 'nextra/components'
 
 # The Core Loop
 
-<Callout type="info" emoji="⚡">
+<Callout type="info">
 **Essential** | Estimated time: 45–60 minutes
 
 এই সেকশনটি Git-এর মূল ভিত্তি (Core)। এখানে যা শিখবে সেটা প্রতিদিন ব্যবহার করবে — চাকরিতে হোক, client project-এ হোক, বা নিজের project-এ।
@@ -87,10 +87,12 @@ graph LR
     Initialized empty Git repository in /home/you/my-first-project/.git/
     ```
 
-    এই মানে `.git` নামে একটা hidden folder তৈরি হয়েছে। এই folder-এই Git তোমার সব history রাখে।
+    এর মানে `.git` নামে একটা hidden folder তৈরি হয়েছে। এই folder-এই Git তোমার সব history রাখে।
 
     <Callout type="info">
-    **Pro Tip:** `git init` শুধু একবার করতে হয় — project-এর শুরুতে। বারবার করতে হয় না।
+    `git init` শুধু একবার করতে হয় — project-এর শুরুতে। বারবার করতে হয় না।
+
+    এই folder-টা GitHub-এ তুলতে হলে নিচের **Connect to GitHub** section দেখো। তার আগে অন্তত একটা commit করে নিতে হবে।
     </Callout>
 
   </Tabs.Tab>
@@ -121,9 +123,11 @@ graph LR
 
 ## Daily Workflow
 
-প্রতিদিনের কাজে যে গিট কমান্ডগুলো সবচেয়ে বেশি প্রয়োজন হবে।
+প্রতিদিনের কাজে যে গিট কমান্ডগুলো সবচেয়ে বেশি প্রয়োজন হবে।
 
-এই workflow তুমি প্রতিদিন follow করবে। এটি Git-এর সবচেয়ে গুরুত্বপূর্ণ অংশ।
+এই তিনটা ধাপ তুমি প্রতিদিন বারবার করবে — দেখো, বাছো, সংরক্ষণ করো। পুরোটাই তোমার নিজের কম্পিউটারে হয়, ইন্টারনেট লাগে না।
+
+GitHub-এ পাঠানোর কাজটা এর পরের section-এ আছে।
 
 ### Check Status
 
@@ -169,7 +173,7 @@ Untracked files:
 nothing added to commit but untracked files present
 ```
 
-**"Untracked"** মানে Git এই file-এর existence জানে, কিন্তু এখনো track করছে না।
+**"Untracked"** মানে Git file-টা দেখতে পাচ্ছে, কিন্তু এখনো তার history রাখছে না। `git add` করলে তবেই Git এটাকে track করা শুরু করবে।
 
 ### Stage Changes
 
@@ -228,7 +232,7 @@ Output:
 
 Commit message হলো তোমার **কাজের diary**। ৬ মাস পর তুমি বা তোমার teammate যখন history দেখবে, তখন বুঝতে পারবে কে কী করেছিল।
 
-<Tabs items={['❌ Bad Messages', '✅ Good Messages']}>
+<Tabs items={['Bad Messages', 'Good Messages']}>
   <Tabs.Tab>
     ```bash filename="Terminal"
     fix
@@ -254,58 +258,190 @@ Commit message হলো তোমার **কাজের diary**। ৬ মা
 - ছোট রাখো — ৫০ character-এর মধ্যে
 - কী করলে সেটা বলো, কেন করলে সেটা না হলেও চলে (ছোট changes-এ)
 
-### Push to GitHub
+## Connect to GitHub
 
-তোমার লোকাল মেশিন থেকে লেটেস্ট কোড গিটহাবের রিমোট রিপোজিটরিতে আপলোড করো।
+এখন পর্যন্ত সব কাজ তোমার নিজের কম্পিউটারে হয়েছে। GitHub-এ কিছু যায়নি।
 
-তোমার local commit গুলো GitHub-এ পাঠাও।
+এই section-এ তোমার local folder-টা GitHub-এর সাথে জুড়ে দেবে। **এটা প্রতিটা project-এ একবারই করতে হয়** — একবার জুড়ে গেলে পরে শুধু `git push` লিখলেই চলবে।
+
+শুরু করার আগে নিশ্চিত হও তোমার অন্তত একটা commit আছে। খালি folder push করা যায় না।
+
+```bash filename="Terminal"
+git log --oneline
+```
 
 <Steps>
-### Create Repo
+### Create an Empty Repo
 
-গিটহাবে একটি নতুন রিপোজিটরি তৈরি করার ধাপগুলো দেখে নাও।
+GitHub-এ একটা **খালি** repository বানাও।
 
-1. GitHub-এ যাও → **New repository**
-2. Repository name দাও
-3. **Private** বা **Public** select করো
-4. **"Add a README file" tick দিও না**
-5. **Create repository** click করো
+1. GitHub-এ যাও, ডানদিকে উপরে **+** চিহ্ন, তারপর **New repository**
+2. Repository name দাও (local folder-এর নামের সাথে মিল রাখলে সুবিধা)
+3. **Public** বা **Private** বেছে নাও
+4. নিচের তিনটার কোনোটাতেই **tick দিও না** — "Add a README file", ".gitignore", "license"
+5. **Create repository** চাপো
 
-### Add Remote
+<Callout type="warning">
+চার নম্বর ধাপটা সবচেয়ে জরুরি। Tick দিলে GitHub নিজেই একটা commit বানিয়ে ফেলে। তখন GitHub-এর history আর তোমার local history — দুটো আলাদা হয়ে যায়, আর push আটকে যায়। খালি repo হলে এই সমস্যা হয় না।
 
-তোমার লোকাল রিপোজিটরির সাথে গিটহাবের কানেকশন তৈরি করো।
+ভুলে tick দিয়ে ফেললেও সমাধান আছে — নিচের **Common Setup Errors** দেখো।
+</Callout>
 
-Terminal-এ:
+### Copy the URL
+
+Repo বানানোর পর যে পাতাটা আসে, সেখানেই URL লেখা থাকে। **SSH** tab বেছে নাও, HTTPS না — কারণ [Setup](/docs/git-github/setup)-এ তুমি SSH key বানিয়েছ।
+
+URL দেখতে এমন হবে:
+
+```
+git@github.com:username/my-first-project.git
+```
+
+পরে কখনো দরকার হলে repo-র পাতায় সবুজ **Code** button, তারপর **SSH** tab থেকে নিতে পারবে।
+
+### Check Your Branch Name
+
+Push করার আগে দেখে নাও তোমার branch-এর নাম কী।
+
+```bash filename="Terminal"
+git branch --show-current
+```
+
+`main` দেখালে ঠিক আছে, পরের ধাপে যাও।
+
+`master` দেখালে নাম বদলে নাও। GitHub এখন `main` ধরে কাজ করে, তাই নাম না মিললে push fail করবে:
+
+```bash filename="Terminal"
+git branch -M main
+```
+
+`-M` মানে "নাম বদলাও, দরকার হলে জোর করে"। এটা তোমার কোনো কাজ মুছবে না, শুধু নামটা বদলাবে।
+
+### Add the Remote
+
+এবার Git-কে বলো তোমার কোড কোথায় পাঠাতে হবে।
 
 ```bash filename="Terminal"
 git remote add origin git@github.com:username/my-first-project.git
 ```
 
-### Final Push
+এখানে `origin` হলো ওই ঠিকানার একটা **ডাকনাম**, যেটা তুমি নিজে দিচ্ছ। Git এই নাম নিজে থেকে দেয় না। `myserver` লিখলেও কাজ করত। সবাই `origin` লেখে বলে এটাই প্রচলন হয়ে গেছে।
 
-সবশেষে তোমার কোড গিটহাবের মেইন ব্রাঞ্চে আপলোড করো।
+ঠিকমতো যোগ হয়েছে কিনা দেখে নাও:
+
+```bash filename="Terminal"
+git remote -v
+```
+
+### Push for the First Time
 
 ```bash filename="Terminal"
 git push -u origin main
 ```
 
+এই লাইনটা পড়ো এভাবে: "`main` branch-টা `origin` নামের ঠিকানায় পাঠাও, আর মনে রাখো।"
+
+`-u` অংশটাই "মনে রাখো" বলে। এর পর থেকে শুধু `git push` লিখলেই Git জানবে কোথায় পাঠাতে হবে।
+
+### Verify
+
+GitHub-এ repo-র পাতাটা refresh করো। তোমার সব file দেখা যাচ্ছে? তাহলে কাজ শেষ।
+
 </Steps>
 
-`-u origin main` মানে: "এখন থেকে `git push` করলেই `origin`-এর `main` branch-এ যাবে।" পরের বার থেকে শুধু `git push` লিলেই হবে।
+### Common Setup Errors
+
+এই চারটা error প্রায় সবার প্রথমবার আসে। ভয়ের কিছু নেই — প্রতিটার সহজ সমাধান আছে।
+
+<Tabs items={['remote already exists', 'src refspec main', 'rejected / fetch first', 'Permission denied']}>
+  <Tabs.Tab>
+    ```
+    fatal: remote origin already exists.
+    ```
+
+    **কারণ:** তুমি আগেই একবার `git remote add origin` চালিয়েছ।
+
+    **সমাধান:** নতুন করে যোগ না করে পুরনো ঠিকানাটা বদলে দাও:
+
+    ```bash filename="Terminal"
+    git remote set-url origin git@github.com:username/my-first-project.git
+    git remote -v
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    error: src refspec main does not match any
+    ```
+
+    **কারণ:** `main` নামে কোনো branch নেই। সাধারণত দুটোর একটা — branch-এর নাম `master`, অথবা তুমি এখনো একটাও commit করোনি।
+
+    **সমাধান:**
+
+    ```bash filename="Terminal"
+    git log --oneline           # commit আছে কিনা দেখো
+    git branch --show-current   # নাম কী দেখো
+    git branch -M main          # master হলে বদলাও
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    ! [rejected]  main -> main (fetch first)
+    ```
+
+    **কারণ:** GitHub-এ এমন commit আছে যেটা তোমার কাছে নেই। প্রায় সবসময় এর মানে repo বানানোর সময় তুমি "Add a README file"-এ tick দিয়েছিলে।
+
+    **সমাধান:** GitHub-এর কাজটুকু আগে নামিয়ে নিজের কাজের সাথে জুড়ে দাও, তারপর push করো:
+
+    ```bash filename="Terminal"
+    git pull origin main --allow-unrelated-histories
+    git push -u origin main
+    ```
+
+    `--allow-unrelated-histories` লাগে কারণ দুটো history আলাদাভাবে শুরু হয়েছিল। Git সাধারণত এটা করতে চায় না, তাই স্পষ্ট করে অনুমতি দিতে হয়।
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```
+    git@github.com: Permission denied (publickey).
+    ```
+
+    **কারণ:** GitHub তোমাকে চিনতে পারছে না। SSH key হয় বানানো হয়নি, নয় GitHub-এ যোগ করা হয়নি।
+
+    **সমাধান:** আগে connection পরীক্ষা করো:
+
+    ```bash filename="Terminal"
+    ssh -T git@github.com
+    ```
+
+    `Hi username!` না দেখালে [Setup](/docs/git-github/setup) পেজের **SSH Key** অংশটা আবার করো।
+  </Tabs.Tab>
+</Tabs>
+
+## Push and Pull
+
+Connection একবার হয়ে গেছে। এখন প্রতিদিনের কাজ মাত্র দুটো কমান্ড।
+
+### Push Changes
+
+তোমার commit গুলো GitHub-এ পাঠাও।
+
+```bash filename="Terminal"
+git push
+```
+
+প্রথমবার `-u` দিয়েছিলে বলে এখন আর `origin main` লিখতে হচ্ছে না।
 
 ### Pull Changes
 
-গিটহাবের রিমোট রিপোজিটর থেকে লেটেস্ট পরিবর্তনগুলো তোমার লোকাল মেশিনে নিয়ে এসো।
+GitHub থেকে নতুন পরিবর্তন তোমার মেশিনে নামাও।
 
-Team-এ কাজ করলে বা অন্য machine থেকে কাজ করলে, GitHub-এ নতুন changes থাকতে পারে। সেগুলো নামাও:
+Team-এ কাজ করলে, বা তুমি নিজেই অন্য কম্পিউটার থেকে কাজ করলে, GitHub-এ নতুন commit থাকতে পারে। সেগুলো আগে নামিয়ে নাও:
 
 ```bash filename="Terminal"
 git pull
 ```
 
 <Callout type="info">
-  **Good habit:** কাজ শুরু করার আগে সবসময় `git pull` করো। এতে তুমি latest code
-  দিয়ে কাজ শুরু করবে।
+  **অভ্যাস করে ফেলো:** কাজ শুরু করার আগে সবসময় `git pull`। এতে তুমি সবচেয়ে নতুন code নিয়ে কাজ শুরু করবে, আর পরে conflict কম হবে।
 </Callout>
 
 ## View History
@@ -401,13 +537,23 @@ GitHub-এ push করো `git push`
 
 ## Common Problems & Fixes
 
+প্রথমবার GitHub-এ connect করার error গুলো উপরে **Common Setup Errors**-এ আছে। এখানে প্রতিদিনের কাজের সময় যেগুলো আসে।
+
 <Tabs items={['Push Error', 'Nothing to commit', 'Wrong Message', 'Wrong File Added']}>
   <Tabs.Tab>
     ```
     error: failed to push some refs...
     ```
-    **কারণ:** GitHub-এ নতুন changes আছে যেটা তোমার কাছে নেই।
-    **Fix:** `git pull` তারপর `git push`
+    **কারণ:** তুমি শেষবার pull করার পর teammate নতুন commit push করেছে। GitHub চায় আগে তুমি সেগুলো নিয়ে নাও।
+
+    **Fix:**
+
+    ```bash filename="Terminal"
+    git pull
+    git push
+    ```
+
+    Conflict এলে সেটা মিটিয়ে তারপর push করো — কীভাবে, সেটা [Branching & Merging](/docs/git-github/branching)-এ আছে।
   </Tabs.Tab>
   <Tabs.Tab>
     ```
@@ -435,6 +581,36 @@ GitHub-এ push করো `git push`
   </Tabs.Tab>
 </Tabs>
 
+## Real-World Note
+
+<Callout type="warning">
+  **Commit করা মানে চিরকালের জন্য লেখা — শুধু কোড না, আরও অনেক কিছু।**
+
+  প্রতিটা commit-এর সাথে Git তোমার **নাম আর email** জুড়ে দেয়, আর push করলে সেটা সবার জন্য পড়ার মতো হয়ে যায়। GitHub-এর public API দিয়ে যে কেউ যেকোনো repository-র সব commit-এর email তুলে নিতে পারে। Spam আর phishing-এর জন্য এভাবেই developer-দের email সংগ্রহ করা হয়।
+
+  চাইলে GitHub তোমাকে একটা আড়াল করা email দেয়। **Settings → Emails → Keep my email address private** চালু করো, তারপর যে `noreply` ঠিকানাটা দেখাবে সেটা Git-এ বসাও:
+
+  ```bash filename="Terminal"
+  git config --global user.email "12345678+username@users.noreply.github.com"
+  ```
+
+  তবে সবচেয়ে বড় ঝুঁকি email না — **`git add .`**। এই একটা কমান্ড folder-এর সব কিছু তুলে নেয়। যা সবচেয়ে বেশি ভুল করে ঢুকে যায়:
+
+  - `.env` — API key, database password
+  - `config.json`, `credentials.json` — cloud service-এর key
+  - `.pem`, `.key` — private key file
+  - `dump.sql` — আসল customer data সহ database backup
+
+  তাই `.gitignore` আগে বানাও, তারপর প্রথম commit করো। আর `git add .` দেওয়ার পর commit করার আগে একবার দেখে নাও কী কী উঠল:
+
+  ```bash filename="Terminal"
+  git status              # কোন file গুলো যাচ্ছে
+  git diff --staged       # ভেতরে ঠিক কী যাচ্ছে
+  ```
+
+  ভুলে push হয়ে গেলে `.gitignore`-এ যোগ করলেই যথেষ্ট না — commit-টা history-তে থেকে যায় আর URL দিয়ে পড়া যায়। তখন কী করতে হয় সেটা [Undo & Recovery](/docs/git-github/undo-and-recovery)-তে আছে। এক কথায়: **আগে key বাতিল করো, তারপর file সরাও।**
+</Callout>
+
 ## What's Next?
 
 Daily workflow শেখা হয়ে গেছে। এখন শিখবে Git-এর সবচেয়ে powerful feature —
@@ -446,7 +622,8 @@ Daily workflow শেখা হয়ে গেছে। এখন শিখব�
 
 </Callout>
 
+**পরবর্তী →** [Branching & Merging](/docs/git-github/branching)
 
 <span style={{ display: 'none' }}>
-  Search Keywords: git add, git commit, git push, git pull, git status, gitignore, track files, git stage
+  Search Keywords: git add bangla, git commit bangla, git push, git pull, git status, gitignore bangla, track files, git stage, git commit message rules, github noreply email privacy
 </span>
