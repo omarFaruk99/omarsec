@@ -84,6 +84,10 @@ git push
 
 এটা পুরনো commit মোছে না, বরং তার উল্টো একটা নতুন commit বানায়। History ঠিক থাকে।
 
+<Callout type="warning">
+`.env` file ভুলে push হয়ে গেলে শুধু `reset` বা `revert` করে মুছলেই হয় না — commit-টা GitHub এ থেকেই যায়, direct link দিয়ে পড়া যায়। আগে key/password rotate (বদলে ফেলা) করো, তারপর file track থেকে বাদ দাও।
+</Callout>
+
 ### Step 5 — হারানো কাজ ফিরিয়ে আনা
 
 Use case: ভুল করে `reset --hard` দিয়েছ, বা branch delete করে ফেলেছ। কাজ হারিয়ে গেছে মনে হচ্ছে।
@@ -103,12 +107,6 @@ git reset --hard <commit-hash>
 </Callout>
 
 </Steps>
-
-## Real-World Note
-
-<Callout type="warning">
-`.env` file ভুলে push হয়ে গেলে শুধু `reset --hard` করে মুছলেই হয় না — commit-টা GitHub এ থেকেই যায়, direct link দিয়ে পড়া যায়। আগে key/password rotate (বদলে ফেলা) করো, তারপর file track থেকে বাদ দাও।
-</Callout>
 
 **পরবর্তী →** [Rebase & History](/docs/git-github/rebase-and-history)
 

@@ -52,20 +52,22 @@ Otherwise make the edit and stop. The user runs the build manually when they wan
 ## Content authoring rules (important)
 
 All `.mdx` pages must follow `DOCS_RULES.md`. Read it before writing or editing any page.
-Key points that are easy to get wrong:
+The top rule there: **keep it practical and simple** — a reader should never feel lost or lose
+motivation reading a page. Key points that are easy to get wrong:
 
-- **Language split:** main content in English; explanations, context, and callouts in Bengali;
+- **Page shape is 3 parts:** `## What Is This` (1-2 lines) → `## Why Need This` (the real reason,
+  in simple language) → `## Step by Step + Use Case` (concept + command + real use case together,
+  in small steps). There is no separate "Real-World Note" or "Quick Check" section anymore — an
+  important warning goes inline as a `<Callout type="warning">` next to the step it applies to.
+- **Every step needs a real use case first**, then the command — never a bare command with no
+  context (cheatsheet style is a rule violation).
+- **Language split:** main content in English; explanations, context, and use cases in Bengali;
   code/commands always English. Audience is Bengali-speaking tech learners (software engineering,
   DevOps, cloud, AI engineering, cybersecurity, and general tech-savvy readers). Content is
   Bengali-only for now; an English version is planned for later — don't build i18n routing yet.
 - **No emojis anywhere** (headings, lists, callouts, frontmatter).
 - **Headings are short identifiers only** — put the description in the paragraph below. Use `##`
   and `###` only. No "Part 1"/"Step 2" numbering in headings. No `---` inside body content.
-- **Teach why before how:** explain the concept before showing a command. A bare command with no
-  explanation (cheatsheet style) is a rule violation.
-- **Required sections per page:** opening `<Callout>`, a `## Real-World Note` (security angle when
-  relevant, otherwise practical/production context), a "পরবর্তী →" next-page link at the bottom,
-  and a hidden SEO keyword `<span>`. `## Quick Check` is optional (see rule 9).
 - **File naming:** semantic slugs, lowercase, hyphens only (`file-permissions.mdx`), no numeric
   prefixes, no underscores.
 - **Platform assumption:** commands target Ubuntu 24.04 LTS (`apt`) unless stated otherwise.

@@ -1,7 +1,11 @@
 # OmarSec — Documentation Writing Rules
 
-Rules that apply to every content page across all sections (Linux, Git, SSH, Server Setup, etc.).
+Rules that apply to every content page across all sections (Linux, Git, Server Setup, Docker, etc.).
 Follow these whenever a new page or section is created or edited — by a human or AI.
+
+The single most important rule: **keep it practical and simple.** A reader should never feel lost
+or lose motivation halfway through a page. If a rule below ever pushes a page toward being long,
+theoretical, or hard to follow, favor being practical and simple over following the rule to the letter.
 
 ---
 
@@ -10,20 +14,53 @@ Follow these whenever a new page or section is created or edited — by a human 
 Every `.mdx` page must follow this exact order:
 
 ```
-1. Frontmatter         → title, description
-2. Imports             → only what is used on this page
-3. # Page Title        → single H1, matches frontmatter title
-4. Opening <Callout>   → what this page covers (1–2 sentences)
-5. Content sections    → concept → example → code (see Rule 5)
-6. ## Real-World Note  → why this matters in practice (see Rule 8)
-7. ## Quick Check      → self-assessment checklist (optional — see Rule 9)
-8. Next page link      → "পরবর্তী →" with path
-9. Hidden SEO keywords → <span style={{ display: 'none' }}>
+1. Frontmatter          → title, description
+2. Imports              → only what is used on this page
+3. # Page Title         → single H1, matches frontmatter title
+4. Opening <Callout>    → what this page covers (1–2 sentences)
+5. ## What Is This      → 1–2 sentences, plain definition
+6. ## Why Need This     → the real reason a learner needs this, in simple language
+7. ## Step by Step + Use Case → concept + command + example together, in small steps (see Rule 2)
+8. Next page link       → "পরবর্তী →" with path
+9. Hidden SEO keywords  → <span style={{ display: 'none' }}>
 ```
+
+There is no separate "Real-World Note" or "Quick Check" section anymore. A practical warning
+(security risk, production gotcha) belongs inline, as a `<Callout type="warning">` right next to
+the step it applies to — not as its own section at the bottom. Don't add a section just to have one.
 
 ---
 
-## 2. Heading Rules
+## 2. Step by Step + Use Case (the core of every page)
+
+This is the most important rule. Never write a bare command with no context.
+
+Each step should follow this shape:
+1. A short use case — a real situation ("তুমি X করেছ, এখন Y চাও")
+2. The concept in one or two lines — what the command actually does
+3. The command itself
+4. What happens after (one line, only if not obvious)
+
+**Wrong (cheatsheet style):**
+```md
+Run `chmod 755 file.sh` to make it executable.
+```
+
+**Correct (practical, use-case first):**
+Use case: script run করলে "permission denied" আসছে। ব্যাখ্যা করো কেন — execute bit নেই।
+তারপর দেখাও `chmod 755 file.sh`, আর কী বদলাল সেটা এক লাইনে বলো।
+
+Signs a page has drifted back to cheatsheet style (fix these):
+- A command appears with no use case or explanation
+- A step is only a code block, nothing else
+- The reader learns *what to type* but not *why*, or *when they'd actually need this*
+
+Use `<Steps>` from Nextra when the flow has 3+ ordered actions. For a single command, plain
+markdown with the use case above it is enough — don't force `<Steps>` on everything.
+
+---
+
+## 3. Heading Rules
 
 The right-side TOC has limited width. A long heading wraps and looks bad.
 
@@ -33,27 +70,26 @@ The right-side TOC has limited width. A long heading wraps and looks bad.
 |-------|---------|
 | `## \`pwd\` — Where Am I?` | `## \`pwd\`` then description below |
 | `## Tab Completion — Superpower` | `## Tab Completion` then description below |
-| `## \`touch\` — File তৈরি করো` | `## \`touch\`` then description below |
-| `## Mind Shift — সবচেয়ে বড় পার্থক্য` | `## The Key Difference` then description below |
 
 - Use `##` and `###` only — never `####` or deeper
-- No sequential numbering: no "Part 1", "Section 2", "Step 3" in headings
+- No sequential numbering: no "Part 1", "Section 2", "Step 3" in headings (inside `<Steps>`,
+  Nextra's own step titles are fine)
 - No horizontal rules (`---`) inside body content — Nextra handles spacing
 
 ---
 
-## 3. Language Style
+## 4. Language Style
 
 - **Main content:** English
-- **Explanations, context, callouts:** Bengali
+- **Explanations, context, use cases:** Bengali
 - **Code and commands:** Always English, never Bengali
 - **Target audience:** Bengali-speaking tech learners — software engineers, DevOps/cloud
-  engineers, AI engineers, security folks, and tech-savvy readers in general. Not
-  cybersecurity-only. Content is Bengali-only for now; an English version is planned later.
+  engineers, AI engineers, security folks, and tech-savvy readers in general. Content is
+  Bengali-only for now; an English version is planned later.
 
 ---
 
-## 4. Tone & Vocabulary
+## 5. Tone & Vocabulary
 
 Never label the reader negatively. Use empowering language.
 
@@ -62,26 +98,7 @@ Never label the reader negatively. Use empowering language.
 | beginner, newbie, newcomer | Learner, Student |
 | Module, Lesson | Section |
 | easy, simple | Foundational, Essential |
-| just run this command | — (explain it first, then show it) |
-
----
-
-## 5. Teach Why Before How
-
-Always explain the concept before showing the command. This is the most important rule.
-
-**Wrong approach (cheatsheet style):**
-```md
-Run `chmod 755 file.sh` to make it executable.
-```
-
-**Correct approach (tutorial style):**
-Explain what file permissions are → why the executable bit matters → what 755 means → then show `chmod 755 file.sh`.
-
-Signs a page has become a cheatsheet (bad):
-- A command appears with no explanation of what it does
-- A section contains only a code block
-- The reader learns *what to type* but not *why it works*
+| just run this command | — (give the use case first, then show it) |
 
 ---
 
@@ -101,7 +118,7 @@ Only import what you use on the page. An unused import causes a warning.
 | `<Callout type="info">` | General tip, explanation, estimation |
 | `<Callout type="warning">` | Security danger, common mistake, destructive action |
 | `<Callout type="default">` | Analogy, summary, reminder |
-| `<Steps>` | Sequential steps (how-to, practice flow) |
+| `<Steps>` | 3+ ordered actions (how-to, practice flow) |
 | `<Tabs>` | Two approaches to the same thing (e.g. numeric vs symbolic chmod) |
 | `<FileTree>` | Folder or file structure visualization |
 
@@ -109,50 +126,7 @@ Do not use `<Callout type="error">` unless the action is truly destructive or ir
 
 ---
 
-## 8. Real-World Note (Required)
-
-Every page must have a `## Real-World Note` section before Quick Check. It explains why the
-topic matters in practice — the angle depends on the topic:
-
-- **Security-relevant topic** (Linux, Git, Server, Docker, networking, etc.): wrap in
-  `<Callout type="warning">`, explain the security angle, and reference TryHackMe rooms, CTF
-  scenarios, or pentesting workflows where relevant.
-- **Non-security topic** (pure AI engineering, DevOps automation, cloud architecture, etc.):
-  wrap in `<Callout type="info">` or `<Callout type="default">` and explain the practical/
-  production angle instead — reliability, cost, scaling, common mistakes in real projects.
-  Do not force a security tie-in where none naturally exists.
-- Include practical commands or examples when possible.
-
----
-
-## 9. Quick Check (Optional)
-
-Add a `## Quick Check` section only when the page covers multiple distinct concepts where a learner could genuinely lose track. Do not add it to simple, single-concept pages — it feels forced and artificial.
-
-**Add Quick Check when:**
-- The page covers 3+ distinct concepts (e.g. file permissions: read, write, execute, numeric vs symbolic)
-- The topic involves a local/remote or attacker/target distinction that is easy to confuse
-- The page is long and a summary checkpoint adds real value
-
-**Skip Quick Check when:**
-- The page covers a single command or a straightforward concept
-- The content is already concise and self-contained
-
-```md
-## Quick Check
-
-- [ ] Question one?
-- [ ] Question two?
-- [ ] Question three?
-
-**পরবর্তী →** [Next Page Title](/docs/section/page)
-```
-
-The "পরবর্তী →" next-page link should always be present at the bottom of the page, regardless of whether Quick Check is included.
-
----
-
-## 10. Code Blocks
+## 8. Code Blocks
 
 Use the `filename` attribute for all terminal/shell code blocks:
 
@@ -180,7 +154,7 @@ Use plain code blocks (no filename) for output examples or diagrams.
 
 ---
 
-## 11. Section Folder Structure
+## 9. Section Folder Structure
 
 Every section follows this layout:
 
@@ -200,14 +174,14 @@ The `index.mdx` of every section must:
 
 ---
 
-## 12. _meta.js Rules
+## 10. _meta.js Rules
 
 Only add a key to `_meta.js` after the actual file or folder exists.
 Adding a key for a non-existent file causes a Nextra validation error.
 
 ---
 
-## 13. File & URL Naming
+## 11. File & URL Naming
 
 - Use semantic slugs, not numeric prefixes: `file-permissions.mdx` not `module-03-permissions.mdx`
 - All lowercase, hyphens only, no underscores
@@ -215,14 +189,14 @@ Adding a key for a non-existent file causes a Nextra validation error.
 
 ---
 
-## 14. Platform Assumption
+## 12. Platform Assumption
 
 All commands assume **Ubuntu 24.04 LTS** unless explicitly stated otherwise.
 Use `apt` for package management. Note any distro-specific variation when it appears.
 
 ---
 
-## 15. Hidden SEO Keywords
+## 13. Hidden SEO Keywords
 
 At the bottom of each page, add a hidden span for search indexing:
 
@@ -235,11 +209,11 @@ At the bottom of each page, add a hidden span for search indexing:
 
 ---
 
-## 16. Processing Raw Markdown Files
+## 14. Processing Raw Markdown Files
 
 If a user provides a raw `.md` file:
 1. Convert it to `.mdx`
 2. Rename to a clean semantic slug (e.g., `file-permissions.mdx`)
 3. Remove hardcoded emojis, "Module XX" prefixes, and heavy horizontal lines
-4. Restructure content to use Nextra components where appropriate
+4. Restructure into What Is This / Why Need This / Step by Step + Use Case
 5. Apply all rules from this document
