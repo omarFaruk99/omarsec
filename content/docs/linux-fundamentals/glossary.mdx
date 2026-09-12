@@ -1,0 +1,58 @@
+---
+title: Glossary
+description: Linux Fundamentals-এর confusing বা প্রায়ই ভুলে যাওয়া জিনিসগুলোর ছোট, সহজ ব্যাখ্যা।
+---
+
+import { Callout } from 'nextra/components'
+
+# Glossary
+
+<Callout type="info">
+  এই page-এ সেই জিনিসগুলো আছে যেগুলো প্রায়ই confusing লাগে বা ভুলে যাওয়া হয় — বড় explanation না, শুধু ছোট ব্যাখ্যা। বিস্তারিত জানতে সংশ্লিষ্ট section-এ যাও।
+</Callout>
+
+## SSH
+
+1. **`authorized_keys`** — কারা এই server-এ ঢুকতে পারবে (incoming)
+   Analogy: এটা যেন guest list — কার key মিলবে সেটা এখানে লেখা
+2. **`known_hosts`** — এই server নিজে কোথায় connect করেছে (outgoing)
+   Analogy: এটা যেন call log — তুমি নিজে কাকে আগে call করেছ তার তালিকা
+3. **`~/.ssh/config`** — shortcut settings, মানে কোন host-এ কোন key ব্যবহার হবে সেটা এক জায়গায় লেখা থাকে
+
+   ```text filename="~/.ssh/config"
+   # --- Mailhub (personal AWS EC2, email marketing project) ---
+   Host mailhub-server
+       HostName 13.213.171.xxx
+       User ubuntu
+       IdentityFile "C:\Users\<username>\.ssh\mailhub-key-server.pem"
+   ```
+
+   - `Host mailhub-server` — নিজের দেওয়া nickname, `ssh mailhub-server` লিখলেই connect হবে
+   - `HostName` — সার্ভারের real IP
+   - `User` — সার্ভারে যে username দিয়ে login হবে
+   - `IdentityFile` — কোন private key ফাইল ব্যবহার হবে, তার পথ
+
+## Root Directories
+
+DevOps কাজে সবচেয়ে বেশি লাগে এমন root-level folder গুলো:
+
+1. **`/etc`** — সব software-এর configuration file এখানে থাকে (যেমন `sshd_config`, `nginx.conf`)
+2. **`/var`** — যেসব data সময়ের সাথে বদলায় (logs, cache, mail) — `/var/log`-এ সব service-এর log পাওয়া যায়
+3. **`/usr`** — installed program আর তাদের file (binaries, libraries) — বেশিরভাগ software এখানেই থাকে
+4. **`/opt`** — third-party বা manually install করা software (যেমন কোনো company-এর নিজস্ব app)
+
+<Callout type="info">
+  **`/usr` vs `/opt` পার্থক্য:** `apt install` দিয়ে install করা সব software `/usr`-এ যায় — package manager এটা track করে। কিন্তু কোনো software manually download করে বসালে বা কোনো company নিজস্ব standalone app দিলে (যেমন Docker Desktop), সেটা `/opt`-এ থাকে — package manager এটা track করে না, নিজে manage করতে হয়।
+</Callout>
+5. **`/srv`** — server-এর serve করা data (যেমন website বা app-এর files)
+6. **`/home`** — সাধারণ user-দের personal folder (`/home/omar`)
+7. **`/root`** — শুধু root user-এর personal folder (সাধারণ `/home`-এর বাইরে, আলাদা)
+8. **`/tmp`** — temporary file, reboot দিলে সাধারণত মুছে যায়
+9. **`/bin`, `/sbin`** — system চালানোর জন্য জরুরি command (`ls`, `cp`, `reboot`)
+10. **`/proc`**, **`/sys`** — real file না, running process আর kernel-এর live info দেখায়
+
+**পরবর্তী →** [Linux Fundamentals Overview](/docs/linux-fundamentals)
+
+<span style={{ display: 'none' }}>
+  Search Keywords: linux glossary bangla, linux terms explained bengali, authorized_keys vs known_hosts, linux confusing terms, linux root directory structure, etc var usr opt srv purpose
+</span>
