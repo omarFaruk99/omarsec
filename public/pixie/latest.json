@@ -1,8 +1,8 @@
 {
-  "version": "1.2.4",
+  "version": "1.2.5",
   "released": "2026-10-08",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "0ce0beb92a609e18899d4ceaa6795eff919a9229f7e91c49f6a4b93b2f6f5dcd",
-  "notes": "The pill no longer has a shadow."
+  "sha256": "876fdb569be7799307a7cc54a5a4b8456db6d5d960ff6d1c21d63c02a7d5ba34",
+  "notes": "You can now drag the pill anywhere on the screen."
 }
