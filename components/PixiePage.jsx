@@ -88,6 +88,12 @@ const FAQ = [
     a: 'A computer with Windows 10 or 11, a microphone, and an internet connection.',
   },
   {
+    // Pixie's "How to fix" button opens this answer (omarsec.com/pixie#fix-key).
+    id: 'fix-key',
+    q: 'Pixie says "Google blocked this account". What do I do?',
+    a: 'Google sometimes restricts new Google accounts, so their keys stop working. Open your Google Account settings, verify your phone number and turn on 2-Step Verification. Then make a new key in Google AI Studio and paste it into Pixie. If it still fails, make the key with another Google account that you have used for a while.',
+  },
+  {
     q: 'Why does Windows show a warning?',
     a: 'Pixie is new, so Windows does not know it yet. Click More info, then Run anyway. You only see this once.',
   },
@@ -199,11 +205,18 @@ function SpeechRibbon() {
 }
 
 // One question. The answer slides open and closed instead of jumping.
-function FaqItem({ q, a }) {
+function FaqItem({ q, a, anchor }) {
   const [open, setOpen] = useState(false)
   const id = useId()
+  // A link to #anchor (from inside Pixie) opens this answer and scrolls to it.
+  useEffect(() => {
+    if (anchor && window.location.hash === `#${anchor}`) {
+      setOpen(true)
+      document.getElementById(anchor)?.scrollIntoView({ block: 'center' })
+    }
+  }, [anchor])
   return (
-    <div className={`px-faq-item ${open ? 'is-open' : ''}`}>
+    <div className={`px-faq-item ${open ? 'is-open' : ''}`} id={anchor}>
       <button
         type="button"
         className="px-faq-q"
@@ -585,7 +598,7 @@ export function PixiePage() {
             <h2 className="px-h2">Frequently asked questions</h2>
             <div className="px-faq">
               {FAQ.map((f) => (
-                <FaqItem key={f.q} q={f.q} a={f.a} />
+                <FaqItem key={f.q} q={f.q} a={f.a} anchor={f.id} />
               ))}
             </div>
           </section>

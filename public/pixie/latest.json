@@ -1,8 +1,8 @@
 {
-  "version": "1.2",
+  "version": "1.2.1",
   "released": "2026-10-08",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "6fb2b99c12a360868eb3c76802d2b819e5a43ac271e1584d07f2a7ae4fab1d32",
-  "notes": "First public release."
+  "sha256": "c5f284693ba02acaf31e15dfd59b7e2b05ec0e64c47111c9decbcf471c1e01ec",
+  "notes": "Clearer message when Google blocks a key. The Test button now catches it."
 }
