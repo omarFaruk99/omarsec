@@ -12,5 +12,15 @@ export default {
   docs: {
     title: 'Docs',
     type: 'page'
+  },
+  pixie: {
+    title: 'Pixie',
+    type: 'page',
+    theme: {
+      layout: 'full',
+      toc: false,
+      sidebar: false,
+      timestamp: false
+    }
   }
 }
