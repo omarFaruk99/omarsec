@@ -1,8 +1,8 @@
 {
-  "version": "1.2.5",
+  "version": "1.2.6",
   "released": "2026-10-08",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "876fdb569be7799307a7cc54a5a4b8456db6d5d960ff6d1c21d63c02a7d5ba34",
-  "notes": "You can now drag the pill anywhere on the screen."
+  "sha256": "1ba24b955368f292ce1df8d3de243c5e5a12985b61b7827d78f02352d42a46d9",
+  "notes": "Pixie now shows a small window while it updates."
 }
