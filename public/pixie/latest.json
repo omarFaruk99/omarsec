@@ -1,8 +1,8 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "released": "2026-10-08",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "c5f284693ba02acaf31e15dfd59b7e2b05ec0e64c47111c9decbcf471c1e01ec",
-  "notes": "Clearer message when Google blocks a key. The Test button now catches it."
+  "sha256": "772cd53c5ee76cb5d097f7512c4f5c88e37717436e1ff29f1010c0f9d11b8774",
+  "notes": "Pixie now updates by itself."
 }

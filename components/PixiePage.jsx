@@ -103,7 +103,7 @@ const FAQ = [
   },
   {
     q: 'How do I get new versions?',
-    a: 'Pixie tells you when a new version is ready. Click Update, and your settings and key stay as they are.',
+    a: 'You do not need to do anything. Pixie updates by itself while you are not using it, and your settings and key stay as they are.',
   },
   {
     q: 'Does it work on Mac?',
