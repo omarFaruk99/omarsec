@@ -1,8 +1,8 @@
 {
-  "version": "1.2.3",
+  "version": "1.2.4",
   "released": "2026-10-08",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "cb2407b6b1a331368eff6cb0f2b0ef26e6694f9a0c685924dee98f490b3e5c54",
-  "notes": "The small pill is easier to see on dark wallpapers."
+  "sha256": "0ce0beb92a609e18899d4ceaa6795eff919a9229f7e91c49f6a4b93b2f6f5dcd",
+  "notes": "The pill no longer has a shadow."
 }
