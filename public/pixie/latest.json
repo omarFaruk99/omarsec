@@ -1,8 +1,8 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "released": "2026-10-09",
   "size": "41 MB",
   "download": "https://omarsec.com/pixie/download",
-  "sha256": "5bef756a42fa285a39555fe64bd73e85fcdc010df857b82b8bd5f3805314be10",
-  "notes": "A short setup guide and a tour for new users."
+  "sha256": "da6142a1683442ce7caddede52c9f8fb517a85528430238e3f81c625dbd54476",
+  "notes": "Choose your own shortcut. New installs use Ctrl + Win."
 }
