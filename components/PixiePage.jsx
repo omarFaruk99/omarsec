@@ -49,9 +49,9 @@ const STEPS = [
     title: 'Add your free key',
     text: (
       <>
-        Pixie opens its settings. Get a free key from{' '}
-        <a href={GOOGLE_KEY_URL} target="_blank" rel="noreferrer">Google AI Studio</a>, paste it, click{' '}
-        <b>Test</b>, then <b>Save</b>.
+        Pixie opens a short setup. Get a free key from{' '}
+        <a href={GOOGLE_KEY_URL} target="_blank" rel="noreferrer">Google AI Studio</a>, paste it and click{' '}
+        <b>Test</b>.
       </>
     ),
   },
@@ -59,19 +59,22 @@ const STEPS = [
     title: 'Hold and talk',
     text: (
       <>
-        Click in any text box. Hold <kbd>Right Ctrl</kbd>, speak, and let go. Your words appear in a few seconds.
+        Click in any text box. Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd>, speak, and let go. Your words appear in a
+        few seconds. The setup lets you try it once.
       </>
     ),
   },
 ]
 
 const SHORTCUTS = [
-  ['Talk', <><kbd>Right Ctrl</kbd> hold</>],
-  ['Hands-free (for long talks)', <><kbd>Right Ctrl</kbd> twice</>],
-  ['Stop hands-free and type', <><kbd>Right Ctrl</kbd> once</>],
+  ['Talk', <><kbd>Ctrl</kbd> + <kbd>Win</kbd> hold</>],
+  ['Hands-free (for long talks)', <><kbd>Ctrl</kbd> + <kbd>Win</kbd> twice, quickly</>],
+  ['Stop hands-free and type', <><kbd>Ctrl</kbd> + <kbd>Win</kbd> once</>],
   ['Cancel', <kbd>Esc</kbd>],
   ['Paste the last text again', <><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd></>],
   ['Copy the last text', <><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>X</kbd></>],
+  ['Settings and history', 'Right-click the pill'],
+  ['Move the pill', 'Drag it'],
 ]
 
 const FAQ = [
@@ -99,11 +102,11 @@ const FAQ = [
   },
   {
     q: 'Can I change the shortcut?',
-    a: 'Yes. Open Pixie settings and choose Right Ctrl, Right Alt, F8, or F9.',
+    a: 'Yes. Open Pixie settings, click Change next to Shortcut, and press the keys you want.',
   },
   {
     q: 'How do I get new versions?',
-    a: 'You do not need to do anything. Pixie updates by itself while you are not using it, and your settings and key stay as they are.',
+    a: 'You do not need to do anything. Pixie downloads new versions quietly and installs them the next time it starts. You see "Updating Pixie…" for a few seconds. Your settings and key stay as they are.',
   },
   {
     q: 'Does it work on Mac?',
@@ -535,7 +538,8 @@ export function PixiePage() {
             </div>
             <h1 className="px-title">Just talk. Pixie types it for you.</h1>
             <p className="px-lead">
-              Hold <kbd>Right Ctrl</kbd>, speak, and let go. Your words appear in any app, right where your cursor is.
+              Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd>, speak, and let go. Your words appear in any app, right where your
+              cursor is.
             </p>
             <div className="px-cta">
               <a className="px-btn" href={DOWNLOAD_URL}>
@@ -590,6 +594,10 @@ export function PixiePage() {
                   <span>{keys}</span>
                 </div>
               ))}
+            </div>
+            <div className="px-note">
+              Installed Pixie before version 1.4? Your shortcut stays <kbd>Right Ctrl</kbd>. You can change it in
+              Settings.
             </div>
           </section>
 
