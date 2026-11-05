@@ -113,24 +113,26 @@ Use Fumadocs (`fumadocs-core` + `fumadocs-ui`) as a Nextra alternative — it is
 
 ## Hosting & Deployment
 
-### Vercel (Free Tier)
+### Contabo VPS + nginx + PM2 (self-hosted)
 
-**What it does:** Hosts the site. Handles SSL, CDN, and automatic deployments from GitHub.
+**What it does:** Hosts the site. The site moved here from Vercel.
 
-**Why we chose it:**
-- First-class Next.js support (Vercel built Next.js).
-- Zero-config GitHub integration — push to `main`, site deploys.
-- Free tier covers all current needs.
-- Custom domain support included.
-
-**Current domain:** omarsec.com — DNS is on Cloudflare, records set to **DNS only**
-(grey cloud) so they resolve straight to Vercel. Proxying stays off: Cloudflare's CDN
-in front of Vercel's own causes SSL errors and stale assets.
+- `next start` runs under PM2 (app `omarsec`) on `127.0.0.1:3000`.
+- nginx sits in front on 443 with a Cloudflare Origin certificate, and serves the
+  Pixie installer directly at `/pixie/download`.
+- Cloudflare DNS is **proxied** (orange cloud): Cloudflare is the CDN and the public SSL.
+- Deploy steps are in `README.md` → "Publish".
 
 **If you want to replace it:**
-- **Netlify** — similar free tier, slightly less optimized for Next.js but works with static export.
-- **AWS Amplify** — if moving to AWS for everything (EC2, S3 etc.), keeps infra unified.
-- **Self-hosted on EC2** — build with `next build`, serve with Nginx + PM2. More control, more maintenance. Not recommended unless traffic justifies it.
+- **Vercel** — zero-config Next.js hosting; push to `main` deploys. The site ran there before.
+- **AWS EC2** — the same nginx + PM2 setup on AWS.
+
+### Analytics — Google Tag Manager + GA4
+
+`app/layout.jsx` loads Tag Manager container `GTM-TSQ23TG5` through
+`@next/third-parties`. GA4 (`G-RJNY32VVK8`) is a tag inside the container, so
+tracking changes are made in Tag Manager without touching the code. Never add a
+second GA snippet — it double-counts.
 
 ---
 
