@@ -1,5 +1,6 @@
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
 import { Head } from 'nextra/components'
+import { GoogleTagManager } from '@next/third-parties/google'
 import { getPageMap } from 'nextra/page-map'
 import { Geist, Geist_Mono } from 'next/font/google'
 import 'nextra-theme-docs/style.css'
@@ -75,6 +76,7 @@ export default async function RootLayout({ children }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
+      <GoogleTagManager gtmId="GTM-K5ZKZNXN" />
       <body>
         <MouseTracker />
         <SearchModal />
